@@ -1,0 +1,53 @@
+{
+  "section": "Service flow",
+  "screenName": "Page 4b- travel 5 mins buffer",
+  "figmaNodeId": "463:3779",
+  "route": "",
+  "figmaFrameDp": {
+    "width": 390.0,
+    "height": 830.0
+  },
+  "figmaRenderPx": {
+    "width": 466,
+    "height": 906
+  },
+  "viewportCropPx": {
+    "left": 48,
+    "top": 48,
+    "width": 370,
+    "height": 810
+  },
+  "scalingTransform": {
+    "figmaRenderScale": 1.0,
+    "figmaRenderMarginPx": 38.0,
+    "note": "390x830 bezel frame; inner 370.44x810.45 viewport at (10, 9.78)",
+    "emulatorPx": {
+      "width": 1080,
+      "height": 2392
+    },
+    "emulatorScaledToPx": {
+      "width": 370,
+      "height": 819
+    },
+    "comparedAtPx": {
+      "width": 370,
+      "height": 810
+    }
+  },
+  "comparedHeightPx": 810,
+  "referenceHeightPx": 810,
+  "emulatorScaledHeightPx": 819,
+  "uncomparedReferenceRows": 0,
+  "antialiasingTolerance": 12,
+  "differingPixelPercent": 30.7698,
+  "rawDifferingPixelPercent": 91.2045,
+  "meanChannelDelta": 30.613,
+  "maxChannelDelta": 255,
+  "verdict": "FAIL",
+  "remainingDeviations": [
+    "Measured only — differing-pixel percentage recorded, individual deviations not yet enumerated.",
+    "Header lacks the circular back chevron and the yellow Help pill with WhatsApp glyph. (shared header component, observed on every reviewed Service frame.)"
+  ],
+  "reviewDepth": "measured-only",
+  "blockedBy": "get_design_context is unavailable: the Figma Dev Mode allowed-directories list has no entry, and the local MCP server is additionally rate-limited. Exact geometry and the original photographic/illustration assets cannot be exported, so this screen is not rebuilt rather than approximated."
+}

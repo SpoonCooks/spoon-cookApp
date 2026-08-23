@@ -1,0 +1,57 @@
+{
+  "section": "Service flow",
+  "screenName": "Page 4a- travel on time",
+  "figmaNodeId": "462:3617",
+  "route": "",
+  "figmaFrameDp": {
+    "width": 390.0,
+    "height": 830.0
+  },
+  "figmaRenderPx": {
+    "width": 466,
+    "height": 906
+  },
+  "viewportCropPx": {
+    "left": 48,
+    "top": 48,
+    "width": 370,
+    "height": 810
+  },
+  "scalingTransform": {
+    "figmaRenderScale": 1.0,
+    "figmaRenderMarginPx": 38.0,
+    "note": "390x830 bezel frame; inner 370.44x810.45 viewport at (10, 9.78)",
+    "emulatorPx": {
+      "width": 1080,
+      "height": 2392
+    },
+    "emulatorScaledToPx": {
+      "width": 370,
+      "height": 819
+    },
+    "comparedAtPx": {
+      "width": 370,
+      "height": 810
+    }
+  },
+  "comparedHeightPx": 810,
+  "referenceHeightPx": 810,
+  "emulatorScaledHeightPx": 819,
+  "uncomparedReferenceRows": 0,
+  "antialiasingTolerance": 12,
+  "differingPixelPercent": 31.0237,
+  "rawDifferingPixelPercent": 91.3517,
+  "meanChannelDelta": 31.9551,
+  "maxChannelDelta": 255,
+  "verdict": "FAIL",
+  "remainingDeviations": [
+    "Walking-cook illustration beside the headline is absent from the app.",
+    "Countdown is bare hero text; V13 wraps it in a lime card containing a white rounded box with the caption to its right.",
+    "Address rows have no yellow leading icons.",
+    "App adds a `Society gate` block V13 does not show on this frame.",
+    "`Map dekhe` renders black; V13 uses a yellow pill with a location icon.",
+    "Customer name/duration order differs from V13."
+  ],
+  "reviewDepth": "visually reviewed against the Figma reference",
+  "blockedBy": "get_design_context is unavailable: the Figma Dev Mode allowed-directories list has no entry, and the local MCP server is additionally rate-limited. Exact geometry and the original photographic/illustration assets cannot be exported, so this screen is not rebuilt rather than approximated."
+}
