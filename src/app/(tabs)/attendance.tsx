@@ -5,8 +5,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { newIdempotencyKey } from '@core/api/cook';
 import { apiErrorMessage, isSessionExpired } from '@core/api/errors';
-import { useCookProfile, useMarkPresent, useMonthlyAttendance } from '@core/api/queries';
-import { canSubmitLeaveRequest, leaveRequestUnavailableCopy } from '@core/domain/leave';
+import { toAttendanceMonth } from '@core/api/adapters';
+import { useCookProfile, useLeaves, useMarkPresent, useMonthlyAttendance } from '@core/api/queries';
+import { formatShortDate } from '@core/domain/money';
 import { useSession } from '@core/session/store';
 import { Button, color, ErrorState, LoadingState, radius, shadow, spacing, Text } from '@ui';
 
@@ -29,12 +30,38 @@ import { Button, color, ErrorState, LoadingState, radius, shadow, spacing, Text 
  * success, not an error, which is why the idempotency key is created once per mount rather than
  * per tap.
  *
- * ## `Chutti lagaye` is designed but has no backend
+ * ## `Chutti lagaye` is connected
  *
- * The leave-request flow is genuinely inside the approved section, so the surfaces are built. The
- * backend has no cook-side leave write (GAP-21), so submission stays disabled behind
- * `canSubmitLeaveRequest()` rather than showing `Chutti lag gyi` for a leave nobody recorded.
+ * `POST /v1/cook/leaves` is deployed, so the pickers submit for real and the submission gate that
+ * stood here is gone. `GET /cook/leaves` returns REQUESTS grouped by `leave_request_id` — pending,
+ * approved and rejected alike — so `Aane wali chutti` below shows each request in the state the
+ * server holds it in, and a pending request is never rendered as granted.
  */
+/**
+ * Why the Present button is unavailable, in the cook's language.
+ *
+ * Keyed on the backend's `reason` rather than on anything inferred locally, so the app never
+ * explains a refusal the server did not make. `READY` is present for exhaustiveness only — the
+ * button is shown in that state, so the copy is never rendered.
+ */
+const checkInBlockedCopy: Record<
+  'READY' | 'NO_SHIFT' | 'APPROVED_LEAVE' | 'ALREADY_CHECKED_IN' | 'ATTENDANCE_RECORDED',
+  string
+> = {
+  READY: '',
+  NO_SHIFT: 'Aaj aapki koi shift nahi hai.',
+  APPROVED_LEAVE: 'Aaj aapki chutti approve hai.',
+  ALREADY_CHECKED_IN: 'Aaj aap already present ho.',
+  ATTENDANCE_RECORDED: 'Aaj ki attendance already darj ho chuki hai.',
+};
+
+/** Server instant → local clock time. Presentation only; the ruling stays the backend's. */
+function formatCheckInWindow(iso: string): string {
+  const at = new Date(iso);
+  if (Number.isNaN(at.getTime())) return '';
+  return at.toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit', hour12: true });
+}
+
 export default function AttendanceScreen(): React.ReactElement {
   const insets = useSafeAreaInsets();
   const signOut = useSession((s) => s.signOut);
@@ -45,12 +72,23 @@ export default function AttendanceScreen(): React.ReactElement {
   const profile = useCookProfile();
   const month = useMemo(() => (profile.data?.serverTime ?? '').slice(0, 7), [profile.data]);
   const attendance = useMonthlyAttendance(month, month.length === 7);
+  const leaves = useLeaves({}, month.length === 7);
   const markPresent = useMarkPresent(idempotencyKey, month);
 
-  const refreshing = profile.isFetching || attendance.isFetching;
+  const todayIso = useMemo(() => (profile.data?.serverTime ?? '').slice(0, 10), [profile.data]);
+  const monthView = useMemo(
+    () =>
+      attendance.data === undefined
+        ? null
+        : toAttendanceMonth(attendance.data, leaves.data ?? null, todayIso),
+    [attendance.data, leaves.data, todayIso],
+  );
+
+  const refreshing = profile.isFetching || attendance.isFetching || leaves.isFetching;
   const onRefresh = (): void => {
     void profile.refetch();
     void attendance.refetch();
+    void leaves.refetch();
   };
 
   if (profile.isPending) return <LoadingState testID="attendance-loading" />;
@@ -73,10 +111,11 @@ export default function AttendanceScreen(): React.ReactElement {
   const status = today.attendance?.status ?? null;
   const shift = today.shift;
 
-  // No shift today means there is nothing to check in against — the backend rejects the command
-  // with `INVALID_REQUEST`, so the button is not offered.
-  const hasShiftToday = shift !== null;
-  const canMark = hasShiftToday && status === null;
+  // The SERVER decides eligibility. `canCheckIn` already accounts for the shift, approved leave,
+  // an existing record and cook status, so nothing is re-derived here: the earlier local rule
+  // (`hasShiftToday && status === null`) offered the button to a cook on approved leave and let
+  // the backend refuse the tap.
+  const canMark = today.canCheckIn;
 
   const headline =
     status === 'present'
@@ -129,15 +168,22 @@ export default function AttendanceScreen(): React.ReactElement {
                 onPress={() => markPresent.mutate()}
                 testID="attendance-mark-present"
               />
-              <Text variant="captionMuted" testID="attendance-present-hint">
-                Shift se 30 mins pehle tak button dabaye
-              </Text>
+              {/* The Figma reads "Shift se 30 mins pehle tak button dabaye". No such rule exists:
+                  the backend has no approved opening window and returns `checkInOpensAt: null`.
+                  Printing that copy would state a restriction the server does not enforce, so the
+                  hint appears ONLY once the backend actually publishes a window. Recorded as copy
+                  drift in the closure report. */}
+              {today.checkInOpensAt !== null && (
+                <Text variant="captionMuted" testID="attendance-present-hint">
+                  {`Check-in ${formatCheckInWindow(today.checkInOpensAt)} se khulta hai`}
+                </Text>
+              )}
             </>
           )}
 
-          {!hasShiftToday && status === null && (
+          {!canMark && status === null && (
             <Text variant="captionMuted" testID="attendance-no-shift">
-              Aaj aapki koi shift nahi hai.
+              {checkInBlockedCopy[today.reason]}
             </Text>
           )}
 
@@ -164,8 +210,6 @@ export default function AttendanceScreen(): React.ReactElement {
           <Text variant="titleBlack">Chutti lagaye</Text>
           <Text variant="captionMuted">Aap jitne din aaye, utne din ke paise milenge</Text>
 
-          {/* Navigation is not a mutation. The pickers stay reachable so the designed flow is
-              intact and reviewable; only the final `Pakka` submit is blocked (GAP-21). */}
           <Button
             label="1 din ki chutti"
             tone="ghost"
@@ -178,13 +222,28 @@ export default function AttendanceScreen(): React.ReactElement {
             onPress={() => router.push('/leave/range')}
             testID="attendance-leave-range"
           />
-
-          {!canSubmitLeaveRequest() && (
-            <Text variant="captionMuted" testID="attendance-leave-blocked">
-              {leaveRequestUnavailableCopy}
-            </Text>
-          )}
         </View>
+
+        {monthView !== null && monthView.upcomingLeaves.length > 0 && (
+          <View style={styles.leaveCard} testID="attendance-upcoming-leaves">
+            <Text variant="titleBlack">Aane wali chutti</Text>
+            {monthView.upcomingLeaves.map((leave) => (
+              <View key={leave.id} style={styles.leaveRow} testID={`attendance-leave-${leave.id}`}>
+                <Text variant="bodyStrong">
+                  {leave.startDateIso === leave.endDateIso
+                    ? formatShortDate(leave.startDateIso)
+                    : `${formatShortDate(leave.startDateIso)} se ${formatShortDate(leave.endDateIso)} tak`}
+                </Text>
+                <Text
+                  variant="caption"
+                  color={leave.status === 'approved' ? color.textPrimary : color.textSecondary}
+                >
+                  {leaveStatusCopy[leave.status]}
+                </Text>
+              </View>
+            ))}
+          </View>
+        )}
 
         {attendance.isError ? (
           <ErrorState
@@ -210,6 +269,20 @@ export default function AttendanceScreen(): React.ReactElement {
     </View>
   );
 }
+
+/**
+ * How each leave state reads to the cook.
+ *
+ * `pending` must never sound settled: a cook who reads "lag gyi" stays home on a day Ops has not
+ * approved. Exhaustive over `LeaveEntry['status']`, so a new backend state is a compile error here
+ * rather than a blank label on the screen.
+ */
+const leaveStatusCopy: Record<'approved' | 'pending' | 'rejected' | 'cancelled', string> = {
+  approved: 'Chutti lag gyi',
+  pending: 'Manager approve karenge',
+  rejected: 'Chutti nahi mili',
+  cancelled: 'Cancel ho gyi',
+};
 
 /** `12:15:00` → `12:15 PM`. Presentation only; the server supplies the local time. */
 function formatLocalTime(value: string): string {
@@ -265,6 +338,12 @@ const styles = StyleSheet.create({
     backgroundColor: color.surface,
     borderRadius: radius.xxl,
     padding: spacing.l,
+    gap: spacing.m,
+  },
+  leaveRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     gap: spacing.m,
   },
   tileRow: { flexDirection: 'row', gap: spacing.m },

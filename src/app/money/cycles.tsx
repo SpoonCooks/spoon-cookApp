@@ -1,81 +1,98 @@
-import { router, Stack } from 'expo-router';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { router } from 'expo-router';
+import { useMemo } from 'react';
+import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { formatRupees } from '@core/domain/money';
-import { areFixturesAvailable, moneyFixtures } from '@core/fixtures';
-import { color, EmptyState, radius, spacing, Text } from '@ui';
+import { toCycleRef } from '@core/api/adapters';
+import { apiErrorMessage } from '@core/api/errors';
+import { useEarnings, useEarningsCycles } from '@core/api/queries';
+import { formatRupees, unavailableFigure } from '@core/domain/money';
+import {
+  BackHeader,
+  color,
+  EmptyState,
+  ErrorState,
+  LifetimeBand,
+  LinkRow,
+  LoadingState,
+  spacing,
+} from '@ui';
 
 /**
- * Page 4 — cycle history (Figma `502:442`).
+ * `17- weekly history` (`575:2032`) — `Pichle cycles`.
  *
- * Founder comment #143: "Probably have final payouts against each one here — baar baar khol
- * kholke thori na dekhenge". Each row therefore has a slot for the settled amount so the cook does
- * not have to open every cycle.
+ * Two backend reads, both authoritative:
  *
- * That amount is **not available from the backend today** (GAP-18: the proposed
- * `GET /v1/cook/earnings/cycles` must return a final figure per cycle). Rows render `—` rather
- * than a computed or guessed number.
+ *   - `GET /v1/cook/earnings/cycles` → the cycle list. The route answers a BARE ARRAY, not
+ *     `{ cycles: [...] }`, which is what `cookCyclesSchema` validates.
+ *   - `GET /v1/cook/earnings` → `totalPaise`, which the backend computes as
+ *     `SUM(amount_paise) WHERE cook_id = $1` over the whole ledger. That is precisely
+ *     `Spoon se aaj tak ki kamai`, so the lifetime band is a server figure rather than a sum of
+ *     the rows on screen.
+ *
+ * `finalAmountPaise` is `null` until a cycle is closed for this cook. That renders `—`: an open
+ * cycle has no settled payout, and printing its running total under `Kamai:` would look like one.
  */
 export default function CycleHistoryScreen(): React.ReactElement {
   const insets = useSafeAreaInsets();
 
-  // PHASE 2: GET the cook's earnings cycles (GAP-03/GAP-18).
-  const cycles = areFixturesAvailable() ? moneyFixtures.cycles() : null;
+  const cycles = useEarningsCycles();
+  const earnings = useEarnings();
+
+  const rows = useMemo(() => (cycles.data ?? []).map(toCycleRef), [cycles.data]);
+
+  if (cycles.isPending) return <LoadingState testID="cycles-loading" />;
+
+  if (cycles.isError) {
+    return (
+      <ErrorState
+        message={apiErrorMessage(cycles.error)}
+        onRetry={() => void cycles.refetch()}
+        testID="cycles-error"
+      />
+    );
+  }
 
   return (
     <View style={styles.flex}>
-      <Stack.Screen options={{ headerShown: false }} />
-      <View style={[styles.banner, { paddingTop: insets.top + spacing.s }]}>
-        <Text variant="headingLg">Pichle cycles</Text>
-      </View>
+      <ScrollView
+        contentContainerStyle={[
+          styles.content,
+          { paddingTop: insets.top + spacing.m, paddingBottom: insets.bottom + spacing.huge },
+        ]}
+        refreshControl={
+          <RefreshControl refreshing={cycles.isFetching} onRefresh={() => void cycles.refetch()} />
+        }
+        testID="cycles-scroll"
+      >
+        <BackHeader title="Pichle cycles" onBack={() => router.back()} />
 
-      {cycles === null || cycles.length === 0 ? (
-        <EmptyState message="Koi pichla cycle nahi hai." />
-      ) : (
-        <ScrollView
-          contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + spacing.huge }]}
-        >
-          {cycles.map((cycle) => (
-            <Pressable
+        {earnings.data !== undefined && <LifetimeBand netPaise={earnings.data.totalPaise} />}
+
+        {rows.length === 0 ? (
+          <EmptyState message="Koi pichla cycle nahi hai." />
+        ) : (
+          rows.map((cycle) => (
+            <LinkRow
               key={cycle.cycleId}
-              accessibilityRole="button"
-              testID={`cycle-${cycle.cycleId}`}
+              label={cycle.label}
+              sublabel={`Kamai:  ${cycle.finalPaise === null ? unavailableFigure : formatRupees(cycle.finalPaise)}`}
               onPress={() =>
                 router.push({
                   pathname: '/money/cycle/[cycleId]',
                   params: { cycleId: cycle.cycleId },
                 })
               }
-              style={[styles.row, cycle.isCurrent && styles.rowCurrent]}
-            >
-              <View style={styles.rowLabel}>
-                <Text variant="body">{cycle.label}</Text>
-                {cycle.isCurrent && <Text variant="label">Current</Text>}
-              </View>
-              <Text variant="bodyStrong">
-                {cycle.finalPaise === null ? '—' : formatRupees(cycle.finalPaise)}
-              </Text>
-            </Pressable>
-          ))}
-        </ScrollView>
-      )}
+              testID={`cycle-${cycle.cycleId}`}
+            />
+          ))
+        )}
+      </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1 },
-  banner: { paddingHorizontal: spacing.xl, paddingBottom: spacing.m },
+  flex: { flex: 1, backgroundColor: color.background },
   content: { paddingHorizontal: spacing.xl, gap: spacing.m },
-  row: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: color.surface,
-    borderRadius: radius.l,
-    padding: spacing.l,
-  },
-  rowCurrent: { borderWidth: 2, borderColor: color.black },
-  rowLabel: { gap: spacing.xxs },
 });

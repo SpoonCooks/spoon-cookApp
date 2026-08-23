@@ -2,7 +2,19 @@ import { useCallback, useMemo, useRef, useState } from 'react';
 import { Pressable, StyleSheet, TextInput, View } from 'react-native';
 
 import { color, radius, spacing } from '../theme/tokens';
+import { useDesignScale } from '../theme/designScale';
 import { Text } from '../primitives/Text';
+
+/**
+ * Which V12 treatment to draw.
+ *
+ * `tiles` is the Login flow's own: `434:3255` draws six flat 35x35 `#ffef99` squares with a 10dp
+ * gap and a 5dp radius, and no stroke at all. `bordered` is the entry field used elsewhere.
+ *
+ * These are separate variants rather than one "generic" box because V12 genuinely draws them
+ * differently — flattening them into a single component would make one of the two screens wrong.
+ */
+export type OtpInputVariant = 'bordered' | 'tiles';
 
 export interface OtpInputProps {
   /** Number of digit boxes. Comes from `otpLength[kind]` — never hardcoded by a screen. */
@@ -14,6 +26,7 @@ export interface OtpInputProps {
   readonly disabled?: boolean;
   readonly autoFocus?: boolean;
   readonly testID?: string;
+  readonly variant?: OtpInputVariant | undefined;
 }
 
 /**
@@ -39,9 +52,11 @@ export function OtpInput({
   disabled = false,
   autoFocus = false,
   testID,
+  variant = 'bordered',
 }: OtpInputProps): React.ReactElement {
   const inputRef = useRef<TextInput>(null);
   const [focused, setFocused] = useState(false);
+  const { s } = useDesignScale();
 
   const handleChange = useCallback(
     (raw: string) => {
@@ -55,6 +70,12 @@ export function OtpInput({
   const boxes = useMemo(() => Array.from({ length }, (_, i) => i), [length]);
   const focus = useCallback(() => inputRef.current?.focus(), []);
 
+  const isTiles = variant === 'tiles';
+  // V12 `434:3256`: 35x35 at a 10dp gap, radius 5, flat fill, no stroke.
+  const tileStyle = isTiles
+    ? { width: s(TILE.size), height: s(TILE.size), borderRadius: s(TILE.radius) }
+    : null;
+
   return (
     <Pressable
       onPress={disabled ? undefined : focus}
@@ -62,7 +83,7 @@ export function OtpInput({
       testID={testID}
       style={styles.wrapper}
     >
-      <View style={styles.row} pointerEvents="none">
+      <View style={[styles.row, isTiles && { gap: s(TILE.gap) }]} pointerEvents="none">
         {boxes.map((index) => {
           const char = value[index] ?? '';
           const isCursor = focused && index === Math.min(value.length, length - 1);
@@ -71,14 +92,16 @@ export function OtpInput({
               key={index}
               testID={`${testID ?? 'otp'}-box-${index}`}
               style={[
-                styles.box,
-                char !== '' && styles.boxFilled,
-                isCursor && styles.boxFocused,
-                hasError && styles.boxError,
+                isTiles ? styles.tile : styles.box,
+                tileStyle,
+                !isTiles && char !== '' && styles.boxFilled,
+                !isTiles && isCursor && styles.boxFocused,
+                isTiles && isCursor && styles.tileFocused,
+                hasError && (isTiles ? styles.tileError : styles.boxError),
                 disabled && styles.boxDisabled,
               ]}
             >
-              <Text variant="headingLg">{char}</Text>
+              <Text variant={isTiles ? 'headingLgBold' : 'headingLg'}>{char}</Text>
             </View>
           );
         })}
@@ -108,6 +131,9 @@ export function OtpInput({
   );
 }
 
+/** V12 `434:3256` tile metrics, in design space. */
+const TILE = { size: 35, gap: 10, radius: 5 } as const;
+
 const styles = StyleSheet.create({
   wrapper: { alignSelf: 'stretch' },
   row: { flexDirection: 'row', justifyContent: 'center', gap: spacing.m },
@@ -121,6 +147,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  tile: {
+    backgroundColor: color.yellow300,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  // V12 draws no focus or filled state for the tiles; these stay subtle so the resting frame
+  // still matches the design exactly while entry remains legible.
+  tileFocused: { backgroundColor: color.yellow400 },
+  tileError: { backgroundColor: color.yellow200, borderWidth: 1, borderColor: color.danger },
   boxFilled: { borderColor: color.black },
   boxFocused: { borderColor: color.yellow600 },
   boxError: { borderColor: color.danger },

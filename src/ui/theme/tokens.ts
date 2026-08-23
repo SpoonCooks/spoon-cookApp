@@ -2,7 +2,7 @@
  * Cook App design tokens.
  *
  * Values are taken from the authoritative Cook App Figma
- * (`N44dO2hqLQBw5I5TKh0wmu`, page `Cook App` = `434:2401`) by walking every node's fills,
+ * (`DfnWJV2wQxSWfFb1QcBZpG`, page `Cook App` = `434:2401`, V12) by walking every node's fills,
  * strokes, text styles and corner radii. Where the founder-provided brand list and Figma agree,
  * they are the same value; where Figma is more specific (neutrals, semantic reds, slate), Figma
  * wins per the Phase 1 source priority.
@@ -20,6 +20,11 @@ export const brand = {
   lime600: '#cfff04',
   lime400: '#e2ff68',
   lime300: '#ecff9b',
+  /** V12 `performance` tints, sampled from the section's own renders. */
+  lime200: '#f0ffaf',
+  lime100: '#f4ffc3',
+  lime50: '#faffe8',
+  yellow100: '#fffadf',
   black: '#000000',
   white: '#ffffff',
 } as const;
@@ -27,6 +32,12 @@ export const brand = {
 /** Neutrals observed in the Figma, ordered light to dark. */
 export const neutral = {
   cream: '#fffdf5',
+  /**
+   * Figma variable `color/black/ 70%` (`#000000b2`). The muted-copy colour on the Login flow —
+   * over the flow's white background it resolves to `#4d4d4d`, which is what the V12 render
+   * samples to. Kept as the translucent original so it composites correctly on any background.
+   */
+  black70: 'rgba(0, 0, 0, 0.7)',
   grey50: '#f9fafb',
   grey100: '#f3f4f6',
   grey300: '#cad5e2',
@@ -39,6 +50,12 @@ export const neutral = {
 /** Semantic colours. `danger` is the countdown/late red used on both travel-risk states. */
 export const semantic = {
   danger: '#ff0000',
+  /**
+   * Figma variable `color/spring green/24`. The ONLY green in the V12 `performance` section: it
+   * emphasises the backend-supplied bonus threshold inside `Bonus ke liye: N se zyada ghante
+   * kaam`. Never used to signal success generally.
+   */
+  success: '#007a55',
   dangerDeep: '#e7000b',
   slate: '#0f172b',
   slate800: '#1e2939',

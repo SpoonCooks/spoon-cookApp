@@ -93,6 +93,15 @@ export interface GateTarget {
   readonly latitude: number;
   readonly longitude: number;
   readonly label: string | null;
+  /**
+   * How to get through the gate once there (backend `destination.accessInstructions`).
+   *
+   * Belongs to the GATE, not to the flat: it is the guard-desk / entry note the operations team
+   * captured for this society, and it is the last thing a cook needs before the customer block
+   * becomes relevant. `null` when the snapshot carries none — rendered as nothing, never as a
+   * placeholder instruction a cook might act on.
+   */
+  readonly accessInstructions: string | null;
 }
 
 export interface ExtensionProjection {

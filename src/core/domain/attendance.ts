@@ -35,13 +35,29 @@ export interface AttendanceDay {
   readonly mark: DayMark;
 }
 
+/**
+ * One leave REQUEST, not one leave day.
+ *
+ * The deployed `GET /v1/cook/leaves` groups `cook_leaves` rows by `leave_request_id` and answers
+ * with a range plus a rolled-up verdict, so a five-day request arrives as ONE row spanning
+ * `startDateIso..endDateIso`. Modelling it per-day here would misreport a single request as five
+ * separate chutties in the cook's list.
+ *
+ * `reason` is nullable in the contract and stays nullable here: an absent reason is a fact about
+ * the request, and inventing `'Chutti'` for it would put words in the cook's mouth.
+ */
 export interface LeaveEntry {
   readonly id: string;
-  readonly dateIso: string;
-  /** Figma shows `Planned Leave`. */
-  readonly label: string;
-  /** Figma shows `Approved`. Leave *creation* is Ops-only — GAP-21. */
-  readonly status: 'approved' | 'pending' | 'rejected';
+  readonly startDateIso: string;
+  readonly endDateIso: string;
+  /** Inclusive day count — display only (`Total din`). */
+  readonly dayCount: number;
+  readonly reason: string | null;
+  /**
+   * The server's roll-up. `cancelled` is included because the backend can report it and a value
+   * this build cannot render must not be silently upgraded to `approved`.
+   */
+  readonly status: 'approved' | 'pending' | 'rejected' | 'cancelled';
 }
 
 /**

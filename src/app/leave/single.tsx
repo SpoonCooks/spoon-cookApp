@@ -1,42 +1,82 @@
 import { router } from 'expo-router';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { newIdempotencyKey } from '@core/api/cook';
+import { apiErrorMessage } from '@core/api/errors';
+import { useCookProfile, useRequestLeave } from '@core/api/queries';
 import {
-  canSubmitLeaveRequest,
   countLeaveDays,
-  leaveRequestUnavailableCopy,
+  leaveRequestPendingCopy,
+  toLeaveRequestRange,
+  validateLeaveSelection,
   type LeaveRequestKind,
 } from '@core/domain/leave';
-import { Button, color, radius, spacing, Text } from '@ui';
+import { Button, color, ErrorState, LoadingState, radius, spacing, Text } from '@ui';
 
 /**
  * `1 din ki chutti` — Figma `Page 14a- 1day` (`528:483`) and `Page 14b- 1day confirm` (`529:1259`).
  *
- * Page 14a is the confirmation: `Chutti pakka hai?` over the chosen day, with a `Pakka` button.
- * Page 14b is the same attendance surface with that day switched from `Chutti` to `Chutti lag gyi`.
+ * ## `Pakka` now submits
  *
- * ## Why `Pakka` cannot complete
+ * `POST /v1/cook/leaves` is registered on the deployed API (probed 2026-08-23: `400 INVALID_REQUEST`
+ * for an empty body, never `404`). The gate that stood here while the endpoint was missing is gone.
  *
- * There is no cook-side leave write in the backend (GAP-21). Rendering `Chutti lag gyi` on a tap
- * would tell the cook a leave was booked that no server has recorded — and the cook would then not
- * turn up. So the confirm affordance is disabled and the reason is stated in the cook's language.
+ * What the gate protected against is still true and is enforced by the copy: the request lands
+ * `pending` and Ops/Admin decide, so the confirmation says `Chutti ki request bhej di` — never
+ * `Chutti lag gyi`. Nothing is marked locally; the leave lists and the month are invalidated and
+ * re-read so the cook sees the state the server actually stored.
  *
- * The day chips and the confirmation copy are implemented exactly as designed, so when the endpoint
- * lands this screen needs a mutation call and a flag flip, not a redesign.
+ * ## The service date is the server's
+ *
+ * The day chips are built from `profile.serverTime`, not `new Date()`. A device an hour behind
+ * midnight would otherwise offer "Aaj" for a date the backend has already rolled past and the
+ * request would be rejected as being in the past.
  */
 export default function SingleDayLeaveScreen(): React.ReactElement {
   const insets = useSafeAreaInsets();
+
+  // One key per mount: a double-tap or a post-timeout retry replays the SAME request rather than
+  // filing a second chutti.
   const [idempotencyKey] = useState(newIdempotencyKey);
 
-  // Computed once per mount so the chips do not shift if the component re-renders across midnight.
-  const [options] = useState(nextThreeDays);
-  const [selectedIso, setSelectedIso] = useState<string>(options[0]?.dateIso ?? '');
+  const profile = useCookProfile();
+  const todayIso = (profile.data?.serverTime ?? '').slice(0, 10);
+  const month = todayIso.slice(0, 7);
+  const requestLeave = useRequestLeave(month);
+
+  const options = useMemo(
+    () => (todayIso.length === 10 ? nextThreeDays(todayIso) : []),
+    [todayIso],
+  );
+  const [pickedIso, setPickedIso] = useState<string | null>(null);
+  const selectedIso = pickedIso ?? options[0]?.dateIso ?? '';
 
   const selection: LeaveRequestKind = { kind: 'single_day', dateIso: selectedIso };
-  const submittable = canSubmitLeaveRequest();
+  const validation = validateLeaveSelection(selection, todayIso);
+  const submitted = requestLeave.isSuccess;
+
+  if (profile.isPending) return <LoadingState testID="leave-single-loading" />;
+  if (profile.isError) {
+    return (
+      <ErrorState
+        message={apiErrorMessage(profile.error)}
+        onRetry={() => void profile.refetch()}
+        testID="leave-single-error"
+      />
+    );
+  }
+
+  const submit = (): void => {
+    if (!validation.ok || requestLeave.isPending || submitted) return;
+    const range = toLeaveRequestRange(selection);
+    requestLeave.mutate({
+      startDateIso: range.startDateIso,
+      endDateIso: range.endDateIso,
+      idempotencyKey,
+    });
+  };
 
   return (
     <View style={[styles.flex, { paddingTop: insets.top + spacing.m }]} testID="leave-single">
@@ -61,7 +101,8 @@ export default function SingleDayLeaveScreen(): React.ReactElement {
                   label={active ? 'Chuna' : 'Chutti'}
                   tone={active ? 'action' : 'ghost'}
                   fullWidth={false}
-                  onPress={() => setSelectedIso(option.dateIso)}
+                  disabled={submitted}
+                  onPress={() => setPickedIso(option.dateIso)}
                   testID={`leave-day-pick-${option.dateIso}`}
                 />
               </View>
@@ -73,21 +114,30 @@ export default function SingleDayLeaveScreen(): React.ReactElement {
           {`Total din ${countLeaveDays(selection)}`}
         </Text>
 
+        {!validation.ok && (
+          <Text variant="caption" color={color.danger} testID="leave-single-invalid">
+            {validation.message}
+          </Text>
+        )}
+
         <Button
           label="Pakka"
           tone="action"
-          disabled={!submittable}
-          onPress={() => {
-            // GAP-21: intentionally unreachable while `canSubmitLeaveRequest()` is false. The
-            // idempotency key is already prepared so the future call is a one-line addition.
-            void idempotencyKey;
-          }}
+          disabled={!validation.ok || submitted}
+          loading={requestLeave.isPending}
+          onPress={submit}
           testID="leave-single-confirm"
         />
 
-        {!submittable && (
-          <Text variant="caption" color={color.danger} testID="leave-single-blocked">
-            {leaveRequestUnavailableCopy}
+        {submitted && (
+          <Text variant="bodyStrong" testID="leave-single-pending">
+            {leaveRequestPendingCopy}
+          </Text>
+        )}
+
+        {requestLeave.isError && (
+          <Text variant="caption" color={color.danger} testID="leave-single-failed">
+            {apiErrorMessage(requestLeave.error)}
           </Text>
         )}
 
@@ -124,20 +174,21 @@ const MONTHS = [
 ] as const;
 
 /**
- * `Aaj` / `Kal` / `Parso`, matching the Figma chips.
+ * `Aaj` / `Kal` / `Parso`, counted forward from the SERVER's service date.
  *
- * These are picker LABELS only. The authoritative service date for any submitted leave would be
- * the server's, exactly as it is for attendance — the device clock never decides a service date.
+ * Parsed at UTC midnight so adding a day is exact arithmetic on the date rather than on a local
+ * timestamp that a DST or offset boundary could shift.
  */
-function nextThreeDays(): readonly DayOption[] {
+function nextThreeDays(todayIso: string): readonly DayOption[] {
   const labels = ['Aaj', 'Kal', 'Parso'] as const;
-  const base = new Date();
+  const base = Date.parse(`${todayIso}T00:00:00Z`);
+  if (Number.isNaN(base)) return [];
   return labels.map((relativeLabel, offset) => {
-    const day = new Date(base.getTime() + offset * 86_400_000);
-    const month = MONTHS[day.getMonth()] ?? '';
+    const day = new Date(base + offset * 86_400_000);
+    const month = MONTHS[day.getUTCMonth()] ?? '';
     return {
       dateIso: day.toISOString().slice(0, 10),
-      dayLabel: `${day.getDate()} ${month}`,
+      dayLabel: `${day.getUTCDate()} ${month}`,
       relativeLabel,
     };
   });

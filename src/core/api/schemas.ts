@@ -83,6 +83,32 @@ export const cookProfileSchema = z.object({
         onTime: z.boolean().nullable(),
       })
       .nullable(),
+    /**
+     * The SERVER's check-in eligibility ruling. Authoritative — the app must not re-derive it.
+     *
+     * An earlier build computed `hasShiftToday && noRecordYet` locally, which offered `Mark
+     * Present` to a cook on approved leave and then let the backend reject the tap with a 400.
+     * `canCheckIn` already accounts for leave, existing records and cook status.
+     */
+    canCheckIn: z.boolean(),
+    /**
+     * When the check-in window opens.
+     *
+     * Currently ALWAYS `null`: the backend has no approved opening rule (no 30-minute window
+     * exists). Screens must therefore render no window copy while this is null, rather than
+     * asserting a restriction the server does not enforce.
+     */
+    checkInOpensAt: isoString.nullable(),
+    shiftStartsAt: isoString.nullable(),
+    checkedInAt: isoString.nullable(),
+    /** Why `canCheckIn` holds the value it does. A closed set in `CookOperationalProfile`. */
+    reason: z.enum([
+      'READY',
+      'NO_SHIFT',
+      'APPROVED_LEAVE',
+      'ALREADY_CHECKED_IN',
+      'ATTENDANCE_RECORDED',
+    ]),
     availability: z.object({ state: z.string(), changedAt: isoString }).nullable(),
   }),
   currentAssignment: z
@@ -142,6 +168,14 @@ export const cookJobSchema = z.object({
     latitude: z.number(),
     longitude: z.number(),
     label: z.string(),
+    /**
+     * Gate-level entry guidance from the operational snapshot (`gate_access_instructions`).
+     *
+     * Part of the destination contract, not decoration: it is how a cook gets PAST the gate they
+     * were routed to. An earlier build omitted the field, so the backend sent it and no screen
+     * could ever show it.
+     */
+    accessInstructions: z.string().nullable(),
     flat: z.string().nullable(),
     tower: z.string().nullable(),
     society: z.string().nullable(),
@@ -212,29 +246,102 @@ export const monthlyAttendanceSchema = z.object({
 });
 export type MonthlyAttendanceResponse = z.infer<typeof monthlyAttendanceSchema>;
 
+/**
+ * One leave REQUEST, grouped by `leave_request_id`.
+ *
+ * The deployed `GET /cook/leaves` no longer returns one row per service date — `listCookLeaves`
+ * groups by request and answers with a range plus a rolled-up status. An earlier build of this
+ * file expected `{ id, serviceDate }` per day and would have failed every read.
+ *
+ * `status` is left as a string rather than an enum on purpose: the backend rolls four day-level
+ * states into one request-level verdict, and a value this build has not seen must render as
+ * "pending decision" rather than fail a screen the cook needs.
+ */
+export const cookLeaveSchema = z.object({
+  leaveId: z.string(),
+  type: z.enum(['single_day', 'multi_day']),
+  startDate: serviceDate,
+  endDate: serviceDate,
+  status: z.string(),
+  reason: z.string().nullable(),
+  requestedAt: isoString,
+  decidedAt: isoString.nullable(),
+});
+export type CookLeaveResponse = z.infer<typeof cookLeaveSchema>;
+
+/**
+ * `GET /cook/attendance` — a BARE ARRAY of stored records for a date window.
+ *
+ * Unlike `/cook/attendance/month` this returns only days that HAVE a record, so a day missing
+ * from the array is "nothing recorded", never "absent".
+ */
+export const cookAttendanceRangeSchema = z.array(
+  z.object({
+    serviceDate,
+    status: attendanceStatusSchema,
+    markedAt: isoString,
+    updatedAt: isoString,
+  }),
+);
+export type CookAttendanceRangeResponse = z.infer<typeof cookAttendanceRangeSchema>;
+
 export const cookLeavesSchema = z.object({
-  leaves: z.array(
-    z.object({
-      id: z.string(),
-      serviceDate,
-      status: z.string(),
-      reason: z.string(),
-    }),
-  ),
+  leaves: z.array(cookLeaveSchema),
   fromDate: serviceDate,
   toDate: serviceDate,
   timezone: z.string(),
 });
 export type CookLeavesResponse = z.infer<typeof cookLeavesSchema>;
 
+/**
+ * `POST /cook/leaves` — the cook-side leave WRITE.
+ *
+ * Answers `201` with `status: 'pending'`. A cook-submitted leave is NEVER approved by submitting
+ * it; Ops/Admin decide. The screens must therefore say "bhej diya", never "chutti lag gyi".
+ */
+export const cookLeaveRequestSchema = cookLeaveSchema.extend({
+  status: z.literal('pending'),
+});
+export type CookLeaveRequestResponse = z.infer<typeof cookLeaveRequestSchema>;
+
 /* ----------------------------------------------------------- earnings --- */
+
+/**
+ * Backend-owned earnings categories (`CookEarningsBreakdown` in
+ * `src/earnings/financial-service.ts`).
+ *
+ * These fourteen figures are the reason the V12 Performance screens can be rendered at all. The
+ * backend derives them from the immutable ledger with reversals kept as their OWN signed category,
+ * so `netEarningsPaise` is the signed sum of the period and never a frontend subtraction. The app
+ * reads them; it never re-buckets `events[]` by `eventType`, which would overstate `base` whenever
+ * a reversal landed in a different bucket.
+ */
+export const cookEarningsBreakdownSchema = z.object({
+  baseEarningsPaise: z.number().int(),
+  ratingBonusPaise: z.number().int(),
+  longHoursEarningsPaise: z.number().int(),
+  attendanceBonusPaise: z.number().int(),
+  paidLeaveEarningsPaise: z.number().int(),
+  tipsPaise: z.number().int(),
+  lateDeductionsPaise: z.number().int(),
+  noShowDeductionsPaise: z.number().int(),
+  otherDeductionsPaise: z.number().int(),
+  adjustmentsPaise: z.number().int(),
+  reversalsPaise: z.number().int(),
+  grossEarningsPaise: z.number().int(),
+  totalDeductionsPaise: z.number().int(),
+  netEarningsPaise: z.number().int(),
+});
+export type CookEarningsBreakdownResponse = z.infer<typeof cookEarningsBreakdownSchema>;
 
 const earningsPeriodSchema = z.object({
   startDate: serviceDate,
   endDate: serviceDate,
   totalPaise: z.number().int(),
   eventCount: z.number().int(),
+  breakdown: cookEarningsBreakdownSchema,
 });
+export type CookEarningsPeriodResponse = z.infer<typeof earningsPeriodSchema>;
 
 export const cookBonusProgressSchema = z.object({
   available: z.boolean(),
@@ -261,28 +368,57 @@ export const cookCycleSummarySchema = z.object({
 });
 export type CookCycleSummaryResponse = z.infer<typeof cookCycleSummarySchema>;
 
+const earningsEventSchema = z.object({
+  id: z.string(),
+  eventType: z.string(),
+  amountPaise: z.number().int(),
+  reason: z.string(),
+  createdAt: isoString,
+});
+
 export const cookEarningsSchema = z.object({
   totalPaise: z.number().int(),
-  events: z.array(
-    z.object({
-      id: z.string(),
-      eventType: z.string(),
-      amountPaise: z.number().int(),
-      reason: z.string(),
-      createdAt: isoString,
-    }),
-  ),
+  events: z.array(earningsEventSchema),
   daily: earningsPeriodSchema,
   sevenDay: earningsPeriodSchema,
+  monthly: earningsPeriodSchema,
   currentCycle: cookCycleSummarySchema.nullable(),
+  currentCycleBreakdown: cookEarningsBreakdownSchema.nullable(),
   bonus: cookBonusProgressSchema,
 });
 export type CookEarningsResponse = z.infer<typeof cookEarningsSchema>;
 
-export const cookCyclesSchema = z.object({
-  cycles: z.array(cookCycleSummarySchema),
-});
+/**
+ * `GET /cook/earnings/cycles` answers with a BARE ARRAY, not `{ cycles: [...] }`.
+ *
+ * The route is `jsonData(await listCookCycles(...))` and `listCookCycles` returns
+ * `readonly CookEarningsCycleSummary[]`, so the envelope is `{ data: [ ... ] }`. An earlier build
+ * of this file expected an object wrapper and would have failed every past-cycles read against the
+ * deployed API.
+ */
+export const cookCyclesSchema = z.array(cookCycleSummarySchema);
 export type CookCyclesResponse = z.infer<typeof cookCyclesSchema>;
+
+/**
+ * `GET /cook/earnings/cycles/:cycleId` — a DIFFERENT shape from `/cook/earnings`.
+ *
+ * `getCookCycle` returns `{ cycleId, startDate, endDate, status, breakdown, summary, totalPaise,
+ * events }` where `summary` is the reversal-safe aggregate and `breakdown` is a raw
+ * `eventType -> paise` map. Validating this against `cookEarningsSchema` (as an earlier build did)
+ * fails on every response, because that schema requires `daily`/`sevenDay`/`bonus`.
+ */
+export const cookCycleDetailSchema = z.object({
+  cycleId: z.string(),
+  startDate: serviceDate,
+  endDate: serviceDate,
+  status: z.string(),
+  /** Raw per-event-type totals. Kept for completeness; `summary` is what screens render. */
+  breakdown: z.record(z.string(), z.number()),
+  summary: cookEarningsBreakdownSchema,
+  totalPaise: z.number().int(),
+  events: z.array(earningsEventSchema),
+});
+export type CookCycleDetailResponse = z.infer<typeof cookCycleDetailSchema>;
 
 /* ------------------------------------------------------- service flow --- */
 
@@ -303,5 +439,13 @@ export const cookLocationSchema = z.object({
   etaRevised: z.boolean(),
   /** Set by the backend when two accepted samples inside 75 m committed the arrival. */
   arrived: z.boolean(),
+  /**
+   * The cadence the DEVICE must use for its next sample.
+   *
+   * Server-owned on purpose (`LocationUpdateResult.nextReportAfterSeconds`): a client that picked
+   * its own interval would either burn battery or starve the arrival evidence, and the two-sample
+   * rule depends on samples arriving at the rate the backend expects.
+   */
+  nextReportAfterSeconds: z.number().nonnegative(),
 });
 export type CookLocationResponse = z.infer<typeof cookLocationSchema>;

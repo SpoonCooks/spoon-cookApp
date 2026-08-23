@@ -19,7 +19,10 @@ import {
   cookCyclesSchema,
   cookEarningsSchema,
   cookJobSchema,
+  cookAttendanceRangeSchema,
+  cookCycleDetailSchema,
   cookJobsListSchema,
+  cookLeaveRequestSchema,
   cookLeavesSchema,
   cookLocationSchema,
   cookPresentSchema,
@@ -31,7 +34,10 @@ import {
   type CookCyclesResponse,
   type CookEarningsResponse,
   type CookJobResponse,
+  type CookAttendanceRangeResponse,
+  type CookCycleDetailResponse,
   type CookJobsListResponse,
+  type CookLeaveRequestResponse,
   type CookLeavesResponse,
   type CookLocationResponse,
   type CookPresentResponse,
@@ -230,6 +236,7 @@ export async function reportLocation(
     readonly longitude: number;
     readonly accuracyMetres: number;
     readonly recordedAtIso: string;
+    readonly mocked?: boolean;
   },
   opts: Opts = {},
 ): Promise<CookLocationResponse> {
@@ -240,25 +247,42 @@ export async function reportLocation(
       assignmentVersion: input.assignmentVersion,
       latitude: input.latitude,
       longitude: input.longitude,
-      accuracy: input.accuracyMetres,
+      // The route schema is `additionalProperties: false` and names this field `accuracyMeters`.
+      // An earlier build sent `accuracy`, which the deployed API rejects with 400 INVALID_REQUEST
+      // before the handler runs — every sample would have been dropped at the edge.
+      accuracyMeters: input.accuracyMetres,
       recordedAt: input.recordedAtIso,
+      ...(input.mocked === undefined ? {} : { mocked: input.mocked }),
     },
     ...opts,
   });
 }
 
-/** Responsiveness evidence only. Changes no booking state and never marks the cook safe. */
+/**
+ * Responsiveness evidence only. Changes no booking state and never marks the cook safe.
+ *
+ * `assignmentVersion` is OPTIONAL, and omitted rather than defaulted when the caller does not have
+ * one. The route schema declares `{ type: 'integer', minimum: 1 }`, so a placeholder `0` is
+ * rejected as `400 INVALID_REQUEST` by Fastify before the handler runs — every acknowledgement
+ * sent from a context without a loaded projection (a notification tap, for instance) would fail.
+ * Omitting the field lets the backend fence on the current assignment itself.
+ */
 export async function acknowledgeAlert(
   input: {
     readonly bookingId: string;
     readonly alertType: 'start_alert' | 'start_escalation' | 'move_alert';
-    readonly assignmentVersion: number;
+    readonly assignmentVersion?: number | undefined;
   },
   opts: Opts = {},
 ): Promise<void> {
   await request(`/cook/bookings/${input.bookingId}/acknowledge-alert`, commandAckSchema, {
     method: 'POST',
-    body: { alertType: input.alertType, assignmentVersion: input.assignmentVersion },
+    body: {
+      alertType: input.alertType,
+      ...(input.assignmentVersion === undefined || input.assignmentVersion < 1
+        ? {}
+        : { assignmentVersion: input.assignmentVersion }),
+    },
     ...opts,
   });
 }
@@ -305,8 +329,24 @@ export async function getMonthlyAttendance(
   });
 }
 
-/** Approved leaves in a window. Read-only — the backend exposes no cook-side leave WRITE. */
-export async function listApprovedLeaves(
+/**
+ * Stored attendance records inside a window.
+ *
+ * Used by the cycle frame's Mon–Sun strip. A date absent from the response has NO record and is
+ * rendered blank — inferring `absent` from absence would accuse a cook the server never marked.
+ */
+export async function listAttendanceRange(
+  params: { readonly from: string; readonly to: string },
+  opts: Opts = {},
+): Promise<CookAttendanceRangeResponse> {
+  return request('/cook/attendance', cookAttendanceRangeSchema, {
+    query: { from: params.from, to: params.to },
+    ...opts,
+  });
+}
+
+/** Leave requests overlapping a window, grouped by request. Includes pending and rejected. */
+export async function listLeaves(
   params: { readonly from?: string; readonly to?: string } = {},
   opts: Opts = {},
 ): Promise<CookLeavesResponse> {
@@ -315,6 +355,38 @@ export async function listApprovedLeaves(
       ...(params.from === undefined ? {} : { from: params.from }),
       ...(params.to === undefined ? {} : { to: params.to }),
     },
+    ...opts,
+  });
+}
+
+/**
+ * Submit a cook-initiated leave request.
+ *
+ * Deployed and verified: `POST /v1/cook/leaves` is registered on the live API. It answers `201`
+ * with `status: 'pending'` — Ops/Admin still decide. The app must never render the leave as taken.
+ *
+ * Backend rejections that are not app failures:
+ *   `400` — `startDate` in the past, or `endDate` before `startDate`
+ *   `409` — an overlapping pending/approved leave already exists (`INVALID_BOOKING_STATE`)
+ *   `403` — the cook is not active
+ */
+export async function requestLeave(
+  input: {
+    readonly startDateIso: string;
+    readonly endDateIso: string;
+    readonly reason?: string;
+    readonly idempotencyKey: string;
+  },
+  opts: Opts = {},
+): Promise<CookLeaveRequestResponse> {
+  return request('/cook/leaves', cookLeaveRequestSchema, {
+    method: 'POST',
+    body: {
+      startDate: input.startDateIso,
+      endDate: input.endDateIso,
+      ...(input.reason === undefined || input.reason.length === 0 ? {} : { reason: input.reason }),
+    },
+    idempotencyKey: input.idempotencyKey,
     ...opts,
   });
 }
@@ -347,11 +419,18 @@ export async function listEarningsCycles(
   });
 }
 
+/**
+ * One past cycle.
+ *
+ * Deliberately NOT `cookEarningsSchema`: `getCookCycle` answers with `{ cycleId, startDate,
+ * endDate, status, breakdown, summary, totalPaise, events }`. Validating it against the
+ * `/cook/earnings` schema — as an earlier build did — fails on every response.
+ */
 export async function getEarningsCycle(
   cycleId: string,
   opts: Opts = {},
-): Promise<CookEarningsResponse> {
-  return request(`/cook/earnings/cycles/${cycleId}`, cookEarningsSchema, opts);
+): Promise<CookCycleDetailResponse> {
+  return request(`/cook/earnings/cycles/${cycleId}`, cookCycleDetailSchema, opts);
 }
 
 /* -------------------------------------------------------------- devices --- */

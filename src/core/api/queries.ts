@@ -24,10 +24,13 @@ import {
 import * as api from './cook';
 import { isApiError } from './errors';
 import type {
+  CookAttendanceRangeResponse,
+  CookCycleDetailResponse,
   CookCyclesResponse,
   CookEarningsResponse,
   CookJobResponse,
   CookJobsListResponse,
+  CookLeaveRequestResponse,
   CookLeavesResponse,
   CookPresentResponse,
   CookProfileResponse,
@@ -60,6 +63,7 @@ export const queryKeys = {
   currentJob: ['cook', 'jobs', 'current'] as const,
   job: (bookingId: string) => ['cook', 'jobs', bookingId] as const,
   attendanceMonth: (month: string) => ['cook', 'attendance', 'month', month] as const,
+  attendanceRange: (from: string, to: string) => ['cook', 'attendance', 'range', from, to] as const,
   leaves: (from?: string, to?: string) => ['cook', 'leaves', from ?? null, to ?? null] as const,
   earnings: ['cook', 'earnings'] as const,
   cycles: ['cook', 'earnings', 'cycles'] as const,
@@ -105,11 +109,23 @@ export function useCurrentJob(
   });
 }
 
-export function useJob(bookingId: string, enabled = true): UseQueryResult<CookJobResponse> {
+/**
+ * One booking's projection.
+ *
+ * `pollMs` exists for the same reason as on {@link useCurrentJob}: while a service is live the
+ * screen must learn about a customer cancellation, a reassignment or a confirmed extension without
+ * waiting for a push. Push is a refresh hint, never the source of truth.
+ */
+export function useJob(
+  bookingId: string,
+  enabled = true,
+  pollMs: number | false = false,
+): UseQueryResult<CookJobResponse> {
   return useQuery({
     queryKey: queryKeys.job(bookingId),
     queryFn: ({ signal }) => api.getJob(bookingId, { signal }),
     enabled: enabled && bookingId.length > 0,
+    refetchInterval: pollMs,
   });
 }
 
@@ -124,14 +140,26 @@ export function useMonthlyAttendance(
   });
 }
 
-export function useApprovedLeaves(
+export function useLeaves(
   params: { readonly from?: string; readonly to?: string } = {},
   enabled = true,
 ): UseQueryResult<CookLeavesResponse> {
   return useQuery({
     queryKey: queryKeys.leaves(params.from, params.to),
-    queryFn: ({ signal }) => api.listApprovedLeaves(params, { signal }),
+    queryFn: ({ signal }) => api.listLeaves(params, { signal }),
     enabled,
+  });
+}
+
+/** Stored attendance for an explicit window — the cycle frame's Mon–Sun strip. */
+export function useAttendanceRange(
+  params: { readonly from: string; readonly to: string },
+  enabled = true,
+): UseQueryResult<CookAttendanceRangeResponse> {
+  return useQuery({
+    queryKey: queryKeys.attendanceRange(params.from, params.to),
+    queryFn: ({ signal }) => api.listAttendanceRange(params, { signal }),
+    enabled: enabled && params.from.length === 10 && params.to.length === 10,
   });
 }
 
@@ -154,7 +182,7 @@ export function useEarningsCycles(enabled = true): UseQueryResult<CookCyclesResp
 export function useEarningsCycle(
   cycleId: string,
   enabled = true,
-): UseQueryResult<CookEarningsResponse> {
+): UseQueryResult<CookCycleDetailResponse> {
   return useQuery({
     queryKey: queryKeys.cycle(cycleId),
     queryFn: ({ signal }) => api.getEarningsCycle(cycleId, { signal }),
@@ -227,10 +255,83 @@ export function useVerifyStartOtp(): UseMutationResult<
   return useJobCommand((args) => api.verifyStartOtp(args));
 }
 
+/**
+ * End OTP.
+ *
+ * Completion changes money, so the earnings and cycle reads are invalidated too — otherwise the
+ * cook finishes a job and My Money still shows the pre-service figures until the cache goes stale.
+ */
 export function useVerifyEndOtp(): UseMutationResult<
   void,
   unknown,
   { bookingId: string; otp: string; assignmentVersion: number; idempotencyKey: string }
 > {
-  return useJobCommand((args) => api.verifyEndOtp(args));
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (args: {
+      bookingId: string;
+      otp: string;
+      assignmentVersion: number;
+      idempotencyKey: string;
+    }) => api.verifyEndOtp(args),
+    onSuccess: async () => {
+      await Promise.all([
+        client.invalidateQueries({ queryKey: ['cook', 'jobs'] }),
+        client.invalidateQueries({ queryKey: queryKeys.earnings }),
+        client.invalidateQueries({ queryKey: queryKeys.cycles }),
+        client.invalidateQueries({ queryKey: queryKeys.profile }),
+      ]);
+    },
+  });
+}
+
+/**
+ * Alert acknowledgement.
+ *
+ * Responsiveness evidence, nothing more (backend DEC-059). A local dismissal is NOT an
+ * acknowledgement, so the projection is only re-read after the server has accepted the command.
+ */
+export function useAcknowledgeAlert(): UseMutationResult<
+  void,
+  unknown,
+  {
+    bookingId: string;
+    alertType: 'start_alert' | 'start_escalation' | 'move_alert';
+    assignmentVersion?: number | undefined;
+  }
+> {
+  return useJobCommand((args) => api.acknowledgeAlert(args));
+}
+
+/**
+ * Cook-initiated leave request.
+ *
+ * Answers `pending`. Both leave lists and the month are invalidated so the calendar shows the
+ * request the server actually stored, in the state the server gave it.
+ */
+export function useRequestLeave(
+  month: string,
+): UseMutationResult<
+  CookLeaveRequestResponse,
+  unknown,
+  { startDateIso: string; endDateIso: string; reason?: string; idempotencyKey: string }
+> {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (args: {
+      startDateIso: string;
+      endDateIso: string;
+      reason?: string;
+      idempotencyKey: string;
+    }) => api.requestLeave(args),
+    onSuccess: async () => {
+      await Promise.all([
+        client.invalidateQueries({ queryKey: ['cook', 'leaves'] }),
+        client.invalidateQueries({ queryKey: ['cook', 'attendance'] }),
+        ...(month.length === 7
+          ? [client.invalidateQueries({ queryKey: queryKeys.attendanceMonth(month) })]
+          : []),
+      ]);
+    },
+  });
 }

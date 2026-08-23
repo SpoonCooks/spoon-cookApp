@@ -9,7 +9,12 @@ import {
   toTravelTiming,
 } from '@core/api/adapters';
 import { apiErrorMessage, isSessionExpired, ApiError } from '@core/api/errors';
-import { canSubmitLeaveRequest, countLeaveDays } from '@core/domain/leave';
+import {
+  countLeaveDays,
+  toLeaveRequestRange,
+  toLeaveRequestStatus,
+  validateLeaveSelection,
+} from '@core/domain/leave';
 import { projectServiceState } from '@core/domain/serviceState';
 
 import type { CookJobResponse, MonthlyAttendanceResponse } from '@core/api/schemas';
@@ -22,6 +27,40 @@ import type { CookJobResponse, MonthlyAttendanceResponse } from '@core/api/schem
  */
 
 /* --------------------------------------------------------------- fixtures --- */
+
+/** One grouped leave REQUEST, in the shape the deployed `GET /cook/leaves` returns. */
+function leaveRequest(id: string, startDate: string, endDate: string) {
+  return {
+    leaveId: id,
+    type: (startDate === endDate ? 'single_day' : 'multi_day') as 'single_day' | 'multi_day',
+    startDate,
+    endDate,
+    status: 'approved',
+    reason: 'Planned Leave',
+    requestedAt: '2026-08-01T00:00:00.000Z',
+    decidedAt: null,
+  };
+}
+
+/** All fourteen categories at zero — the periods under test carry no money of their own. */
+function emptyBreakdown() {
+  return {
+    baseEarningsPaise: 0,
+    ratingBonusPaise: 0,
+    longHoursEarningsPaise: 0,
+    attendanceBonusPaise: 0,
+    paidLeaveEarningsPaise: 0,
+    tipsPaise: 0,
+    lateDeductionsPaise: 0,
+    noShowDeductionsPaise: 0,
+    otherDeductionsPaise: 0,
+    adjustmentsPaise: 0,
+    reversalsPaise: 0,
+    grossEarningsPaise: 0,
+    totalDeductionsPaise: 0,
+    netEarningsPaise: 0,
+  };
+}
 
 function job(overrides: Partial<CookJobResponse> = {}): CookJobResponse {
   const base: CookJobResponse = {
@@ -54,6 +93,7 @@ function job(overrides: Partial<CookJobResponse> = {}): CookJobResponse {
       latitude: 12.9,
       longitude: 77.6,
       label: 'Prestige Gate',
+      accessInstructions: 'Gate 2 se enter kare.',
       flat: '402',
       tower: 'B',
       society: 'Prestige Park',
@@ -344,13 +384,13 @@ describe('monthly attendance projection', () => {
     expect(projection.upcomingLeaves).toHaveLength(0);
   });
 
-  it('shows only leaves from today onward', () => {
+  it('drops a request whose last day has already passed', () => {
     const projection = toAttendanceMonth(
       month([]),
       {
         leaves: [
-          { id: 'l1', serviceDate: '2026-08-10', status: 'approved', reason: 'Planned Leave' },
-          { id: 'l2', serviceDate: '2026-08-25', status: 'approved', reason: 'Planned Leave' },
+          leaveRequest('l1', '2026-08-08', '2026-08-10'),
+          leaveRequest('l2', '2026-08-25', '2026-08-25'),
         ],
         fromDate: '2026-08-01',
         toDate: '2026-08-31',
@@ -361,6 +401,57 @@ describe('monthly attendance projection', () => {
     expect(projection.upcomingLeaves.map((leave) => leave.id)).toEqual(['l2']);
   });
 
+  it('keeps a chutti the cook is currently in the middle of', () => {
+    // `endDate >= today`, not `startDate >= today`: a five-day leave on its third day is still the
+    // most relevant thing on the cook's screen.
+    const projection = toAttendanceMonth(
+      month([]),
+      {
+        leaves: [leaveRequest('l3', '2026-08-19', '2026-08-23')],
+        fromDate: '2026-08-01',
+        toDate: '2026-08-31',
+        timezone: 'Asia/Kolkata',
+      },
+      '2026-08-21',
+    );
+    expect(projection.upcomingLeaves.map((leave) => leave.id)).toEqual(['l3']);
+  });
+
+  it('reports a multi-day request as ONE entry spanning its range', () => {
+    const projection = toAttendanceMonth(
+      month([]),
+      {
+        leaves: [leaveRequest('l4', '2026-08-22', '2026-08-26')],
+        fromDate: '2026-08-01',
+        toDate: '2026-08-31',
+        timezone: 'Asia/Kolkata',
+      },
+      '2026-08-21',
+    );
+    expect(projection.upcomingLeaves).toHaveLength(1);
+    expect(projection.upcomingLeaves[0]).toMatchObject({
+      startDateIso: '2026-08-22',
+      endDateIso: '2026-08-26',
+      dayCount: 5,
+    });
+  });
+
+  it('never upgrades an unrecognised leave roll-up to approved', () => {
+    const projection = toAttendanceMonth(
+      month([]),
+      {
+        leaves: [
+          { ...leaveRequest('l5', '2026-08-25', '2026-08-25'), status: 'partially_approved' },
+        ],
+        fromDate: '2026-08-01',
+        toDate: '2026-08-31',
+        timezone: 'Asia/Kolkata',
+      },
+      '2026-08-21',
+    );
+    expect(projection.upcomingLeaves[0]?.status).toBe('pending');
+  });
+
   it('labels the month from the server value', () => {
     expect(monthLabel('2026-11')).toBe('November 2026');
   });
@@ -369,10 +460,49 @@ describe('monthly attendance projection', () => {
 /* ------------------------------------------------------------------- leave --- */
 
 describe('leave requests', () => {
-  it('stays disabled while the backend has no cook-side write', () => {
-    // GAP-21. Flipping this without the endpoint would let the app claim `Chutti lag gyi` for a
-    // leave no server ever recorded.
-    expect(canSubmitLeaveRequest()).toBe(false);
+  it('sends a single day as a one-day range, matching the route body', () => {
+    expect(toLeaveRequestRange({ kind: 'single_day', dateIso: '2026-11-16' })).toEqual({
+      startDateIso: '2026-11-16',
+      endDateIso: '2026-11-16',
+    });
+  });
+
+  it('sends a long chutti as ONE range rather than day by day', () => {
+    expect(
+      toLeaveRequestRange({
+        kind: 'date_range',
+        fromDateIso: '2026-11-16',
+        toDateIso: '2026-11-25',
+      }),
+    ).toEqual({ startDateIso: '2026-11-16', endDateIso: '2026-11-25' });
+  });
+
+  it('rejects a past start date before spending the request', () => {
+    const result = validateLeaveSelection(
+      { kind: 'single_day', dateIso: '2026-11-15' },
+      '2026-11-16',
+    );
+    expect(result.ok).toBe(false);
+  });
+
+  it('rejects an inverted range', () => {
+    const result = validateLeaveSelection(
+      { kind: 'date_range', fromDateIso: '2026-11-25', toDateIso: '2026-11-16' },
+      '2026-11-16',
+    );
+    expect(result.ok).toBe(false);
+  });
+
+  it('accepts today as a start date', () => {
+    expect(
+      validateLeaveSelection({ kind: 'single_day', dateIso: '2026-11-16' }, '2026-11-16').ok,
+    ).toBe(true);
+  });
+
+  it('treats an unknown server status as undecided, never approved', () => {
+    expect(toLeaveRequestStatus('approved')).toBe('approved');
+    expect(toLeaveRequestStatus('rejected')).toBe('rejected');
+    expect(toLeaveRequestStatus('half_approved')).toBe('pending');
   });
 
   it('counts an inclusive range for Total din', () => {
@@ -392,13 +522,23 @@ describe('leave requests', () => {
 /* ---------------------------------------------------------------- earnings --- */
 
 describe('bonus progress', () => {
+  const period = (startDate: string, endDate: string) => ({
+    startDate,
+    endDate,
+    totalPaise: 0,
+    eventCount: 0,
+    breakdown: emptyBreakdown(),
+  });
+
   const earnings = (bonus: Parameters<typeof toBonusProgress>[0]['bonus']) =>
     ({
       totalPaise: 0,
       events: [],
-      daily: { startDate: '2026-08-21', endDate: '2026-08-21', totalPaise: 0, eventCount: 0 },
-      sevenDay: { startDate: '2026-08-15', endDate: '2026-08-21', totalPaise: 0, eventCount: 0 },
+      daily: period('2026-08-21', '2026-08-21'),
+      sevenDay: period('2026-08-15', '2026-08-21'),
+      monthly: period('2026-08-01', '2026-08-21'),
       currentCycle: null,
+      currentCycleBreakdown: null,
       bonus,
     }) as Parameters<typeof toBonusProgress>[0];
 
@@ -417,8 +557,12 @@ describe('bonus progress', () => {
         achieved: false,
       }),
     );
-    expect(progress?.thresholdHours).toBe(27);
-    expect(progress?.remainingHours).toBe(7);
+    // DAYS, not hours: the deployed contract counts present days against `thresholdDays`, and
+    // rendering the design's "7 ghante" copy over a day-based bar would misstate the policy.
+    expect(progress?.thresholdDays).toBe(27);
+    expect(progress?.targetDays).toBe(28);
+    expect(progress?.completedDays).toBe(20);
+    expect(progress?.remainingDays).toBe(7);
   });
 
   it('reports no progress rather than zero when there is no cycle', () => {

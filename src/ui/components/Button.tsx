@@ -1,4 +1,11 @@
-import { ActivityIndicator, Pressable, StyleSheet, View, type ViewStyle } from 'react-native';
+import {
+  ActivityIndicator,
+  Pressable,
+  StyleSheet,
+  View,
+  type Insets,
+  type ViewStyle,
+} from 'react-native';
 
 import { color, layout, radius, spacing } from '../theme/tokens';
 import { Text } from '../primitives/Text';
@@ -14,6 +21,13 @@ export interface ButtonProps {
   readonly fullWidth?: boolean | undefined;
   readonly testID?: string | undefined;
   readonly style?: ViewStyle | undefined;
+  /**
+   * Extends the touch target beyond the painted bounds.
+   *
+   * Some V12 CTAs are shorter than the 44dp minimum — Login's is 34 — and the painted geometry is
+   * authoritative. `hitSlop` restores an accessible target without displacing a single edge.
+   */
+  readonly hitSlop?: number | Insets | undefined;
 }
 
 const toneStyles: Record<ButtonTone, { background: string; text: string }> = {
@@ -43,6 +57,7 @@ export function Button({
   fullWidth = true,
   testID,
   style,
+  hitSlop,
 }: ButtonProps): React.ReactElement {
   const isInert = disabled || loading;
   const palette = toneStyles[tone];
@@ -55,6 +70,7 @@ export function Button({
       accessibilityLabel={label}
       disabled={isInert}
       onPress={onPress}
+      {...(hitSlop !== undefined ? { hitSlop } : {})}
       style={({ pressed }) => [
         styles.base,
         { backgroundColor: palette.background },

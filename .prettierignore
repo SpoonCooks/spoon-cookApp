@@ -1,0 +1,9 @@
+
+# Claude Code local permissions file — machine-local, gitignored, not project source.
+.claude/settings.local.json
+
+# Generated pixel-verification evidence. `result.json` files are written by
+# `scripts/visual/compare.py` and the inventory is transcribed from the Figma node tree, so
+# reformatting them would create diff noise on every verification run without changing meaning.
+docs/visual-verification/
+scripts/visual/gallery-states.json

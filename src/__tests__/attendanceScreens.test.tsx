@@ -11,18 +11,23 @@ import RangeLeaveScreen from '@/app/leave/range';
  * these mount the real screens and assert the rendered projection instead. That is NOT a substitute
  * for device verification and is not reported as one — but it does prove that each of the three
  * server-driven attendance states renders its own Figma copy, that `Mark Present` never marks
- * locally, and that the leave flow cannot claim a leave the backend never recorded.
+ * locally, and that a submitted leave is shown as a REQUEST rather than as a granted chutti.
  */
 
 const mockMutate = jest.fn();
+const mockLeaveMutate = jest.fn();
 let mockProfileState: Record<string, unknown>;
 let mockAttendanceState: Record<string, unknown>;
 let mockMarkPresentState: Record<string, unknown>;
+let mockLeavesState: Record<string, unknown>;
+let mockRequestLeaveState: Record<string, unknown>;
 
 jest.mock('@core/api/queries', () => ({
   useCookProfile: () => mockProfileState,
   useMonthlyAttendance: () => mockAttendanceState,
   useMarkPresent: () => mockMarkPresentState,
+  useLeaves: () => mockLeavesState,
+  useRequestLeave: () => mockRequestLeaveState,
 }));
 
 jest.mock('expo-router', () => ({
@@ -45,7 +50,16 @@ function shift(): Record<string, unknown> {
   };
 }
 
-function profile(attendance: Record<string, unknown> | null, withShift = true): void {
+/**
+ * @param overrides lets a test drive the SERVER's eligibility ruling directly. The defaults mirror
+ * how the backend derives `canCheckIn`/`reason`, so the harness stays contract-accurate rather
+ * than asserting against a shape the API never returns.
+ */
+function profile(
+  attendance: Record<string, unknown> | null,
+  withShift = true,
+  overrides: Record<string, unknown> = {},
+): void {
   mockProfileState = {
     isPending: false,
     isError: false,
@@ -65,7 +79,14 @@ function profile(attendance: Record<string, unknown> | null, withShift = true): 
         workingDays: [1, 2, 3, 4, 5],
         shift: withShift ? shift() : null,
         attendance,
+        canCheckIn: withShift && attendance === null,
+        // The backend has no approved opening rule, so the live API always sends null here.
+        checkInOpensAt: null,
+        shiftStartsAt: withShift ? '2026-08-21T03:30:00.000Z' : null,
+        checkedInAt: null,
+        reason: !withShift ? 'NO_SHIFT' : attendance === null ? 'READY' : 'ATTENDANCE_RECORDED',
         availability: null,
+        ...overrides,
       },
       currentAssignment: null,
       serverTime: '2026-08-21T08:23:00.000Z',
@@ -75,6 +96,7 @@ function profile(attendance: Record<string, unknown> | null, withShift = true): 
 
 beforeEach(() => {
   mockMutate.mockClear();
+  mockLeaveMutate.mockClear();
   profile(null);
   mockAttendanceState = {
     isPending: false,
@@ -93,6 +115,21 @@ beforeEach(() => {
     },
   };
   mockMarkPresentState = { mutate: mockMutate, isPending: false, isError: false, error: null };
+  mockLeavesState = {
+    isPending: false,
+    isError: false,
+    isFetching: false,
+    error: null,
+    refetch: jest.fn(),
+    data: { leaves: [], fromDate: '2026-08-21', toDate: '2026-08-31', timezone: 'Asia/Kolkata' },
+  };
+  mockRequestLeaveState = {
+    mutate: mockLeaveMutate,
+    isPending: false,
+    isError: false,
+    isSuccess: false,
+    error: null,
+  };
 });
 
 describe('Page 11 — no attendance record yet (506:1986)', () => {
@@ -104,10 +141,29 @@ describe('Page 11 — no attendance record yet (506:1986)', () => {
     expect(screen.getByTestId('attendance-mark-present')).toBeTruthy();
   });
 
-  it('shows the shift-window hint verbatim', () => {
+  it('does NOT print the 30-minute rule, which the backend does not enforce', () => {
+    // Figma reads "Shift se 30 mins pehle tak button dabaye". No approved opening window exists —
+    // `/cook/me` returns `checkInOpensAt: null` — so printing it would state a restriction the
+    // server has never applied and would send cooks away who are entitled to check in.
     render(<AttendanceScreen />);
-    expect(screen.getByTestId('attendance-present-hint')).toHaveTextContent(
-      'Shift se 30 mins pehle tak button dabaye',
+    expect(screen.queryByTestId('attendance-present-hint')).toBeNull();
+    expect(screen.queryByText(/30 mins/)).toBeNull();
+  });
+
+  it('shows a window hint only once the backend publishes one', () => {
+    profile(null, true, { checkInOpensAt: '2026-08-21T03:00:00.000Z' });
+    render(<AttendanceScreen />);
+    expect(screen.getByTestId('attendance-present-hint')).toBeTruthy();
+  });
+
+  it('withholds the button when the SERVER says the cook cannot check in', () => {
+    // Approved leave: the old local rule (`has shift && no record`) offered the button here and
+    // let the backend reject the tap with a 400.
+    profile(null, true, { canCheckIn: false, reason: 'APPROVED_LEAVE' });
+    render(<AttendanceScreen />);
+    expect(screen.queryByTestId('attendance-mark-present')).toBeNull();
+    expect(screen.getByTestId('attendance-no-shift')).toHaveTextContent(
+      'Aaj aapki chutti approve hai.',
     );
   });
 
@@ -217,9 +273,37 @@ describe('month tiles', () => {
 });
 
 describe('Chutti lagaye block', () => {
-  it('states plainly that leave cannot be applied from the app yet', () => {
+  it('no longer blocks submission now that the endpoint is deployed', () => {
     render(<AttendanceScreen />);
-    expect(screen.getByTestId('attendance-leave-blocked')).toBeTruthy();
+    expect(screen.queryByTestId('attendance-leave-blocked')).toBeNull();
+  });
+
+  it('shows a pending request as undecided, never as granted', () => {
+    mockLeavesState = {
+      ...mockLeavesState,
+      data: {
+        leaves: [
+          {
+            leaveId: 'l1',
+            type: 'multi_day',
+            startDate: '2026-08-25',
+            endDate: '2026-08-27',
+            status: 'pending',
+            reason: null,
+            requestedAt: '2026-08-21T00:00:00.000Z',
+            decidedAt: null,
+          },
+        ],
+        fromDate: '2026-08-21',
+        toDate: '2026-08-31',
+        timezone: 'Asia/Kolkata',
+      },
+    };
+    render(<AttendanceScreen />);
+    const row = screen.getByTestId('attendance-leave-l1');
+    expect(row).toHaveTextContent(/25 Aug se 27 Aug tak/);
+    expect(row).toHaveTextContent(/Manager approve karenge/);
+    expect(screen.queryByText('Chutti lag gyi')).toBeNull();
   });
 
   it('still lets the cook open both pickers — navigation is not a mutation', () => {
@@ -245,16 +329,45 @@ describe('Pages 14a/14b — 1 din ki chutti (528:483 / 529:1259)', () => {
     expect(screen.getByTestId('leave-single-total')).toHaveTextContent('Total din 1');
   });
 
-  it('keeps Pakka disabled while the backend has no leave write', () => {
-    render(<SingleDayLeaveScreen />);
-    expect(screen.getByTestId('leave-single-confirm').props.accessibilityState.disabled).toBe(true);
-    expect(screen.getByTestId('leave-single-blocked')).toBeTruthy();
-  });
-
-  it('never claims the leave was applied', () => {
+  it('submits the chosen day as a one-day range with an idempotency key', () => {
     render(<SingleDayLeaveScreen />);
     fireEvent.press(screen.getByTestId('leave-single-confirm'));
+    expect(mockLeaveMutate).toHaveBeenCalledTimes(1);
+    const args = mockLeaveMutate.mock.calls[0]?.[0] as Record<string, string>;
+    // The server's date, taken from `serverTime` — not the device clock.
+    expect(args['startDateIso']).toBe('2026-08-21');
+    expect(args['endDateIso']).toBe('2026-08-21');
+    expect(args['idempotencyKey']).toEqual(expect.any(String));
+  });
+
+  it('reuses ONE idempotency key across repeated taps', () => {
+    render(<SingleDayLeaveScreen />);
+    fireEvent.press(screen.getByTestId('leave-single-confirm'));
+    fireEvent.press(screen.getByTestId('leave-single-confirm'));
+    const keys = mockLeaveMutate.mock.calls.map(
+      (call) => (call[0] as Record<string, string>)['idempotencyKey'],
+    );
+    expect(new Set(keys).size).toBe(1);
+  });
+
+  it('says the request was SENT, never that the leave was granted', () => {
+    mockRequestLeaveState = { ...mockRequestLeaveState, isSuccess: true };
+    render(<SingleDayLeaveScreen />);
+    expect(screen.getByTestId('leave-single-pending')).toHaveTextContent(
+      'Chutti ki request bhej di. Manager approve karenge.',
+    );
     expect(screen.queryByText('Chutti lag gyi')).toBeNull();
+  });
+
+  it('surfaces a rejected submission rather than pretending it worked', () => {
+    mockRequestLeaveState = {
+      ...mockRequestLeaveState,
+      isError: true,
+      error: { name: 'ApiError' },
+    };
+    render(<SingleDayLeaveScreen />);
+    expect(screen.getByTestId('leave-single-failed')).toBeTruthy();
+    expect(screen.queryByTestId('leave-single-pending')).toBeNull();
   });
 });
 
@@ -273,11 +386,31 @@ describe('Pages 13a/13b — lambi chutti (528:659 / 530:1349)', () => {
     expect(screen.getByTestId('leave-range-total')).toHaveTextContent('10');
   });
 
-  it('keeps Pakka disabled even with a valid range', () => {
+  it('keeps Pakka disabled until a range is actually chosen', () => {
+    render(<RangeLeaveScreen />);
+    expect(screen.getByTestId('leave-range-confirm').props.accessibilityState.disabled).toBe(true);
+  });
+
+  it('submits the whole range as ONE request', () => {
+    render(<RangeLeaveScreen />);
+    const days = screen.getAllByTestId(/^leave-range-day-/);
+    // 21 Aug is the server's today; pick a forward range so validation passes.
+    fireEvent.press(days[24]!);
+    fireEvent.press(days[28]!);
+    fireEvent.press(screen.getByTestId('leave-range-confirm'));
+    expect(mockLeaveMutate).toHaveBeenCalledTimes(1);
+    const args = mockLeaveMutate.mock.calls[0]?.[0] as Record<string, string>;
+    expect(args['startDateIso']).toBe('2026-08-25');
+    expect(args['endDateIso']).toBe('2026-08-29');
+  });
+
+  it('refuses a range that starts in the past instead of spending the request', () => {
     render(<RangeLeaveScreen />);
     const days = screen.getAllByTestId(/^leave-range-day-/);
     fireEvent.press(days[0]!);
     fireEvent.press(days[4]!);
-    expect(screen.getByTestId('leave-range-confirm').props.accessibilityState.disabled).toBe(true);
+    expect(screen.getByTestId('leave-range-invalid')).toBeTruthy();
+    fireEvent.press(screen.getByTestId('leave-range-confirm'));
+    expect(mockLeaveMutate).not.toHaveBeenCalled();
   });
 });

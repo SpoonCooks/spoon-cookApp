@@ -45,6 +45,18 @@ const BUNDLE_SUFFIX: Record<AppEnv, string> = {
  * They stay absent so a release build fails loudly rather than shipping under the wrong identity.
  */
 
+/**
+ * The Android NDK this project builds against.
+ *
+ * RN 0.86.2 needs a libc++ providing `<format>` (`graphicsConversions.h` calls `std::format`).
+ * NDK 27.1.12297006 — which `expo-root-project` defaults to — does not have it, and the build dies
+ * inside reanimated/worklets/expo-modules-core. 27.2.12479018 does.
+ *
+ * Applied by `plugins/withAndroidNdkVersion.js` on every prebuild. Keep this and any `eas.json`
+ * `android.ndk` value in step.
+ */
+const ANDROID_NDK_VERSION = '27.2.12479018';
+
 /** Brand yellow. Figma `#ffd600` — the Cook App's splash/background anchor. */
 const SPLASH_BACKGROUND = '#FFD600';
 
@@ -87,7 +99,28 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   plugins: [
     'expo-router',
     'expo-font',
-    ['expo-splash-screen', { backgroundColor: SPLASH_BACKGROUND, resizeMode: 'contain' }],
+    [
+      'expo-splash-screen',
+      {
+        backgroundColor: SPLASH_BACKGROUND,
+        // A deliberately EMPTY (1x1 transparent) image, not a missing one.
+        //
+        // `expo-splash-screen` always writes
+        // `<item name="windowSplashScreenAnimatedIcon">@drawable/splashscreen_logo</item>` into
+        // `styles.xml`, but only generates that drawable when an `image` is configured. Omitting
+        // it therefore produces an Android project that fails resource linking:
+        //   `error: resource drawable/splashscreen_logo not found`
+        // — a native-build break that `expo export` cannot surface, because export never links
+        // Android resources.
+        //
+        // The Figma splash (`434:3330`) is the "Spoon Partner" wordmark on brand yellow, and that
+        // is drawn in JS by `app/index.tsx` as soon as the bundle boots. The native splash only
+        // has to hold the yellow until then, so a transparent icon is the correct content rather
+        // than invented artwork.
+        image: './assets/images/splash-icon.png',
+        resizeMode: 'contain',
+      },
+    ],
     'expo-secure-store',
     [
       'expo-location',
@@ -97,6 +130,14 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
           'Spoon aapki location use karta hai taaki customer ko aapka pahauchne ka time pata chale.',
       },
     ],
+    // Remote delivery additionally needs the Cook App's own `google-services.json` / FCM sender
+    // identity, which is PENDING_FOUNDER. The plugin is declared so the native notification
+    // module, the Android channel and the POST_NOTIFICATIONS prompt are built in; without the
+    // Firebase file, token acquisition resolves `unavailable` rather than crashing.
+    'expo-notifications',
+    // Must stay in the list: `android/` is gitignored and regenerated, so this is the only thing
+    // that survives `expo prebuild --clean`.
+    ['./plugins/withAndroidNdkVersion', { ndkVersion: ANDROID_NDK_VERSION }],
   ],
   experiments: { typedRoutes: true },
   extra: {

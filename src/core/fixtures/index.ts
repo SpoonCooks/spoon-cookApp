@@ -19,7 +19,6 @@
 
 import type { AttendanceMonth, TodayAttendance } from '../domain/attendance';
 import type { JobCardModel, JobsProjection } from '../domain/job';
-import type { EarningsCycleRef, EarningsSummary } from '../domain/money';
 import type { ServiceSnapshot } from '../domain/serviceState';
 
 /** Throws in release rather than returning silent placeholder data. */
@@ -42,7 +41,12 @@ const address = {
   customerName: 'Anjali Sharma',
 };
 
-const gate = { latitude: 28.4595, longitude: 77.0266, label: 'Society gate' };
+const gate = {
+  latitude: 28.4595,
+  longitude: 77.0266,
+  label: 'Society gate',
+  accessInstructions: 'Main gate se andar aaye, guard ko booking ID bataye.',
+};
 
 /** Backend state: `assigned`, actionable. Figma `Page 3- job list` prominent card. */
 const currentJob: JobCardModel = {
@@ -285,125 +289,6 @@ export const serviceFixtures = {
     devOnly({ ...baseSnapshot, status: 'cancelled', interruption: 'cancelled_while_travelling' }),
 };
 
-/** Figma `Page 3a- money daily` (`485:5062`). Values are Figma mock data, not real earnings. */
-export const moneyFixtures = {
-  day: (): EarningsSummary =>
-    devOnly({
-      period: 'day',
-      workedHours: 3,
-      // Threshold shown as 5 here per the daily frame's copy; the monthly frame says 7 (GAP-19).
-      bonusProgress: {
-        thresholdHours: 5,
-        completedHours: 3,
-        remainingHours: 2,
-        progressRatio: 0.6,
-        message: 'Bonus ke liye: 5 se zyada ghante kaam',
-      },
-      basePaise: 100000,
-      bonusPaise: 45000,
-      tipsPaise: 15000,
-      grossPaise: 115000,
-      noShow: { count: 1, amountPaise: 5000 },
-      late: { count: 2, amountPaise: 10000 },
-      totalDeductionsPaise: 15000,
-      finalPaise: 15000,
-    }),
-
-  /** Figma `Page 3b- money 7 days` (`492:5336`) — same figures as the daily frame in Figma. */
-  cycle: (): EarningsSummary => devOnly({ ...moneyFixtures.day(), period: 'cycle' }),
-
-  /** Figma `Page 3c- money monthly` (`502:192`). */
-  month: (): EarningsSummary =>
-    devOnly({
-      period: 'month',
-      workedHours: 8,
-      bonusProgress: {
-        thresholdHours: 7,
-        completedHours: 8,
-        remainingHours: 0,
-        progressRatio: 1,
-        message: '7 hr ke upar kaam',
-      },
-      basePaise: 850000,
-      bonusPaise: 112000,
-      tipsPaise: 40000,
-      grossPaise: 3573900,
-      noShow: { count: 4, amountPaise: 50000 },
-      late: { count: 2, amountPaise: 50000 },
-      totalDeductionsPaise: 100000,
-      finalPaise: 3438900,
-    }),
-
-  /** Figma `Page 4- cycle history` (`502:442`). */
-  cycles: (): readonly EarningsCycleRef[] =>
-    devOnly([
-      {
-        cycleId: 'c8',
-        label: '18th Jul - 21st Jul',
-        startDateIso: '2026-07-18',
-        endDateIso: '2026-07-21',
-        finalPaise: null,
-        isCurrent: true,
-      },
-      {
-        cycleId: 'c7',
-        label: '11th Jul - 17th Jul',
-        startDateIso: '2026-07-11',
-        endDateIso: '2026-07-17',
-        finalPaise: null,
-        isCurrent: false,
-      },
-      {
-        cycleId: 'c6',
-        label: '4th Jul - 10th Jul',
-        startDateIso: '2026-07-04',
-        endDateIso: '2026-07-10',
-        finalPaise: null,
-        isCurrent: false,
-      },
-      {
-        cycleId: 'c5',
-        label: '28th Jun - 4th Jul',
-        startDateIso: '2026-06-28',
-        endDateIso: '2026-07-04',
-        finalPaise: null,
-        isCurrent: false,
-      },
-      {
-        cycleId: 'c4',
-        label: '21st Jun - 27th Jun',
-        startDateIso: '2026-06-21',
-        endDateIso: '2026-06-27',
-        finalPaise: null,
-        isCurrent: false,
-      },
-      {
-        cycleId: 'c3',
-        label: '14th Jun - 20th Jun',
-        startDateIso: '2026-06-14',
-        endDateIso: '2026-06-20',
-        finalPaise: null,
-        isCurrent: false,
-      },
-      {
-        cycleId: 'c2',
-        label: '7th Jun - 13th Jun',
-        startDateIso: '2026-06-07',
-        endDateIso: '2026-06-13',
-        finalPaise: null,
-        isCurrent: false,
-      },
-      {
-        cycleId: 'c1',
-        label: '1st Jun - 6th Jun',
-        startDateIso: '2026-06-01',
-        endDateIso: '2026-06-06',
-        finalPaise: null,
-        isCurrent: false,
-      },
-    ]),
-};
-
 export const attendanceFixtures = {
   /** Backend: today unmarked, cook may mark. Figma `Page 11- attendance` (`506:1986`). */
   todayUnmarked: (): TodayAttendance =>
@@ -430,7 +315,14 @@ export const attendanceFixtures = {
       leaveCount: 2,
       onTimePercent: 98,
       upcomingLeaves: [
-        { id: 'l1', dateIso: '2026-08-15', label: 'Planned Leave', status: 'approved' },
+        {
+          id: 'l1',
+          startDateIso: '2026-08-15',
+          endDateIso: '2026-08-15',
+          dayCount: 1,
+          reason: 'Planned Leave',
+          status: 'approved',
+        },
       ],
     }),
 };

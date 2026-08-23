@@ -1,3 +1,16 @@
+> **SUPERSEDED — 2026-08-23.**
+>
+> This report describes Figma **V11** (`N44dO2hqLQBw5I5TKh0wmu` / `FLrHofaiOZtMn3F84yHEZa`, canvas
+> `434:2401`) and the backend as it stood before `a3bb590` was deployed. Both have since moved:
+>
+> - V11's `Performance & earnings` section (`540:397`) and all seven of its frames were **deleted**
+>   from the design file and replaced by a new `performance` section (`575:1741`).
+> - The Cook API — `/cook/me`, jobs, attendance month, `POST /cook/leaves`, earnings cycles — is now
+>   **live on `spoon-api-kalc.onrender.com`**, so the GAP-21 leave gate and the GAP-25 earnings
+>   limitation recorded below no longer apply.
+>
+> Read **`COOK_APP_FIGMA_V12_BACKEND_AND_VISUAL_CLOSURE.md`** instead. Kept for history only.
+
 # Cook App — Figma Section Implementation and Backend Integration Report
 
 **Date:** 2026-08-21

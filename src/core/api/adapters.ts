@@ -14,7 +14,15 @@
  */
 
 import type { AttendanceDay, AttendanceMonth, DayMark, LeaveEntry } from '../domain/attendance';
-import type { BonusProgress, EarningsCycleRef } from '../domain/money';
+import type {
+  BonusProgress,
+  EarningsBreakdown,
+  EarningsCycleRef,
+  EarningsPeriod,
+  EarningsPeriodView,
+} from '../domain/money';
+import { formatDateRange } from '../domain/money';
+import { toLeaveRequestStatus } from '../domain/leave';
 import type { JobAction, JobCardModel } from '../domain/job';
 import type {
   ArrivalTiming,
@@ -28,7 +36,10 @@ import type {
 } from '../domain/serviceState';
 import { bookingStatuses } from '../domain/serviceState';
 import type {
+  CookCycleDetailResponse,
   CookCycleSummaryResponse,
+  CookEarningsBreakdownResponse,
+  CookEarningsPeriodResponse,
   CookEarningsResponse,
   CookJobResponse,
   CookLeavesResponse,
@@ -82,12 +93,20 @@ function toAddress(job: CookJobResponse): CustomerAddressSnapshot {
   };
 }
 
-/** Tracking and arrival target. Always the booking coordinate — never the flat. */
+/**
+ * Tracking, navigation and arrival target. Always the OPERATIONAL GATE — never the flat.
+ *
+ * The backend derives `destination.latitude/longitude` from
+ * `booking_operational_snapshots.gate_point`, which is also what its 75 m arrival check measures
+ * against. Mapping any other coordinate here would send the cook somewhere their own GPS could
+ * never satisfy the arrival rule from.
+ */
 function toGate(job: CookJobResponse): GateTarget {
   return {
     latitude: job.destination.latitude,
     longitude: job.destination.longitude,
     label: job.destination.label,
+    accessInstructions: job.destination.accessInstructions,
   };
 }
 
@@ -246,16 +265,22 @@ export function toAttendanceMonth(
     mark: toDayMark(day),
   }));
 
+  // A request is "upcoming" while its LAST day is still ahead: a chutti already running today is
+  // still relevant to the cook, so filtering on `startDate` would hide it mid-leave.
   const upcomingLeaves: readonly LeaveEntry[] =
     leaves === null
       ? []
       : leaves.leaves
-          .filter((leave) => leave.serviceDate >= todayIso)
+          .filter((leave) => leave.endDate >= todayIso)
           .map((leave) => ({
-            id: leave.id,
-            dateIso: leave.serviceDate,
-            label: leave.reason.length > 0 ? leave.reason : 'Chutti',
-            status: leave.status === 'approved' ? ('approved' as const) : ('pending' as const),
+            id: leave.leaveId,
+            startDateIso: leave.startDate,
+            endDateIso: leave.endDate,
+            dayCount: inclusiveDayCount(leave.startDate, leave.endDate),
+            reason: leave.reason,
+            // The roll-up is a free string in the contract. Anything this build does not
+            // recognise is shown as still-undecided — never upgraded to `approved`.
+            status: toLeaveRequestStatus(leave.status),
           }));
 
   return {
@@ -273,35 +298,149 @@ export function toAttendanceMonth(
 
 /* ------------------------------------------------------------- earnings --- */
 
+/** Rename the backend's fourteen categories. No arithmetic — this is a field mapping. */
+export function toEarningsBreakdown(breakdown: CookEarningsBreakdownResponse): EarningsBreakdown {
+  return {
+    basePaise: breakdown.baseEarningsPaise,
+    ratingBonusPaise: breakdown.ratingBonusPaise,
+    longHoursPaise: breakdown.longHoursEarningsPaise,
+    attendanceBonusPaise: breakdown.attendanceBonusPaise,
+    paidLeavePaise: breakdown.paidLeaveEarningsPaise,
+    tipsPaise: breakdown.tipsPaise,
+    lateDeductionsPaise: breakdown.lateDeductionsPaise,
+    noShowDeductionsPaise: breakdown.noShowDeductionsPaise,
+    otherDeductionsPaise: breakdown.otherDeductionsPaise,
+    adjustmentsPaise: breakdown.adjustmentsPaise,
+    reversalsPaise: breakdown.reversalsPaise,
+    grossPaise: breakdown.grossEarningsPaise,
+    totalDeductionsPaise: breakdown.totalDeductionsPaise,
+    netPaise: breakdown.netEarningsPaise,
+  };
+}
+
 /**
- * Bonus progress.
+ * One Performance period.
  *
- * The threshold is whatever the backend's policy says. `available: false` means the cook has no
- * current cycle, which is a real state — not a zero.
+ * The four `null`s are the deployed contract's gaps, not omissions here: worked duration, the
+ * "above base" figure, the per-day base rate and the mistake COUNTS have no field on any cook
+ * route. They are deliberately not reconstructed — see the header of `domain/money.ts`.
+ */
+export function toEarningsPeriodView(
+  period: EarningsPeriod,
+  response: CookEarningsPeriodResponse,
+): EarningsPeriodView {
+  const breakdown = toEarningsBreakdown(response.breakdown);
+  return {
+    period,
+    startDateIso: response.startDate,
+    endDateIso: response.endDate,
+    eventCount: response.eventCount,
+    breakdown,
+    noShow: { count: null, amountPaise: breakdown.noShowDeductionsPaise },
+    late: { count: null, amountPaise: breakdown.lateDeductionsPaise },
+    workedMinutes: null,
+    aboveBasePaise: null,
+    perDayBasePaise: null,
+  };
+}
+
+/** Pick the period the `Aaj / Cycle / Mahina` control selects. */
+export function periodResponseFor(
+  response: CookEarningsResponse,
+  period: EarningsPeriod,
+): CookEarningsPeriodResponse {
+  if (period === 'day') return response.daily;
+  if (period === 'cycle') return response.sevenDay;
+  return response.monthly;
+}
+
+/**
+ * A past cycle, rendered with the SAME structure as a live period.
+ *
+ * `getCookCycle` supplies `summary` — the reversal-safe aggregate — so this needs no arithmetic
+ * either. `eventCount` is the real line count for the cycle, which that endpoint does return.
+ */
+export function toCycleDetailView(detail: CookCycleDetailResponse): EarningsPeriodView {
+  const breakdown = toEarningsBreakdown(detail.summary);
+  return {
+    period: 'cycle',
+    startDateIso: detail.startDate,
+    endDateIso: detail.endDate,
+    eventCount: detail.events.length,
+    breakdown,
+    noShow: { count: null, amountPaise: breakdown.noShowDeductionsPaise },
+    late: { count: null, amountPaise: breakdown.lateDeductionsPaise },
+    workedMinutes: null,
+    aboveBasePaise: null,
+    perDayBasePaise: null,
+  };
+}
+
+/**
+ * Bonus progress, in DAYS.
+ *
+ * The threshold, the target and both amounts are whatever the backend's earnings policy says.
+ * `available: false` means the cook has no current cycle, which is a real state — not a zero, and
+ * not a reason to invent the design's seven-hour copy.
  */
 export function toBonusProgress(response: CookEarningsResponse): BonusProgress | null {
   const bonus = response.bonus;
-  if (!bonus.available || bonus.thresholdDays === null || bonus.currentProgressDays === null) {
+  if (
+    !bonus.available ||
+    bonus.thresholdDays === null ||
+    bonus.currentProgressDays === null ||
+    bonus.targetDays === null
+  ) {
     return null;
   }
   const completed = bonus.currentProgressDays;
   const threshold = bonus.thresholdDays;
+  const target = bonus.targetDays;
   return {
-    thresholdHours: threshold,
-    completedHours: completed,
-    remainingHours: Math.max(0, threshold - completed),
-    progressRatio: threshold === 0 ? 0 : Math.min(1, completed / threshold),
-    message: null,
+    thresholdDays: threshold,
+    targetDays: target,
+    completedDays: completed,
+    remainingDays: Math.max(0, threshold - completed),
+    progressRatio: target === 0 ? 0 : Math.min(1, Math.max(0, completed / target)),
+    thresholdAchieved: bonus.thresholdAchieved ?? completed >= threshold,
+    bonusAmountPaise: bonus.bonusAmountPaise,
+    targetBonusAmountPaise: bonus.targetBonusAmountPaise,
   };
 }
 
 export function toCycleRef(cycle: CookCycleSummaryResponse): EarningsCycleRef {
   return {
     cycleId: cycle.cycleId,
-    label: `${cycle.startDate} – ${cycle.endDate}`,
+    label: formatDateRange(cycle.startDate, cycle.endDate),
     startDateIso: cycle.startDate,
     endDateIso: cycle.endDate,
     finalPaise: cycle.finalAmountPaise,
     isCurrent: cycle.current,
   };
+}
+
+/**
+ * Inclusive day span of a leave request.
+ *
+ * Display only — the backend already decided which dates the request covers. A malformed or
+ * inverted range yields `0` rather than a negative count.
+ */
+function inclusiveDayCount(fromIso: string, toIso: string): number {
+  const from = Date.parse(`${fromIso}T00:00:00Z`);
+  const to = Date.parse(`${toIso}T00:00:00Z`);
+  if (Number.isNaN(from) || Number.isNaN(to) || to < from) return 0;
+  return Math.round((to - from) / 86_400_000) + 1;
+}
+
+/** Every service date in an inclusive range. Dates are not money — no financial ruling here. */
+export function serviceDatesBetween(fromIso: string, toIso: string): readonly string[] {
+  const from = Date.parse(`${fromIso}T00:00:00Z`);
+  const to = Date.parse(`${toIso}T00:00:00Z`);
+  if (Number.isNaN(from) || Number.isNaN(to) || to < from) return [];
+  const days: string[] = [];
+  // Bounded so a malformed range cannot render an unbounded list.
+  for (let at = from; at <= to && days.length < 62; at += 86_400_000) {
+    days.push(new Date(at).toISOString().slice(0, 10));
+  }
+  return days;
 }

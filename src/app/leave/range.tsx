@@ -3,13 +3,17 @@ import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { newIdempotencyKey } from '@core/api/cook';
+import { apiErrorMessage } from '@core/api/errors';
+import { useCookProfile, useRequestLeave } from '@core/api/queries';
 import {
-  canSubmitLeaveRequest,
   countLeaveDays,
-  leaveRequestUnavailableCopy,
+  leaveRequestPendingCopy,
+  toLeaveRequestRange,
+  validateLeaveSelection,
   type LeaveRequestKind,
 } from '@core/domain/leave';
-import { Button, color, radius, spacing, Text } from '@ui';
+import { Button, color, ErrorState, LoadingState, radius, spacing, Text } from '@ui';
 
 /**
  * `lambi chutti` — Figma `Page 13a- long` (`528:659`), `Page 13b- long select` (`530:1349`) and
@@ -21,23 +25,48 @@ import { Button, color, radius, spacing, Text } from '@ui';
  *
  * Selection is a first-and-last tap producing an inclusive range, which is what `Total din` counts.
  *
- * Submission is disabled for the same reason as the single-day flow — the backend has no cook-side
- * leave write (GAP-21). The grid, the running total and the confirm copy are all real, so the
- * screen becomes functional by wiring one call.
+ * ## Submission is live
+ *
+ * `POST /v1/cook/leaves` takes `{ startDate, endDate }` and an `Idempotency-Key`, and answers
+ * `201` with `status: 'pending'`. A multi-day request is ONE request server-side — grouped by
+ * `leave_request_id` — which is why the range is submitted whole rather than day by day.
+ *
+ * The result is a REQUEST, not a granted leave: Ops/Admin decide. The screen says so and the
+ * calendar is re-read afterwards rather than marked locally.
  */
 export default function RangeLeaveScreen(): React.ReactElement {
   const insets = useSafeAreaInsets();
   const [fromIso, setFromIso] = useState<string | null>(null);
   const [toIso, setToIso] = useState<string | null>(null);
 
-  const grid = useMemo(() => currentMonthGrid(), []);
-  const submittable = canSubmitLeaveRequest();
+  // One key per mount, so a retry after a timeout replays rather than filing a second chutti.
+  const [idempotencyKey] = useState(newIdempotencyKey);
+
+  const profile = useCookProfile();
+  const todayIso = (profile.data?.serverTime ?? '').slice(0, 10);
+  const requestLeave = useRequestLeave(todayIso.slice(0, 7));
+
+  // Anchored to the SERVER's service date so the grid cannot open on a month the device invented.
+  const grid = useMemo(() => currentMonthGrid(todayIso), [todayIso]);
 
   const selection: LeaveRequestKind | null =
     fromIso !== null && toIso !== null
       ? { kind: 'date_range', fromDateIso: fromIso, toDateIso: toIso }
       : null;
   const totalDays = selection === null ? 0 : countLeaveDays(selection);
+  const validation = selection === null ? null : validateLeaveSelection(selection, todayIso);
+  const submitted = requestLeave.isSuccess;
+
+  const submit = (): void => {
+    if (selection === null || validation === null || !validation.ok) return;
+    if (requestLeave.isPending || submitted) return;
+    const range = toLeaveRequestRange(selection);
+    requestLeave.mutate({
+      startDateIso: range.startDateIso,
+      endDateIso: range.endDateIso,
+      idempotencyKey,
+    });
+  };
 
   const onPickDay = (dateIso: string): void => {
     // First tap starts a range; second tap closes it; a third starts over. Tapping earlier than
@@ -59,6 +88,17 @@ export default function RangeLeaveScreen(): React.ReactElement {
     if (toIso === null) return dateIso === fromIso;
     return dateIso >= fromIso && dateIso <= toIso;
   };
+
+  if (profile.isPending) return <LoadingState testID="leave-range-loading" />;
+  if (profile.isError) {
+    return (
+      <ErrorState
+        message={apiErrorMessage(profile.error)}
+        onRetry={() => void profile.refetch()}
+        testID="leave-range-error"
+      />
+    );
+  }
 
   return (
     <View style={[styles.flex, { paddingTop: insets.top + spacing.m }]} testID="leave-range">
@@ -105,19 +145,30 @@ export default function RangeLeaveScreen(): React.ReactElement {
           </Text>
         </View>
 
+        {validation !== null && !validation.ok && (
+          <Text variant="caption" color={color.danger} testID="leave-range-invalid">
+            {validation.message}
+          </Text>
+        )}
+
         <Button
           label="Pakka"
           tone="action"
-          disabled={!submittable || totalDays === 0}
-          onPress={() => {
-            /* GAP-21 — unreachable until the endpoint exists. */
-          }}
+          disabled={totalDays === 0 || submitted || (validation !== null && !validation.ok)}
+          loading={requestLeave.isPending}
+          onPress={submit}
           testID="leave-range-confirm"
         />
 
-        {!submittable && (
-          <Text variant="caption" color={color.danger} testID="leave-range-blocked">
-            {leaveRequestUnavailableCopy}
+        {submitted && (
+          <Text variant="bodyStrong" testID="leave-range-pending">
+            {leaveRequestPendingCopy}
+          </Text>
+        )}
+
+        {requestLeave.isError && (
+          <Text variant="caption" color={color.danger} testID="leave-range-failed">
+            {apiErrorMessage(requestLeave.error)}
           </Text>
         )}
 
@@ -152,20 +203,26 @@ const MONTHS = [
   'December',
 ] as const;
 
-/** Monday-first month grid, matching the Figma header `M T W T F S S`. */
-function currentMonthGrid(): {
+/**
+ * Monday-first month grid, matching the Figma header `M T W T F S S`.
+ *
+ * Built from the SERVER's service date. Dates are constructed at UTC midnight so the grid is a
+ * property of the calendar month rather than of the device's offset.
+ */
+function currentMonthGrid(todayIso: string): {
   readonly monthLabel: string;
   readonly leadingBlanks: readonly string[];
   readonly days: readonly GridDay[];
 } {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = now.getMonth();
-  const first = new Date(year, month, 1);
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const anchor = Date.parse(`${todayIso}T00:00:00Z`);
+  const now = Number.isNaN(anchor) ? new Date() : new Date(anchor);
+  const year = now.getUTCFullYear();
+  const month = now.getUTCMonth();
+  const first = new Date(Date.UTC(year, month, 1));
+  const daysInMonth = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
 
   // JS weeks start on Sunday; the design starts on Monday.
-  const offset = (first.getDay() + 6) % 7;
+  const offset = (first.getUTCDay() + 6) % 7;
 
   const days: GridDay[] = [];
   for (let day = 1; day <= daysInMonth; day += 1) {

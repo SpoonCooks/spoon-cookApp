@@ -1,29 +1,20 @@
 /**
  * Cook-initiated leave requests ("Chutti lagaye").
  *
- * ## This flow is in scope, and it has no backend
+ * ## The backend now exists — and was verified deployed
  *
- * The approved Figma `Attendance` section (`540:416`) contains a complete cook-initiated leave
- * flow that no previous inventory covered:
+ * `POST /v1/cook/leaves` is registered on the live API (`spoon-api-kalc.onrender.com`, probed
+ * 2026-08-23: `401 UNAUTHENTICATED`, not `404`). It is one of the routes that exist ONLY in the
+ * backend commit deployed to that host, which is how the deployed build was fingerprinted.
  *
- *   `506:1986` Page 11        — `Chutti lagaye`, `1 din ki chutti` day chips, `lambi chutti`
- *   `528:483`  Page 14a       — `Chutti pakka hai?` + `Pakka`
- *   `529:1259` Page 14b       — the day now reads `Chutti lag gyi`
- *   `528:659`  Page 13a       — month grid, `Total din 0`, `Pakka`
- *   `530:1349` Page 13b       — days selected, `Total din 10`
- *   `530:1478` Page 13c       — `Aane wali chutti` → `16 Nov se 25 Nov tak`, `Dates badle`
+ * The submission gate that stood here while the endpoint was missing is therefore lifted. What it
+ * protected against still holds and is enforced elsewhere:
  *
- * The backend exposes **no cook-side leave write**. `GET /v1/cook/leaves` reads APPROVED leaves
- * only, and the sole writer is `POST /v1/admin/cooks/:cookId/leaves` behind an admin principal.
- * There is no request table, no pending state and no approval transition for a cook-submitted
- * leave.
+ *   - the request lands as `pending`; Ops/Admin decide. No screen may say `Chutti lag gyi`.
+ *   - the app never marks the leave locally — every screen re-reads `GET /cook/leaves`.
  *
- * Therefore the screens are built, the contract below is stated precisely, and **submission is
- * disabled**. Nothing in this app may report a leave as applied that the server has never seen —
- * a cook who believes `Chutti lag gyi` and does not turn up has been actively misled by the app.
- *
- * See `docs/COOK_APP_PHASE_1_BACKEND_READINESS_AND_GAP_REPORT.md` GAP-21 for the endpoint this
- * needs.
+ * `GET /cook/leaves` returns REQUESTS grouped by `leave_request_id`, including pending and
+ * rejected ones, so a submitted request is visible to the cook immediately in its real state.
  */
 
 /** What the cook is asking for. Both variants exist as separate Figma flows. */
@@ -33,45 +24,61 @@ export type LeaveRequestKind =
   /** `lambi chutti` — an inclusive range chosen on the month grid. */
   | { readonly kind: 'date_range'; readonly fromDateIso: string; readonly toDateIso: string };
 
-/**
- * The request body the backend would need to accept.
- *
- * `idempotencyKey` is required for the same reason every other cook command requires one: a
- * double-tap must not create two leave requests.
- */
-export interface LeaveRequestDraft {
-  readonly selection: LeaveRequestKind;
-  readonly idempotencyKey: string;
-}
-
-/** Lifecycle a cook-submitted leave would move through. `approved` is the only state today. */
+/** Lifecycle a cook-submitted leave moves through. Submission always yields `pending`. */
 export const leaveRequestStatuses = ['pending', 'approved', 'rejected', 'cancelled'] as const;
 export type LeaveRequestStatus = (typeof leaveRequestStatuses)[number];
 
-/** The response projection the screens are written against. */
-export interface LeaveRequestResult {
-  readonly id: string;
-  readonly status: LeaveRequestStatus;
-  readonly fromDateIso: string;
-  readonly toDateIso: string;
-  readonly totalDays: number;
-  readonly submittedAtIso: string;
+export function toLeaveRequestStatus(value: string): LeaveRequestStatus {
+  // An unrecognised roll-up is treated as still-undecided rather than as approved: telling a cook
+  // their leave is granted when it is not is the failure this whole flow is built to avoid.
+  return leaveRequestStatuses.find((status) => status === value) ?? 'pending';
+}
+
+/** The endpoint body, in the shape `POST /cook/leaves` validates. */
+export interface LeaveRequestDraft {
+  readonly selection: LeaveRequestKind;
+  readonly idempotencyKey: string;
+  readonly reason?: string;
+}
+
+/** `{ startDate, endDate }` — the only two fields the route requires. */
+export function toLeaveRequestRange(selection: LeaveRequestKind): {
+  readonly startDateIso: string;
+  readonly endDateIso: string;
+} {
+  if (selection.kind === 'single_day') {
+    return { startDateIso: selection.dateIso, endDateIso: selection.dateIso };
+  }
+  return { startDateIso: selection.fromDateIso, endDateIso: selection.toDateIso };
 }
 
 /**
- * Whether the app may submit a leave request.
+ * Whether this selection is valid to send.
  *
- * Hardcoded `false` deliberately: it is a single, greppable switch that flips when GAP-21 ships,
- * and a test asserts that no screen bypasses it. It is NOT a feature flag to be toggled on before
- * the endpoint exists.
+ * Mirrors the server's own rules so an obviously-doomed request is not spent: the backend rejects
+ * `endDate < startDate` with `400`, and a `startDate` before today's Asia/Kolkata service date
+ * with `400`. `todayIso` is supplied by the CALLER from `serverTime` — the device clock never
+ * decides a service date.
  */
-export function canSubmitLeaveRequest(): boolean {
-  return false;
+export function validateLeaveSelection(
+  selection: LeaveRequestKind,
+  todayIso: string,
+): { readonly ok: true } | { readonly ok: false; readonly message: string } {
+  const { startDateIso, endDateIso } = toLeaveRequestRange(selection);
+  if (startDateIso.length !== 10 || endDateIso.length !== 10) {
+    return { ok: false, message: 'Dates chunein.' };
+  }
+  if (endDateIso < startDateIso) {
+    return { ok: false, message: 'Aakhri din pehle din se pehle nahi ho sakta.' };
+  }
+  if (todayIso.length === 10 && startDateIso < todayIso) {
+    return { ok: false, message: 'Guzre hue din ki chutti nahi lag sakti.' };
+  }
+  return { ok: true };
 }
 
-/** Copy shown where the Figma puts the submit affordance, while the contract is missing. */
-export const leaveRequestUnavailableCopy =
-  'Chutti ki request abhi app se nahi lag sakti. Apne manager ko bataye.';
+/** Shown after a successful submission. Deliberately not "chutti lag gyi". */
+export const leaveRequestPendingCopy = 'Chutti ki request bhej di. Manager approve karenge.';
 
 /** Inclusive day count for a range — display only (`Total din`). */
 export function countLeaveDays(selection: LeaveRequestKind): number {
