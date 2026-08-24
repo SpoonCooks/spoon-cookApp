@@ -1,33 +1,31 @@
 import { render, screen, fireEvent } from '@testing-library/react-native';
 
 import AttendanceScreen from '@/app/(tabs)/attendance';
-import SingleDayLeaveScreen from '@/app/leave/single';
-import RangeLeaveScreen from '@/app/leave/range';
 
 /**
- * Attendance-section render tests — V13 `log in flow` (`592:1068`) plus the leave pickers.
+ * Attendance render tests — the V13 `log in flow` section (`592:1068`).
  *
- * The Android emulator could not boot in this environment (see the implementation report §11), so
- * these mount the real screens and assert the rendered projection instead. That is NOT a substitute
- * for device verification and is not reported as one — but it does prove that each of the three
- * server-driven attendance states renders its own Figma copy, that `Mark Present` never marks
- * locally, and that a submitted leave is shown as a REQUEST rather than as a granted chutti.
+ * These mount the real screen and assert the rendered projection. They are not a substitute for
+ * the device comparison in `docs/visual-verification/v13/log-in-flow/`, and are not reported as
+ * one — what they prove is the state SELECTION: that each server-driven state renders its own
+ * frame's copy, that `Mark Present` never marks locally, and that the check-in deadline the frame
+ * draws is withheld until the backend publishes one.
+ *
+ * The leave surfaces moved to the `leave` section in V13; their coverage is in
+ * `leaveScreens.test.tsx`.
  */
 
 const mockMutate = jest.fn();
-const mockLeaveMutate = jest.fn();
 let mockProfileState: Record<string, unknown>;
 let mockAttendanceState: Record<string, unknown>;
 let mockMarkPresentState: Record<string, unknown>;
 let mockLeavesState: Record<string, unknown>;
-let mockRequestLeaveState: Record<string, unknown>;
 
 jest.mock('@core/api/queries', () => ({
   useCookProfile: () => mockProfileState,
   useMonthlyAttendance: () => mockAttendanceState,
   useMarkPresent: () => mockMarkPresentState,
   useLeaves: () => mockLeavesState,
-  useRequestLeave: () => mockRequestLeaveState,
 }));
 
 jest.mock('expo-router', () => ({
@@ -96,7 +94,6 @@ function profile(
 
 beforeEach(() => {
   mockMutate.mockClear();
-  mockLeaveMutate.mockClear();
   profile(null);
   mockAttendanceState = {
     isPending: false,
@@ -122,13 +119,6 @@ beforeEach(() => {
     error: null,
     refetch: jest.fn(),
     data: { leaves: [], fromDate: '2026-08-21', toDate: '2026-08-31', timezone: 'Asia/Kolkata' },
-  };
-  mockRequestLeaveState = {
-    mutate: mockLeaveMutate,
-    isPending: false,
-    isError: false,
-    isSuccess: false,
-    error: null,
   };
 });
 
@@ -282,101 +272,3 @@ describe('575:2136 — 3d, shift finished', () => {
  * screen. V13 moves them to the `leave` section (`540:416`), whose own screen carries `AAJ KA
  * BREAK` and the leave surfaces; their coverage lives with that screen.
  */
-
-describe('Pages 14a/14b — 1 din ki chutti (528:483 / 529:1259)', () => {
-  it('renders the confirmation copy', () => {
-    render(<SingleDayLeaveScreen />);
-    expect(screen.getByText('Chutti pakka hai?')).toBeTruthy();
-    expect(screen.getByText('Aap jitne din aaye, utne din ke paise milenge')).toBeTruthy();
-  });
-
-  it('counts a single day', () => {
-    render(<SingleDayLeaveScreen />);
-    expect(screen.getByTestId('leave-single-total')).toHaveTextContent('Total din 1');
-  });
-
-  it('submits the chosen day as a one-day range with an idempotency key', () => {
-    render(<SingleDayLeaveScreen />);
-    fireEvent.press(screen.getByTestId('leave-single-confirm'));
-    expect(mockLeaveMutate).toHaveBeenCalledTimes(1);
-    const args = mockLeaveMutate.mock.calls[0]?.[0] as Record<string, string>;
-    // The server's date, taken from `serverTime` — not the device clock.
-    expect(args['startDateIso']).toBe('2026-08-21');
-    expect(args['endDateIso']).toBe('2026-08-21');
-    expect(args['idempotencyKey']).toEqual(expect.any(String));
-  });
-
-  it('reuses ONE idempotency key across repeated taps', () => {
-    render(<SingleDayLeaveScreen />);
-    fireEvent.press(screen.getByTestId('leave-single-confirm'));
-    fireEvent.press(screen.getByTestId('leave-single-confirm'));
-    const keys = mockLeaveMutate.mock.calls.map(
-      (call) => (call[0] as Record<string, string>)['idempotencyKey'],
-    );
-    expect(new Set(keys).size).toBe(1);
-  });
-
-  it('says the request was SENT, never that the leave was granted', () => {
-    mockRequestLeaveState = { ...mockRequestLeaveState, isSuccess: true };
-    render(<SingleDayLeaveScreen />);
-    expect(screen.getByTestId('leave-single-pending')).toHaveTextContent(
-      'Chutti ki request bhej di. Manager approve karenge.',
-    );
-    expect(screen.queryByText('Chutti lag gyi')).toBeNull();
-  });
-
-  it('surfaces a rejected submission rather than pretending it worked', () => {
-    mockRequestLeaveState = {
-      ...mockRequestLeaveState,
-      isError: true,
-      error: { name: 'ApiError' },
-    };
-    render(<SingleDayLeaveScreen />);
-    expect(screen.getByTestId('leave-single-failed')).toBeTruthy();
-    expect(screen.queryByTestId('leave-single-pending')).toBeNull();
-  });
-});
-
-describe('Pages 13a/13b — lambi chutti (528:659 / 530:1349)', () => {
-  it('starts with an empty selection and Total din 0', () => {
-    render(<RangeLeaveScreen />);
-    expect(screen.getByTestId('leave-range-total')).toHaveTextContent('0');
-  });
-
-  it('counts an inclusive range across two taps', () => {
-    render(<RangeLeaveScreen />);
-    const first = screen.getAllByTestId(/^leave-range-day-/)[0];
-    const tenth = screen.getAllByTestId(/^leave-range-day-/)[9];
-    fireEvent.press(first!);
-    fireEvent.press(tenth!);
-    expect(screen.getByTestId('leave-range-total')).toHaveTextContent('10');
-  });
-
-  it('keeps Pakka disabled until a range is actually chosen', () => {
-    render(<RangeLeaveScreen />);
-    expect(screen.getByTestId('leave-range-confirm').props.accessibilityState.disabled).toBe(true);
-  });
-
-  it('submits the whole range as ONE request', () => {
-    render(<RangeLeaveScreen />);
-    const days = screen.getAllByTestId(/^leave-range-day-/);
-    // 21 Aug is the server's today; pick a forward range so validation passes.
-    fireEvent.press(days[24]!);
-    fireEvent.press(days[28]!);
-    fireEvent.press(screen.getByTestId('leave-range-confirm'));
-    expect(mockLeaveMutate).toHaveBeenCalledTimes(1);
-    const args = mockLeaveMutate.mock.calls[0]?.[0] as Record<string, string>;
-    expect(args['startDateIso']).toBe('2026-08-25');
-    expect(args['endDateIso']).toBe('2026-08-29');
-  });
-
-  it('refuses a range that starts in the past instead of spending the request', () => {
-    render(<RangeLeaveScreen />);
-    const days = screen.getAllByTestId(/^leave-range-day-/);
-    fireEvent.press(days[0]!);
-    fireEvent.press(days[4]!);
-    expect(screen.getByTestId('leave-range-invalid')).toBeTruthy();
-    fireEvent.press(screen.getByTestId('leave-range-confirm'));
-    expect(mockLeaveMutate).not.toHaveBeenCalled();
-  });
-});

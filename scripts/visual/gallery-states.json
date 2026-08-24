@@ -19,5 +19,12 @@
  "login-flow/daily": "575:2135",
  "login-flow/present": "575:2137",
  "login-flow/absent": "575:2138",
- "login-flow/logout": "575:2136"
+ "login-flow/logout": "575:2136",
+ "leave/present": "592:488",
+ "leave/absent": "592:489",
+ "leave/long-empty": "592:563",
+ "leave/long-selected": "592:639",
+ "leave/long-booked": "592:832",
+ "leave/applied-and-booked": "592:1008",
+ "leave/short-confirm": "592:888"
 }

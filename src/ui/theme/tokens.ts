@@ -40,6 +40,12 @@ export const neutral = {
   black70: 'rgba(0, 0, 0, 0.7)',
   grey50: '#f9fafb',
   grey100: '#f3f4f6',
+  /**
+   * `529:1016` and its siblings — a calendar day outside the bookable window. Distinct from
+   * `grey100` (`#f3f4f6`), which the `leave` status bar uses for its hairline in the same frame,
+   * so the two cannot be collapsed.
+   */
+  smoke: '#f5f5f5',
   grey300: '#cad5e2',
   grey400: '#a1a1a1',
   grey500: '#737373',
@@ -72,6 +78,10 @@ export const semantic = {
   slate: '#0f172b',
   slate800: '#1e2939',
   slate900: '#101828',
+  /** `592:563` / `592:888` — the scrim a leave bottom sheet is presented over. */
+  scrim: 'rgba(0, 0, 0, 0.8)',
+  /** `528:662` — `Pakka` before a range is chosen. A fill, not an opacity on the live button. */
+  disabledFill: 'rgba(0, 0, 0, 0.07)',
 } as const;
 
 export const color = {
@@ -141,6 +151,12 @@ export const lineHeight = {
   display: 32,
   /** `505:1666` / `572:701` — the lime CTA sets 24px type on a 30px line, not the usual 32. */
   displayTight: 30,
+  /** `528:669` — the compact Help pill inside a leave sheet header. */
+  helpPill: 15.2,
+  /** `505:1702` — a calendar day cell. */
+  dayCell: 16.5,
+  /** `528:391` / `528:458` — the `Chutti` chip and the `Dates chunein` row. */
+  chip: 25,
   displayLg: 36,
   displayXl: 40,
   hero: 40,

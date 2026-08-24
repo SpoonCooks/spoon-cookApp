@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import {
   DIRECT_STATUS_BAND_HEIGHT,
   HOME_INDICATOR_HEIGHT,
+  LEAVE_STATUS_BAND_HEIGHT,
   STATUS_BAND_HEIGHT,
   viewportProfile,
   viewportProfileBySection,
@@ -40,8 +41,13 @@ describe('viewport profiles', () => {
     expect(pythonConstant('DIRECT_STATUS_BAND_HEIGHT')).toBe(DIRECT_STATUS_BAND_HEIGHT);
   });
 
-  it('keeps the two bands distinct — a direct frame must not inherit the bezel band', () => {
-    expect(DIRECT_STATUS_BAND_HEIGHT).not.toBe(STATUS_BAND_HEIGHT);
+  it('states the same leave status band as the comparison harness', () => {
+    expect(pythonConstant('LEAVE_STATUS_BAND_HEIGHT')).toBe(LEAVE_STATUS_BAND_HEIGHT);
+  });
+
+  it('keeps all three bands distinct, so no section can inherit another one', () => {
+    const bands = [STATUS_BAND_HEIGHT, DIRECT_STATUS_BAND_HEIGHT, LEAVE_STATUS_BAND_HEIGHT];
+    expect(new Set(bands).size).toBe(3);
   });
 
   it('gives every finalized section a profile', () => {
@@ -69,9 +75,22 @@ describe('viewport profiles', () => {
   it('gives the direct sections the direct band and the bezel sections the bezel band', () => {
     expect(viewportProfile('434:3115').statusBandHeight).toBe(STATUS_BAND_HEIGHT);
     expect(viewportProfile('485:4971').statusBandHeight).toBe(STATUS_BAND_HEIGHT);
-    for (const section of ['540:416', '592:1068', '575:1741']) {
+    for (const section of ['592:1068', '575:1741']) {
       expect(viewportProfile(section).statusBandHeight).toBe(DIRECT_STATUS_BAND_HEIGHT);
     }
+    expect(viewportProfile('540:416').statusBandHeight).toBe(LEAVE_STATUS_BAND_HEIGHT);
+  });
+
+  it('lists the leave sheets as bottom-anchored, and nothing else', () => {
+    // The three sheets are 96 design units taller than the emulator can show. Aligning them by
+    // their first row would displace every element in them; the harness aligns them by the last.
+    const match = /BOTTOM_ANCHORED_NODES = frozenset\(\{([^}]*)\}\)/.exec(comparePy);
+    const nodes = (match?.[1] ?? '')
+      .split(',')
+      .map((entry) => entry.trim().replace(/"/g, ''))
+      .filter((entry) => entry.length > 0)
+      .sort();
+    expect(nodes).toEqual(['592:563', '592:639', '592:888']);
   });
 
   it('rejects an unknown section rather than guessing a convention', () => {

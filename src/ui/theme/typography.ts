@@ -73,6 +73,61 @@ export const textStyle = {
     lineHeight: lineHeight.s,
     color: color.textPrimary,
   },
+  /**
+   * `528:663` / `528:608` — `Pakka`. Same metrics as `actionLabel` but with NO tracking: the
+   * `log in flow` CTAs set 1 unit, the leave sheets set none, and sharing one variant would put a
+   * unit of drift into every character of a centred button label.
+   */
+  actionLabelPlain: {
+    fontFamily: fontFamily.black,
+    fontSize: fontSize.display,
+    lineHeight: lineHeight.displayTight,
+    color: color.textPrimary,
+  },
+  /** `526:338` / `528:656` — `CHUTTI LAGAYE`. Livvic Black 20 on a 20 line, 1 unit of tracking. */
+  overlineXl: {
+    fontFamily: fontFamily.black,
+    fontSize: fontSize.xxxl,
+    lineHeight: lineHeight.l,
+    letterSpacing: 1,
+    color: color.textPrimary,
+  },
+  /** `528:469` — `AAJ KA BREAK`. Livvic Black 18 on a 20 line, 1 unit of tracking. */
+  overlineLg: {
+    fontFamily: fontFamily.black,
+    fontSize: fontSize.xxl,
+    lineHeight: lineHeight.l,
+    letterSpacing: 1,
+    color: color.textPrimary,
+  },
+  /** `528:475` — the break window times. Livvic Bold 18 on a 28 line, wider than `heading`. */
+  timeStrong: {
+    fontFamily: fontFamily.bold,
+    fontSize: fontSize.xxl,
+    lineHeight: lineHeight.xxl,
+    color: color.textPrimary,
+  },
+  /** `528:391` / `528:458` — the `Chutti` chip and `Dates chunein`. Livvic Black 20 on a 25 line. */
+  chipLabel: {
+    fontFamily: fontFamily.black,
+    fontSize: fontSize.xxxl,
+    lineHeight: lineHeight.chip,
+    color: color.textPrimary,
+  },
+  /** `505:1702` — a calendar day. Livvic Black 11 on a 16.5 line. */
+  calendarDay: {
+    fontFamily: fontFamily.black,
+    fontSize: fontSize.s,
+    lineHeight: lineHeight.dayCell,
+    color: color.textPrimary,
+  },
+  /** `528:670` — the compact Help pill in a sheet header. Livvic Bold 12 on a 15.2 line. */
+  helpPill: {
+    fontFamily: fontFamily.bold,
+    fontSize: fontSize.m,
+    lineHeight: lineHeight.helpPill,
+    color: color.textPrimary,
+  },
   /** Screen headings — `Namaste, Rekha`, `OTP verification`. */
   headingLg: {
     fontFamily: fontFamily.black,

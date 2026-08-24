@@ -3,7 +3,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { SvgXml } from 'react-native-svg';
 
-import { Text, color, useDesignScale } from '@ui';
+import { Text, color, figmaStroke, useDesignScale } from '@ui';
 import { checkTick, crossTick, ellipse4 } from '@ui/icons/figmaV13Icons';
 
 /**
@@ -302,18 +302,18 @@ function Card({
   style?: StyleProp<ViewStyle>;
   testID?: string;
 }): React.ReactElement {
-  const { s } = useDesignScale();
+  const scale = useDesignScale();
+  const { s } = scale;
   return (
     <View
       style={[
         styles.card,
-        {
-          width: s(CARD.width),
-          padding: s(CARD.padding),
-          borderRadius: s(CARD.radius),
-          gap: s(CARD.gap),
-          borderWidth: s(CARD.borderWidth),
-        },
+        // The 1-unit lime stroke is centre-aligned in Figma: it overflows the 334-unit card
+        // rather than making it 336. See `figmaStroke`.
+        figmaStroke(scale, { width: CARD.borderWidth, padding: CARD.padding }),
+        // The width is the PAINTED width, so the centred stroke is added to the frame's 334.
+        // `figmaStroke`'s negative margin takes it back off the laid-out width.
+        { width: s(CARD.width + CARD.borderWidth), borderRadius: s(CARD.radius), gap: s(CARD.gap) },
         style,
       ]}
       testID={testID}

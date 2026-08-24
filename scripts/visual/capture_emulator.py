@@ -44,6 +44,9 @@ PACKAGE = "com.spoonhelp.cookapp.dev"
 #: Minimum settle after a cold start before the app is polled for readiness.
 WARM_FLOOR_SECONDS = 20.0
 
+#: How many times to relaunch when a cold start produces no JS. See `warm_up`.
+WARM_LAUNCH_ATTEMPTS = 4
+
 
 def adb(adb_path: str, *args: str, binary: bool = False):
     result = subprocess.run(
@@ -79,6 +82,20 @@ def reject_reason(png_bytes: bytes) -> str | None:
     if body.mean() < 20:
         return "black screen - nothing painted"
 
+    # The Expo splash screen: a single saturated brand colour behind a small logo. It is neither
+    # blank nor an error, and an earlier version of this check wrote it to disk as a screen render
+    # -- four `log in flow` frames were captured as splash screens and scored 99% before this was
+    # added. Any V13 screen is predominantly white, so a body that is mostly ONE saturated colour
+    # means the app has not finished launching.
+    buckets = np.bincount(
+        (body[:, :, 0] // 8 * 1024 + body[:, :, 1] // 8 * 32 + body[:, :, 2] // 8).ravel()
+    )
+    dominant = int(buckets.argmax())
+    share = float(buckets[dominant]) / float(body.shape[0] * body.shape[1])
+    r, g, b = (dominant // 1024) * 8, (dominant // 32 % 32) * 8, (dominant % 32) * 8
+    if share > 0.85 and min(r, g, b) < 200:
+        return f"splash or single-colour screen ({share:.0%} of pixels near rgb({r},{g},{b}))"
+
     # React Native's error overlay paints a saturated red banner across the full width.
     red = (
         (np.abs(body[:, :, 0] - 244) < 26)
@@ -97,7 +114,7 @@ def reject_reason(png_bytes: bytes) -> str | None:
     return None
 
 
-def warm_up(adb_path: str, budget: float) -> bool:
+def warm_up(adb_path: str, budget: float, launches: int = WARM_LAUNCH_ATTEMPTS) -> bool:
     """
     Restart the app and wait until it has actually painted a usable screen.
 
@@ -106,28 +123,46 @@ def warm_up(adb_path: str, budget: float) -> bool:
     happened every further `am start` lands in the broken instance — so a retry loop that only
     re-sends the link spins forever. The reset is therefore a real force-stop, and readiness is
     polled from the screen itself rather than assumed after N seconds.
+
+    ## Why the LAUNCH is retried, not just the poll
+
+    On this emulator the debug bundle is fetched over the host NAT alias (`10.0.2.2:8081`) as a
+    chunked multipart stream, and that download intermittently dies inside okhttp:
+
+        java.net.ProtocolException: Expected leading [0-9a-fA-F] character but was 0xd
+            at ...MultipartStreamReader.readAllParts / BundleDownloader.processMultipartResponse
+
+    When it does, the process is alive but has no JS, so it sits on the splash or a black frame
+    forever and no amount of extra polling helps. Metro is not at fault - the same bundle serves
+    cleanly to the host over both plain and multipart requests - so the fix is simply to kill the
+    instance and launch again. Measured across a run it succeeds on the first or second attempt;
+    giving up after one made whole sections unverifiable for reasons that had nothing to do with
+    the screens.
     """
-    adb(adb_path, "shell", "am", "force-stop", PACKAGE)
-    time.sleep(1.0)
-    adb(adb_path, "shell", "monkey", "-p", PACKAGE, "-c", "android.intent.category.LAUNCHER", "1")
+    for attempt in range(1, launches + 1):
+        adb(adb_path, "shell", "am", "force-stop", PACKAGE)
+        time.sleep(1.0)
+        adb(adb_path, "shell", "monkey", "-p", PACKAGE, "-c", "android.intent.category.LAUNCHER", "1")
 
-    # A floor before polling starts. The splash and the first route both paint acceptable-looking
-    # screens well before expo-router has finished mounting, so a poll that accepts the first
-    # non-blank frame hands back a process that still drops the next deep link on the floor.
-    time.sleep(WARM_FLOOR_SECONDS)
+        # A floor before polling starts. The splash and the first route both paint
+        # acceptable-looking screens well before expo-router has finished mounting, so a poll that
+        # accepts the first non-blank frame hands back a process that still drops the next deep
+        # link on the floor.
+        time.sleep(WARM_FLOOR_SECONDS)
 
-    deadline = time.monotonic() + budget
-    stable = 0
-    while time.monotonic() < deadline:
-        png = adb(adb_path, "exec-out", "screencap", "-p", binary=True)
-        if len(png) >= 5000 and reject_reason(png) is None:
-            stable += 1
-            # Two consecutive clean polls, so a frame caught mid-transition cannot pass as ready.
-            if stable >= 2:
-                return True
-        else:
-            stable = 0
-        time.sleep(4.0)
+        deadline = time.monotonic() + budget
+        stable = 0
+        while time.monotonic() < deadline:
+            png = adb(adb_path, "exec-out", "screencap", "-p", binary=True)
+            if len(png) >= 5000 and reject_reason(png) is None:
+                stable += 1
+                # Two consecutive clean polls, so a frame caught mid-transition cannot pass.
+                if stable >= 2:
+                    return True
+            else:
+                stable = 0
+            time.sleep(4.0)
+        print(f"   warm-up attempt {attempt}/{launches} did not paint; relaunching")
     return False
 
 
@@ -142,8 +177,8 @@ def main() -> int:
     parser.add_argument(
         "--warmup",
         type=float,
-        default=90.0,
-        help="Seconds to allow for the app to restart and paint before deep-linking.",
+        default=45.0,
+        help="Seconds per launch attempt to allow the app to restart and paint.",
     )
     args = parser.parse_args()
 

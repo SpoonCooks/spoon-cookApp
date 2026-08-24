@@ -181,7 +181,7 @@ export const figmaScreens: readonly FigmaScreen[] = [
     name: 'Leave present',
     sectionNodeId: '540:416',
     // Today is NOT offerable: the cook is working, so the first offerable day is Kal.
-    implementation: 'src/app/leave/index.tsx — cook present today (AAJ KA BREAK card shown)',
+    implementation: 'src/app/(tabs)/chutti.tsx — cook present today (AAJ KA BREAK card shown)',
     galleryState: 'leave/present',
   },
   {
@@ -189,7 +189,7 @@ export const figmaScreens: readonly FigmaScreen[] = [
     name: 'Leave absent',
     sectionNodeId: '540:416',
     // No break card, and today IS offerable.
-    implementation: 'src/app/leave/index.tsx — cook not working today',
+    implementation: 'src/app/(tabs)/chutti.tsx — cook not working today',
     galleryState: 'leave/absent',
   },
   {
@@ -211,7 +211,7 @@ export const figmaScreens: readonly FigmaScreen[] = [
     name: 'long leave confirm',
     sectionNodeId: '540:416',
     // Distinct from 592:1008: a 228-tall single-day block and a date title, no applied day.
-    implementation: 'src/app/leave/index.tsx — long leave booked, no single-day leave applied',
+    implementation: 'src/app/(tabs)/chutti.tsx — long leave booked, no single-day leave applied',
     galleryState: 'leave/long-booked',
   },
   {
@@ -219,7 +219,7 @@ export const figmaScreens: readonly FigmaScreen[] = [
     name: 'long leave confirm',
     sectionNodeId: '540:416',
     // Same name as 592:832 but a genuinely different state: 343-tall block with an applied day.
-    implementation: 'src/app/leave/index.tsx — single-day leave applied AND long leave booked',
+    implementation: 'src/app/(tabs)/chutti.tsx — single-day leave applied AND long leave booked',
     galleryState: 'leave/applied-and-booked',
   },
   {

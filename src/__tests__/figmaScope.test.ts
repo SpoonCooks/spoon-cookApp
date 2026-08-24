@@ -95,7 +95,9 @@ describe('V13 screen inventory', () => {
   });
 
   it('resolves an implementation by node id', () => {
-    expect(implementationFor('592:488')).toContain('leave/index.tsx');
+    // `leave` is reached through the Chutti tab, not a standalone `leave/` route: V13 promotes it
+    // to a primary destination, which is why `592:488` resolves into `(tabs)`.
+    expect(implementationFor('592:488')).toContain('(tabs)/chutti.tsx');
     expect(implementationFor('nope')).toBeNull();
   });
 });

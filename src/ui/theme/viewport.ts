@@ -80,6 +80,15 @@ export const STATUS_BAND_HEIGHT = 33;
  */
 export const DIRECT_STATUS_BAND_HEIGHT = 32;
 
+/**
+ * The status-bar mock inside a **leave** frame, in design units.
+ *
+ * A third value, and the reason this is a per-section table rather than a constant. `526:348` is
+ * an explicit `h-[36.198px]` row that also draws a `#f3f4f6` hairline along its bottom edge; the
+ * `log in flow` mock (`575:1743`) has neither the extra four units nor the rule.
+ */
+export const LEAVE_STATUS_BAND_HEIGHT = 36.198;
+
 /** `434:3325` and its siblings: a 4dp pill in a strip that ends at the viewport's bottom edge. */
 export const HOME_INDICATOR_HEIGHT = 10;
 
@@ -102,11 +111,20 @@ const DIRECT_PROFILE: ViewportProfile = {
   homeIndicatorHeight: 0,
 };
 
+const LEAVE_PROFILE: ViewportProfile = {
+  convention: 'direct',
+  origin: { x: 0, y: 0 },
+  width: layout.contentWidth,
+  height: 'per-frame',
+  statusBandHeight: LEAVE_STATUS_BAND_HEIGHT,
+  homeIndicatorHeight: 0,
+};
+
 /** Section node id -> viewport profile. Keyed by node id because two sections share a name stem. */
 export const viewportProfileBySection: Readonly<Record<string, ViewportProfile>> = {
   '434:3115': BEZEL_PROFILE, // Login flow
   '485:4971': BEZEL_PROFILE, // Service flow
-  '540:416': DIRECT_PROFILE, // leave
+  '540:416': LEAVE_PROFILE, // leave
   '592:1068': DIRECT_PROFILE, // log in flow
   '575:1741': DIRECT_PROFILE, // performance
 };

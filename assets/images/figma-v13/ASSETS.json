@@ -6,6 +6,24 @@
       "nodes": ["575:2135", "575:2137"],
       "sha256": "dde156a6612ff4630b33a6be672c4ef5882ffc7d7f00f90a8da13c03a29da7ff"
     },
+    "booked-tick.svg": {
+      "bytes": 346,
+      "constName": "imgBookedTick",
+      "nodes": ["592:1008"],
+      "sha256": "55535cc4f508c7ab103020207de77f65ba693173a533c2222c5d5cc821c356db"
+    },
+    "calendar-yellow.png": {
+      "bytes": 559,
+      "constName": "imgCalendarYellow",
+      "nodes": ["575:1903", "575:2032"],
+      "sha256": "8c2111bf8726f258672941cb761d3fc5d16cdc309dbec230431b48ae612f4ec6"
+    },
+    "calendar.png": {
+      "bytes": 613,
+      "constName": "imgCalendar",
+      "nodes": ["592:488", "592:489", "592:832", "592:1008"],
+      "sha256": "83d562b90b0ec8afb64851566fa93d015d4d1060280263902f7f95317fd9cc08"
+    },
     "check-tick.svg": {
       "bytes": 344,
       "constName": "imgCheckTick",
@@ -17,6 +35,30 @@
       "constName": "imgCheckedUserMale",
       "nodes": ["575:2135"],
       "sha256": "dab7b46a7a7da2475101c286260f202960b6e9187fb18471fcaafef66daaf819"
+    },
+    "chevron-2.svg": {
+      "bytes": 1323,
+      "constName": "imgChevron",
+      "nodes": ["575:1903"],
+      "sha256": "82b955701963d05b94e29a83472c701cad9776834769af8a7bdcf2d10ec598aa"
+    },
+    "chevron-3.svg": {
+      "bytes": 1323,
+      "constName": "imgChevron",
+      "nodes": ["575:2032"],
+      "sha256": "5a598a5c6604effb3b289f797cce0aad9b0f2d3ff86bcf6c8268b77170b4d71f"
+    },
+    "chevron.svg": {
+      "bytes": 1245,
+      "constName": "imgChevron",
+      "nodes": ["592:488", "592:489", "592:563", "592:639", "592:832", "592:1008"],
+      "sha256": "02297ce17643032be941101f6295beda46a851513ee91fa8fbe8967194b82658"
+    },
+    "clock.png": {
+      "bytes": 1352,
+      "constName": "imgClock",
+      "nodes": ["575:1744"],
+      "sha256": "2cf9db01fb668061ec9295130e702e5e3374413f893fca68ad35d3096b4cefe4"
     },
     "cook-resting.png": {
       "bytes": 2098594,
@@ -54,11 +96,59 @@
       "nodes": ["434:3280"],
       "sha256": "a47cf07abd39e6bda8159f578cfca4157590abe7b8a2d2271e9f26e9de6482f3"
     },
+    "mistake-disc.svg": {
+      "bytes": 234,
+      "constName": "imgMistakeDisc",
+      "nodes": ["575:1744"],
+      "sha256": "f44972f607a2531271ec5a71197acf1eb8478ed714f44a727e1f46b8745571ad"
+    },
+    "month-prev.svg": {
+      "bytes": 1245,
+      "constName": "imgMonthPrev",
+      "nodes": ["592:563", "592:639"],
+      "sha256": "96e6dd26a3670274a3bb838cc7aefd0712bd4b8d5d41cdd19af2a7d36ad3f3f1"
+    },
+    "multiply.png": {
+      "bytes": 828,
+      "constName": "imgMultiply",
+      "nodes": ["575:1744"],
+      "sha256": "68de709cdfd5c7a4bab26e8fe7cf689c39527b4dba1487ba577f076c49a2e5de"
+    },
     "praying-hands.png": {
       "bytes": 121686,
       "constName": "imgPrayingHands",
       "nodes": ["575:2135", "575:2137", "575:2138", "575:2136"],
       "sha256": "2d4c7689d1e8c124ab4f29b7e8497db263d676835cd912f13fcf7a63053ea23c"
+    },
+    "rating-disc.svg": {
+      "bytes": 234,
+      "constName": "imgRatingDisc",
+      "nodes": ["575:1744"],
+      "sha256": "097b9cfbcd2436e529ea36d2543bc28c0b7017e5ed656b2ea8e88d7117ba460d"
+    },
+    "sheet-back-2.svg": {
+      "bytes": 1246,
+      "constName": "imgSheetBack",
+      "nodes": ["592:888"],
+      "sha256": "4c9c526ff16d2c4cb62f2cab5644bd4bb679fa43d52f76df93281474d550ee24"
+    },
+    "sheet-back-3.svg": {
+      "bytes": 1324,
+      "constName": "imgSheetBack",
+      "nodes": ["575:1903"],
+      "sha256": "617b4960e93a8fd87f4b909f6850f6d1a1d42af0b868bb38db1c603e109bc06c"
+    },
+    "sheet-back-4.svg": {
+      "bytes": 1324,
+      "constName": "imgSheetBack",
+      "nodes": ["575:2032"],
+      "sha256": "b5f531c248c2ee06336fee2c713761e54c4b8311405322adef5db8502153f5ab"
+    },
+    "sheet-back.svg": {
+      "bytes": 1252,
+      "constName": "imgSheetBack",
+      "nodes": ["592:563", "592:639"],
+      "sha256": "05d94050f5ea761f93c1713c03cff07a3000dfbc177c281c14d974dd8dfe8d14"
     },
     "spoon-brand-logo.png": {
       "bytes": 493286,
@@ -72,10 +162,34 @@
       "nodes": ["434:3116", "434:3280", "434:3224", "434:3174"],
       "sha256": "bf470773080af0c4b6012bf0a27f8a6bb9c1e92b723915609782bf04b69520e0"
     },
+    "star.png": {
+      "bytes": 1410,
+      "constName": "imgStar",
+      "nodes": ["575:1744"],
+      "sha256": "0ea4de52d8ad498d6a038acf068345c2d37464f0e18570f3d9ee6b1b2b5fdea5"
+    },
+    "timer.png": {
+      "bytes": 1944,
+      "constName": "imgTimer",
+      "nodes": ["575:1744"],
+      "sha256": "47a65003ccedf30cc1fc130fe14ae02384e925ab2982ba1942bb5224bd06f65e"
+    },
     "whats-app.png": {
       "bytes": 1419,
       "constName": "imgWhatsApp",
-      "nodes": ["575:2135", "575:2137", "575:2138", "575:2136"],
+      "nodes": [
+        "575:2135",
+        "575:2137",
+        "575:2138",
+        "575:2136",
+        "592:488",
+        "592:489",
+        "592:563",
+        "592:888",
+        "592:639",
+        "592:832",
+        "592:1008"
+      ],
       "sha256": "1e57d94e42dba593935930cda903f7bbb0ad051b82bc7bbe8956ab80a0332d65"
     }
   }

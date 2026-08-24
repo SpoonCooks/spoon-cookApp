@@ -68,10 +68,15 @@ describe('gallery entries', () => {
     expect(attendance).toHaveLength(4);
   });
 
+  it('covers all seven leave frames', () => {
+    const leave = galleryEntries.filter((entry) => entry.section === 'leave');
+    expect(leave).toHaveLength(7);
+  });
+
   /**
-   * Coverage is asserted as an exact list rather than a count, so that adding the leave and
-   * performance screens forces this test to be updated deliberately. Until those fourteen screens
-   * exist, the gallery must not pretend to cover them.
+   * Coverage is asserted as an exact list rather than a count, so that adding the performance
+   * screens forces this test to be updated deliberately. Until those seven screens exist, the
+   * gallery must not pretend to cover them.
    */
   it('reports honest coverage of the 35 finalized screens', () => {
     const built = new Set(galleryEntries.map((entry) => entry.id));
@@ -80,16 +85,9 @@ describe('gallery entries', () => {
       .map((screen) => screen.galleryState)
       .sort();
 
-    expect(built.size).toBe(21);
+    expect(built.size).toBe(28);
     expect(missing).toEqual(
       [
-        'leave/absent',
-        'leave/applied-and-booked',
-        'leave/long-booked',
-        'leave/long-empty',
-        'leave/long-selected',
-        'leave/present',
-        'leave/short-confirm',
         'performance/day-history',
         'performance/money-daily',
         'performance/money-monthly',

@@ -14,19 +14,19 @@ an artefact on disk; nothing here is asserted by hand except the reviewed verdic
 | `575:2136` | log in flow | 3d- log out | yes | 4 | `login-flow/logout` | yes | 3.86 | PASS |
 | `575:2137` | log in flow | 3b- present | yes | 5 | `login-flow/present` | yes | 3.63 | PASS |
 | `575:2138` | log in flow | 3c- absent | yes | 4 | `login-flow/absent` | yes | 2.98 | PASS |
-| `592:1008` | leave | long leave confirm | — | — | — | — | — | — |
-| `592:488` | leave | Leave present | — | — | — | — | — | — |
-| `592:489` | leave | Leave absent | — | — | — | — | — | — |
-| `592:563` | leave | long leave | — | — | — | — | — | — |
-| `592:639` | leave | long leave selected | — | — | — | — | — | — |
-| `592:832` | leave | long leave confirm | — | — | — | — | — | — |
-| `592:888` | leave | short leave | — | — | — | — | — | — |
-| `575:1744` | performance | 12- money daily | — | — | — | — | — | — |
+| `592:1008` | leave | long leave confirm | yes | 4 | `leave/applied-and-booked` | yes | 11.87 | PASS |
+| `592:488` | leave | Leave present | yes | 3 | `leave/present` | yes | 11.14 | PASS |
+| `592:489` | leave | Leave absent | yes | 3 | `leave/absent` | yes | 10.15 | PASS |
+| `592:563` | leave | long leave | yes | 4 | `leave/long-empty` | yes | 6.81 | PASS |
+| `592:639` | leave | long leave selected | yes | 4 | `leave/long-selected` | yes | 11.62 | PASS |
+| `592:832` | leave | long leave confirm | yes | 3 | `leave/long-booked` | yes | 10.41 | PASS |
+| `592:888` | leave | short leave | yes | 2 | `leave/short-confirm` | yes | 5.55 | PASS |
+| `575:1744` | performance | 12- money daily | yes | 6 | — | — | — | — |
 | `575:1884` | performance | 13- money weekly | — | — | — | — | — | — |
-| `575:1903` | performance | 14- day history | — | — | — | — | — | — |
+| `575:1903` | performance | 14- day history | yes | 3 | — | — | — | — |
 | `575:1922` | performance | 15- past daily | — | — | — | — | — | — |
 | `575:2013` | performance | 16- money monthly | — | — | — | — | — | — |
-| `575:2032` | performance | 17- weekly history | — | — | — | — | — | — |
+| `575:2032` | performance | 17- weekly history | yes | 3 | — | — | — | — |
 | `575:2098` | performance | 18- past weekly | — | — | — | — | — | — |
 | `462:3617` | Service flow | Page 4a- travel on time | — | — | carried-over (`service/travel-on-time`) | yes | 26.62 | — |
 | `463:3779` | Service flow | Page 4b- travel 5 mins buffer | — | — | carried-over (`service/travel-at-risk`) | yes | 26.49 | — |
@@ -44,9 +44,9 @@ an artefact on disk; nothing here is asserted by hand except the reviewed verdic
 ## Totals
 
 - FINAL_SECTION_SCREEN_COUNT: 35
-- CONTEXT_CAPTURED: 9
-- SCREENS_IMPLEMENTED: 9
+- CONTEXT_CAPTURED: 19
+- SCREENS_IMPLEMENTED: 16
 - SCREENS_CARRIED_OVER_FROM_V12: 12
-- SCREENS_EMULATOR_RENDERED: 21
-- SCREENS_PIXEL_VERIFIED: 9
-- SCREENS_STILL_MISMATCHING: 26
+- SCREENS_EMULATOR_RENDERED: 28
+- SCREENS_PIXEL_VERIFIED: 16
+- SCREENS_STILL_MISMATCHING: 19

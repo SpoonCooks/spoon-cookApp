@@ -1,7 +1,5 @@
 import { router } from 'expo-router';
-import { useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useState } from 'react';
 
 import { newIdempotencyKey } from '@core/api/cook';
 import { apiErrorMessage } from '@core/api/errors';
@@ -13,31 +11,32 @@ import {
   validateLeaveSelection,
   type LeaveRequestKind,
 } from '@core/domain/leave';
-import { Button, color, ErrorState, LoadingState, radius, spacing, Text } from '@ui';
+import { LongLeaveSheetView } from '@features/leave/LeaveViews';
+import { monthLabel } from '@features/leave/leaveModel';
+import { ErrorState, LoadingState } from '@ui';
 
 /**
- * `lambi chutti` — Figma `Page 13a- long` (`528:659`), `Page 13b- long select` (`530:1349`) and
- * `Page 13c- long confirm` (`530:1478`).
+ * `Lambi Chutti` — the V13 month-grid sheet (`592:563` empty, `592:639` a range chosen).
  *
- * 13a and 13b are the same month grid before and after a selection: `Total din 0` becomes
- * `Total din 10`. 13c is the attendance surface afterwards, showing `Aane wali chutti` →
- * `16 Nov se 25 Nov tak` and relabelling the entry point to `Dates badle`.
+ * Selection is a first-and-last tap producing an inclusive range, which is what `Total din` counts
+ * and what the grid paints: the two endpoints in `#cfff04`, everything between them in `#ecff9b`.
  *
- * Selection is a first-and-last tap producing an inclusive range, which is what `Total din` counts.
+ * ## The grid is anchored to the SERVER's month
  *
- * ## Submission is live
+ * The month shown, and the first day that can be picked, both come from `profile.serverTime`. A
+ * device on the wrong date would otherwise open on a month the backend has moved past and offer
+ * days it would reject.
  *
- * `POST /v1/cook/leaves` takes `{ startDate, endDate }` and an `Idempotency-Key`, and answers
- * `201` with `status: 'pending'`. A multi-day request is ONE request server-side — grouped by
- * `leave_request_id` — which is why the range is submitted whole rather than day by day.
+ * ## Submission is live, and the result is a REQUEST
  *
- * The result is a REQUEST, not a granted leave: Ops/Admin decide. The screen says so and the
- * calendar is re-read afterwards rather than marked locally.
+ * `POST /v1/cook/leaves` takes `{ startDate, endDate }` with an `Idempotency-Key` and answers
+ * `201 pending`. A multi-day chutti is ONE request server-side — grouped by `leave_request_id` —
+ * so the range is submitted whole rather than day by day, and the confirmation says the request
+ * was sent, never that the leave was granted.
  */
 export default function RangeLeaveScreen(): React.ReactElement {
-  const insets = useSafeAreaInsets();
-  const [fromIso, setFromIso] = useState<string | null>(null);
-  const [toIso, setToIso] = useState<string | null>(null);
+  const [fromDay, setFromDay] = useState<number | null>(null);
+  const [toDay, setToDay] = useState<number | null>(null);
 
   // One key per mount, so a retry after a timeout replays rather than filing a second chutti.
   const [idempotencyKey] = useState(newIdempotencyKey);
@@ -45,49 +44,6 @@ export default function RangeLeaveScreen(): React.ReactElement {
   const profile = useCookProfile();
   const todayIso = (profile.data?.serverTime ?? '').slice(0, 10);
   const requestLeave = useRequestLeave(todayIso.slice(0, 7));
-
-  // Anchored to the SERVER's service date so the grid cannot open on a month the device invented.
-  const grid = useMemo(() => currentMonthGrid(todayIso), [todayIso]);
-
-  const selection: LeaveRequestKind | null =
-    fromIso !== null && toIso !== null
-      ? { kind: 'date_range', fromDateIso: fromIso, toDateIso: toIso }
-      : null;
-  const totalDays = selection === null ? 0 : countLeaveDays(selection);
-  const validation = selection === null ? null : validateLeaveSelection(selection, todayIso);
-  const submitted = requestLeave.isSuccess;
-
-  const submit = (): void => {
-    if (selection === null || validation === null || !validation.ok) return;
-    if (requestLeave.isPending || submitted) return;
-    const range = toLeaveRequestRange(selection);
-    requestLeave.mutate({
-      startDateIso: range.startDateIso,
-      endDateIso: range.endDateIso,
-      idempotencyKey,
-    });
-  };
-
-  const onPickDay = (dateIso: string): void => {
-    // First tap starts a range; second tap closes it; a third starts over. Tapping earlier than
-    // the start re-anchors rather than producing an inverted range.
-    if (fromIso === null || toIso !== null) {
-      setFromIso(dateIso);
-      setToIso(null);
-      return;
-    }
-    if (dateIso < fromIso) {
-      setFromIso(dateIso);
-      return;
-    }
-    setToIso(dateIso);
-  };
-
-  const isSelected = (dateIso: string): boolean => {
-    if (fromIso === null) return false;
-    if (toIso === null) return dateIso === fromIso;
-    return dateIso >= fromIso && dateIso <= toIso;
-  };
 
   if (profile.isPending) return <LoadingState testID="leave-range-loading" />;
   if (profile.isError) {
@@ -100,155 +56,75 @@ export default function RangeLeaveScreen(): React.ReactElement {
     );
   }
 
+  const year = Number(todayIso.slice(0, 4));
+  const month = Number(todayIso.slice(5, 7));
+  const firstOpenDay = Number(todayIso.slice(8, 10));
+
+  const selection: LeaveRequestKind | null =
+    fromDay === null
+      ? null
+      : {
+          kind: 'date_range',
+          fromDateIso: isoFor(year, month, fromDay),
+          toDateIso: isoFor(year, month, toDay ?? fromDay),
+        };
+  const totalDays = selection === null ? 0 : countLeaveDays(selection);
+  const validation = selection === null ? null : validateLeaveSelection(selection, todayIso);
+  const submitted = requestLeave.isSuccess;
+
+  const onPickDay = (day: number): void => {
+    if (submitted) return;
+    // First tap sets the start; the second closes the range. A third starts over, which is what
+    // lets a cook correct a mis-tap without leaving the sheet.
+    if (fromDay === null || toDay !== null) {
+      setFromDay(day);
+      setToDay(null);
+      return;
+    }
+    if (day < fromDay) {
+      setFromDay(day);
+      return;
+    }
+    setToDay(day);
+  };
+
+  const submit = (): void => {
+    if (selection === null || validation?.ok !== true || requestLeave.isPending || submitted)
+      return;
+    const range = toLeaveRequestRange(selection);
+    requestLeave.mutate({
+      startDateIso: range.startDateIso,
+      endDateIso: range.endDateIso,
+      idempotencyKey,
+    });
+  };
+
+  const notice =
+    validation !== null && !validation.ok
+      ? validation.message
+      : requestLeave.isError
+        ? apiErrorMessage(requestLeave.error)
+        : submitted
+          ? leaveRequestPendingCopy
+          : null;
+
   return (
-    <View style={[styles.flex, { paddingTop: insets.top + spacing.m }]} testID="leave-range">
-      <ScrollView contentContainerStyle={styles.content}>
-        <Text variant="titleBlack" testID="leave-range-month">
-          {grid.monthLabel}
-        </Text>
-
-        <View style={styles.weekHeader}>
-          {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((day, index) => (
-            <View key={`${day}-${index}`} style={styles.cell}>
-              <Text variant="captionMuted">{day}</Text>
-            </View>
-          ))}
-        </View>
-
-        <View style={styles.grid}>
-          {grid.leadingBlanks.map((key) => (
-            <View key={key} style={styles.cell} />
-          ))}
-          {grid.days.map((day) => {
-            const selected = isSelected(day.dateIso);
-            return (
-              <Pressable
-                key={day.dateIso}
-                style={[styles.cell, styles.dayCell, selected && styles.dayCellSelected]}
-                onPress={() => onPickDay(day.dateIso)}
-                accessibilityRole="button"
-                accessibilityState={{ selected }}
-                testID={`leave-range-day-${day.dateIso}`}
-              >
-                <Text variant="caption" color={selected ? color.black : color.textPrimary}>
-                  {String(day.dayOfMonth)}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>
-
-        <View style={styles.totalRow}>
-          <Text variant="labelStrong">Total din</Text>
-          <Text variant="display" testID="leave-range-total">
-            {String(totalDays)}
-          </Text>
-        </View>
-
-        {validation !== null && !validation.ok && (
-          <Text variant="caption" color={color.danger} testID="leave-range-invalid">
-            {validation.message}
-          </Text>
-        )}
-
-        <Button
-          label="Pakka"
-          tone="action"
-          disabled={totalDays === 0 || submitted || (validation !== null && !validation.ok)}
-          loading={requestLeave.isPending}
-          onPress={submit}
-          testID="leave-range-confirm"
-        />
-
-        {submitted && (
-          <Text variant="bodyStrong" testID="leave-range-pending">
-            {leaveRequestPendingCopy}
-          </Text>
-        )}
-
-        {requestLeave.isError && (
-          <Text variant="caption" color={color.danger} testID="leave-range-failed">
-            {apiErrorMessage(requestLeave.error)}
-          </Text>
-        )}
-
-        <Button
-          label="Wapas"
-          tone="ghost"
-          onPress={() => router.back()}
-          testID="leave-range-back"
-        />
-      </ScrollView>
-    </View>
+    <LongLeaveSheetView
+      year={year}
+      month={month}
+      monthLabel={monthLabel(todayIso)}
+      firstOpenDay={firstOpenDay}
+      selection={fromDay === null ? null : { fromDay, toDay: toDay ?? fromDay }}
+      totalDays={totalDays}
+      canConfirm={validation?.ok === true && !submitted && !requestLeave.isPending}
+      onPickDay={onPickDay}
+      onConfirm={submit}
+      onBack={() => router.back()}
+      notice={notice}
+    />
   );
 }
 
-interface GridDay {
-  readonly dateIso: string;
-  readonly dayOfMonth: number;
+function isoFor(year: number, month: number, day: number): string {
+  return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 }
-
-const MONTHS = [
-  'January',
-  'February',
-  'March',
-  'April',
-  'May',
-  'June',
-  'July',
-  'August',
-  'September',
-  'October',
-  'November',
-  'December',
-] as const;
-
-/**
- * Monday-first month grid, matching the Figma header `M T W T F S S`.
- *
- * Built from the SERVER's service date. Dates are constructed at UTC midnight so the grid is a
- * property of the calendar month rather than of the device's offset.
- */
-function currentMonthGrid(todayIso: string): {
-  readonly monthLabel: string;
-  readonly leadingBlanks: readonly string[];
-  readonly days: readonly GridDay[];
-} {
-  const anchor = Date.parse(`${todayIso}T00:00:00Z`);
-  const now = Number.isNaN(anchor) ? new Date() : new Date(anchor);
-  const year = now.getUTCFullYear();
-  const month = now.getUTCMonth();
-  const first = new Date(Date.UTC(year, month, 1));
-  const daysInMonth = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
-
-  // JS weeks start on Sunday; the design starts on Monday.
-  const offset = (first.getUTCDay() + 6) % 7;
-
-  const days: GridDay[] = [];
-  for (let day = 1; day <= daysInMonth; day += 1) {
-    const iso = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-    days.push({ dateIso: iso, dayOfMonth: day });
-  }
-
-  return {
-    monthLabel: `${MONTHS[month] ?? ''} ${year}`,
-    leadingBlanks: Array.from({ length: offset }, (_, index) => `blank-${index}`),
-    days,
-  };
-}
-
-const styles = StyleSheet.create({
-  flex: { flex: 1 },
-  content: { paddingHorizontal: spacing.xl, paddingBottom: spacing.huge, gap: spacing.m },
-  weekHeader: { flexDirection: 'row', flexWrap: 'wrap' },
-  grid: { flexDirection: 'row', flexWrap: 'wrap' },
-  cell: {
-    width: `${100 / 7}%`,
-    aspectRatio: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  dayCell: { borderRadius: radius.pill },
-  dayCellSelected: { backgroundColor: color.action },
-  totalRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-});

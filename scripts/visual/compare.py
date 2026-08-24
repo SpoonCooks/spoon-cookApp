@@ -76,6 +76,24 @@ STATUS_BAND_HEIGHT = 33.0
 #: run 1's 25px bezel displacement, just smaller.
 DIRECT_STATUS_BAND_HEIGHT = 32.0
 
+#: Height of the status-bar mock in a **leave** frame, in design units. Mirrors
+#: `LEAVE_STATUS_BAND_HEIGHT` in `src/ui/theme/viewport.ts`.
+#:
+#: A third value, and again not a guess: `526:348` is an explicit `h-[36.198px]` row that also
+#: carries a `#f3f4f6` hairline along its bottom edge, which the `log in flow` mock does not have.
+LEAVE_STATUS_BAND_HEIGHT = 36.198
+
+#: Frames whose content is anchored to the BOTTOM of the viewport rather than the top.
+#:
+#: The three `leave` bottom sheets are 846 content units tall against the verified emulator's 750,
+#: so 96 units cannot be shown. On a top-anchored screen the missing rows are at the bottom -- the
+#: user scrolls to them. On a sheet they are at the TOP, and they are scrim: the sheet keeps its
+#: design height and stays against the bottom edge, which is what the app draws and what a device
+#: does. Aligning these by their first row would displace every sheet element by 96 units and score
+#: a correct render as a total failure, so they are aligned by their last row instead. The rows that
+#: go uncompared are still counted, and `anchor` is written into every `result.json`.
+BOTTOM_ANCHORED_NODES = frozenset({"592:563", "592:639", "592:888"})
+
 
 @dataclass(frozen=True)
 class ComparisonProfile:
@@ -93,13 +111,14 @@ class ComparisonProfile:
 
 BEZEL_PROFILE = ComparisonProfile(status_band=STATUS_BAND_HEIGHT, home_indicator=10.0)
 DIRECT_PROFILE = ComparisonProfile(status_band=DIRECT_STATUS_BAND_HEIGHT, home_indicator=0.0)
+LEAVE_PROFILE = ComparisonProfile(status_band=LEAVE_STATUS_BAND_HEIGHT, home_indicator=0.0)
 
 #: Section -> comparison profile. Keyed by the same section names `viewport.py` branches on, so a
 #: section can never pick up the bezel crop and the direct status band, or any other mixture.
 COMPARISON_PROFILES = {
     "Login flow": BEZEL_PROFILE,
     "Service flow": BEZEL_PROFILE,
-    "leave": DIRECT_PROFILE,
+    "leave": LEAVE_PROFILE,
     "log in flow": DIRECT_PROFILE,
     "performance": DIRECT_PROFILE,
 }
@@ -155,10 +174,20 @@ def compare(
     # `Login flow` screen the same or better, which is the check that it is not simply looser.
     scaled = emulator_content.resize((reference.width, target_h), Image.BOX)
 
-    # Compare over the overlapping height only, and report what was left out.
+    # Compare over the overlapping height only, and report what was left out. Which END is
+    # dropped depends on where the frame's content is anchored (see BOTTOM_ANCHORED_NODES).
     height = min(reference.height, scaled.height)
-    ref_a = np.asarray(reference.crop((0, 0, reference.width, height))).astype(np.int16)
-    emu_a = np.asarray(scaled.crop((0, 0, reference.width, height))).astype(np.int16)
+    anchor = "bottom" if node_id in BOTTOM_ANCHORED_NODES else "top"
+    if anchor == "bottom":
+        ref_box = (0, reference.height - height, reference.width, reference.height)
+        emu_box = (0, scaled.height - height, reference.width, scaled.height)
+    else:
+        ref_box = (0, 0, reference.width, height)
+        emu_box = (0, 0, reference.width, height)
+    ref_view = reference.crop(ref_box)
+    emu_view = scaled.crop(emu_box)
+    ref_a = np.asarray(ref_view).astype(np.int16)
+    emu_a = np.asarray(emu_view).astype(np.int16)
 
     delta = np.abs(ref_a - emu_a)
     per_pixel = delta.max(axis=2)
@@ -169,16 +198,10 @@ def compare(
     out_dir.mkdir(parents=True, exist_ok=True)
 
     # 50% overlay: the reference and the render blended, so a geometry shift shows as ghosting.
-    Image.blend(
-        reference.crop((0, 0, reference.width, height)),
-        scaled.crop((0, 0, reference.width, height)),
-        0.5,
-    ).save(out_dir / "overlay.png")
+    Image.blend(ref_view, emu_view, 0.5).save(out_dir / "overlay.png")
 
     # Difference image: greyscale render with differing pixels painted red.
-    grey = np.asarray(
-        reference.crop((0, 0, reference.width, height)).convert("L").convert("RGB")
-    ).astype(np.uint8)
+    grey = np.asarray(ref_view.convert("L").convert("RGB")).astype(np.uint8)
     diff_img = (grey * 0.35).astype(np.uint8)
     mask = per_pixel > tolerance
     diff_img[mask] = [255, 0, 0]
@@ -244,6 +267,7 @@ def compare(
             "emulatorScaledToPx": {"width": reference.width, "height": target_h},
             "comparedAtPx": {"width": reference.width, "height": height},
         },
+        "anchor": anchor,
         "comparedHeightPx": height,
         "referenceHeightPx": reference.height,
         "emulatorScaledHeightPx": target_h,

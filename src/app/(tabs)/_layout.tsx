@@ -7,7 +7,12 @@ import { color, fontFamily, fontSize, layout } from '@ui';
 /**
  * Main app shell — the Figma `nav.fixed` bottom navigation (`434:2822`).
  *
- * Exactly three destinations, in Figma order: `Jobs · Attendance · My money`.
+ * Four destinations: `Jobs · Attendance · Chutti · My money`.
+ *
+ * `Chutti` is new in V13. The `leave` section (`540:416`) draws it with a title and a Help button
+ * and no back arrow — the same shape the attendance screen has — which is what a peer destination
+ * looks like, not a pushed sub-screen. Its two pickers (`/leave/single`, `/leave/range`) are
+ * bottom sheets pushed over it.
  *
  * A single tab navigator owns all three, so there is one back stack rather than three competing
  * ones. The active service flow lives OUTSIDE this navigator (pushed over it), which is what keeps
@@ -50,6 +55,13 @@ export default function TabsLayout(): React.ReactElement {
           tabBarIcon: ({ color: c, size }) => (
             <Ionicons name="calendar-clear" color={c} size={size} />
           ),
+        }}
+      />
+      <Tabs.Screen
+        name="chutti"
+        options={{
+          title: 'Chutti',
+          tabBarIcon: ({ color: c, size }) => <Ionicons name="sunny" color={c} size={size} />,
         }}
       />
       <Tabs.Screen

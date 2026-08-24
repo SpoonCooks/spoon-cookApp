@@ -7,6 +7,13 @@ import {
   PresentView,
   ShiftEndedView,
 } from '@features/attendance/AttendanceViews';
+import {
+  ChuttiView,
+  LongLeaveSheetView,
+  ShortLeaveSheetView,
+  type LongLeaveCard,
+  type SingleDayLeaveOption,
+} from '@features/leave/LeaveViews';
 import { BootView, OtpView, PhoneView } from '@features/login/LoginViews';
 
 import { otpLength } from '@core/domain/otp';
@@ -170,6 +177,47 @@ function attendance(
   return { id, section: 'log in flow', nodeId, label, ownsSafeArea: true, render };
 }
 
+/** One of the seven `leave` frames. All three surfaces apply their own safe-area inset. */
+function leave(
+  id: string,
+  nodeId: string,
+  label: string,
+  render: () => React.ReactElement,
+): GalleryEntry {
+  return { id, section: 'leave', nodeId, label, ownsSafeArea: true, render };
+}
+
+/**
+ * The literal copy each `leave` frame draws.
+ *
+ * Stated rather than derived from a clock: `592:488` and `592:489` disagree about which day is
+ * `Aaj`, and `592:1008` labels 6 November `Parso`. Those are the frames' own values, and a fixture
+ * that recomputed them from today's date would compare the app against a different screen every
+ * day. The RULES that produce them in production live in `leaveModel.ts` and are tested there.
+ */
+const CHUTTI_DAYS: Record<string, readonly SingleDayLeaveOption[]> = {
+  present: [
+    { dateIso: '2026-11-07', dayLabel: '7 November', relativeLabel: 'Kal', state: 'available' },
+    { dateIso: '2026-11-08', dayLabel: '8 November', relativeLabel: 'Parso', state: 'available' },
+  ],
+  absent: [
+    { dateIso: '2026-11-06', dayLabel: '6 November', relativeLabel: 'Aaj', state: 'available' },
+    { dateIso: '2026-11-07', dayLabel: '7 November', relativeLabel: 'Kal', state: 'available' },
+  ],
+  applied: [
+    {
+      dateIso: '2026-11-05',
+      dayLabel: '5 November',
+      relativeLabel: 'Chutti lag gyi',
+      state: 'booked',
+    },
+    { dateIso: '2026-11-06', dayLabel: '6 November', relativeLabel: 'Parso', state: 'available' },
+  ],
+};
+
+const PICK_DATES: LongLeaveCard = { label: 'Dates chunein', upcoming: null };
+const CHANGE_DATES: LongLeaveCard = { label: 'Dates badle', upcoming: '16 Nov se 25 Nov tak' };
+
 function service(
   id: string,
   nodeId: string,
@@ -252,6 +300,73 @@ export const galleryEntries: readonly GalleryEntry[] = [
   )),
   attendance('login-flow/logout', '575:2136', 'Shift finished', () => (
     <ShiftEndedView name="Rekha" shiftWindow="6 AM se 6 PM" />
+  )),
+  /*
+   * `leave` (`540:416`). Four states of the CHUTTI destination and three of its two sheets.
+   */
+  leave('leave/present', '592:488', 'Chutti — present today', () => (
+    <ChuttiView
+      title="CHUTTI"
+      breakWindow={{ durationLabel: '2 hrs', fromLabel: '12:15 PM', toLabel: '2:15 PM' }}
+      singleDayLeaves={CHUTTI_DAYS['present'] ?? []}
+      groupedLongCard={null}
+      longCard={PICK_DATES}
+      longCardWidth={334}
+    />
+  )),
+  leave('leave/absent', '592:489', 'Chutti — not working today', () => (
+    <ChuttiView
+      title="CHUTTI"
+      breakWindow={null}
+      singleDayLeaves={CHUTTI_DAYS['absent'] ?? []}
+      groupedLongCard={null}
+      longCard={PICK_DATES}
+      longCardWidth={334}
+    />
+  )),
+  leave('leave/long-booked', '592:832', 'Chutti — long leave booked', () => (
+    // `592:832` sets a date where the other three frames set `CHUTTI`. Reproduced as drawn.
+    <ChuttiView
+      title="7 November"
+      breakWindow={null}
+      singleDayLeaves={CHUTTI_DAYS['absent'] ?? []}
+      groupedLongCard={null}
+      longCard={CHANGE_DATES}
+    />
+  )),
+  leave('leave/applied-and-booked', '592:1008', 'Chutti — day applied and range booked', () => (
+    <ChuttiView
+      title="CHUTTI"
+      breakWindow={null}
+      singleDayLeaves={CHUTTI_DAYS['applied'] ?? []}
+      groupedLongCard={PICK_DATES}
+      longCard={CHANGE_DATES}
+    />
+  )),
+  leave('leave/long-empty', '592:563', 'Lambi Chutti — nothing chosen', () => (
+    <LongLeaveSheetView
+      year={2026}
+      month={11}
+      monthLabel="November"
+      firstOpenDay={12}
+      selection={null}
+      totalDays={0}
+      canConfirm={false}
+    />
+  )),
+  leave('leave/long-selected', '592:639', 'Lambi Chutti — 16-25 Nov', () => (
+    <LongLeaveSheetView
+      year={2026}
+      month={11}
+      monthLabel="November"
+      firstOpenDay={12}
+      selection={{ fromDay: 16, toDay: 25 }}
+      totalDays={10}
+      canConfirm
+    />
+  )),
+  leave('leave/short-confirm', '592:888', '1 din ki Chutti — confirm', () => (
+    <ShortLeaveSheetView dayLabel="8 November" relativeLabel="Parso" canConfirm />
   )),
   service('service/travel-on-time', '462:3617', 'Travel — on time', serviceFixtures.travelOnTime),
   service(
