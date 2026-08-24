@@ -10,17 +10,17 @@ an artefact on disk; nothing here is asserted by hand except the reviewed verdic
 | `434:3224` | Login flow | Page 2a- Login OTP | yes | 2 | `login/otp-countdown` | yes | 2.41 | PASS |
 | `434:3280` | Login flow | Page 1- Login No. | yes | 2 | `login/phone` | yes | 4.81 | PASS |
 | `434:3330` | Login flow | Page 0- loading page | yes | 1 | `login/boot` | yes | 0.55 | PASS |
-| `575:2135` | log in flow | 3a- daily log in | yes | 6 | `login-flow/daily` | yes | 3.84 | PASS |
+| `575:2135` | log in flow | 3a- daily log in | yes | 6 | `login-flow/daily` | yes | 4.89 | PASS |
 | `575:2136` | log in flow | 3d- log out | yes | 4 | `login-flow/logout` | yes | 3.86 | PASS |
-| `575:2137` | log in flow | 3b- present | yes | 5 | `login-flow/present` | yes | 3.63 | PASS |
-| `575:2138` | log in flow | 3c- absent | yes | 4 | `login-flow/absent` | yes | 2.98 | PASS |
-| `592:1008` | leave | long leave confirm | yes | 4 | `leave/applied-and-booked` | yes | 11.87 | PASS |
-| `592:488` | leave | Leave present | yes | 3 | `leave/present` | yes | 11.14 | PASS |
-| `592:489` | leave | Leave absent | yes | 3 | `leave/absent` | yes | 10.15 | PASS |
-| `592:563` | leave | long leave | yes | 4 | `leave/long-empty` | yes | 6.81 | PASS |
-| `592:639` | leave | long leave selected | yes | 4 | `leave/long-selected` | yes | 11.62 | PASS |
-| `592:832` | leave | long leave confirm | yes | 3 | `leave/long-booked` | yes | 10.41 | PASS |
-| `592:888` | leave | short leave | yes | 2 | `leave/short-confirm` | yes | 5.55 | PASS |
+| `575:2137` | log in flow | 3b- present | yes | 5 | `login-flow/present` | yes | 4.61 | PASS |
+| `575:2138` | log in flow | 3c- absent | yes | 4 | `login-flow/absent` | yes | 3.47 | PASS |
+| `592:1008` | leave | long leave confirm | yes | 4 | `leave/applied-and-booked` | yes | 11.85 | FAIL |
+| `592:488` | leave | Leave present | yes | 3 | `leave/present` | yes | 11.14 | FAIL |
+| `592:489` | leave | Leave absent | yes | 3 | `leave/absent` | yes | 10.13 | FAIL |
+| `592:563` | leave | long leave | yes | 4 | `leave/long-empty` | yes | 7.31 | FAIL |
+| `592:639` | leave | long leave selected | yes | 4 | `leave/long-selected` | yes | 11.65 | FAIL |
+| `592:832` | leave | long leave confirm | yes | 3 | `leave/long-booked` | yes | 10.42 | FAIL |
+| `592:888` | leave | short leave | yes | 2 | `leave/short-confirm` | yes | 5.56 | FAIL |
 | `575:1744` | performance | 12- money daily | yes | 6 | — | — | — | — |
 | `575:1884` | performance | 13- money weekly | — | — | — | — | — | — |
 | `575:1903` | performance | 14- day history | yes | 3 | — | — | — | — |
@@ -48,5 +48,5 @@ an artefact on disk; nothing here is asserted by hand except the reviewed verdic
 - SCREENS_IMPLEMENTED: 16
 - SCREENS_CARRIED_OVER_FROM_V12: 12
 - SCREENS_EMULATOR_RENDERED: 28
-- SCREENS_PIXEL_VERIFIED: 16
-- SCREENS_STILL_MISMATCHING: 19
+- SCREENS_PIXEL_VERIFIED: 9
+- SCREENS_STILL_MISMATCHING: 26

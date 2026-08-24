@@ -3,7 +3,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { SvgXml } from 'react-native-svg';
 
-import { Text, color, figmaStroke, useDesignScale } from '@ui';
+import { Text, color, dropShadow, figmaStroke, useDesignScale } from '@ui';
 import { checkTick, crossTick, ellipse4 } from '@ui/icons/figmaV13Icons';
 
 /**
@@ -89,7 +89,10 @@ const CARD = {
    * a 14/255 wash above it — visible, and wrong against the frame it is meant to match. 5% here
    * reproduces the reference to within 5/255 everywhere.
    */
-  shadow: '0px 8px 30px 0px rgba(255, 214, 0, 0.05)',
+  /** `0 8px 30px rgba(255,214,0,0.05)` — see `dropShadow` for why this is not a `boxShadow`. */
+  shadowBlur: 30,
+  shadowAlpha: 0.05,
+  shadowOffsetY: 8,
 } as const;
 
 /** `540:402` — the white-on-green check-in window row. */
@@ -694,7 +697,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     backgroundColor: color.yellow600,
-    boxShadow: '0px 0px 2px 0px rgba(0, 0, 0, 0.15)',
+    ...dropShadow(2, 0.15),
   },
   content: { flex: 1, backgroundColor: color.white, alignItems: 'flex-start' },
   greeting: { width: '100%', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
@@ -710,7 +713,7 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     borderColor: color.lime600,
     backgroundColor: color.white,
-    boxShadow: CARD.shadow,
+    ...dropShadow(30, 0.05, 8),
   },
   upper: { textTransform: 'uppercase' },
   windowRow: {

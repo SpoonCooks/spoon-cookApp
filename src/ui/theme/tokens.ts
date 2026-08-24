@@ -1,3 +1,5 @@
+import { Platform } from 'react-native';
+
 /**
  * Cook App design tokens.
  *
@@ -227,6 +229,39 @@ export const shadow = {
  * Figma frames are 390x830 with a 370-wide content column, i.e. a 10pt gutter each side.
  * `navHeight` is the fixed bottom nav (`nav.fixed`, 96 tall in Figma).
  */
+/**
+ * A Figma drop shadow, applied only where the platform can draw it without damaging the fill.
+ *
+ * ## Why Android gets nothing
+ *
+ * V13's shadows are all faint ambient ones (`0 0 2px rgba(0,0,0,.15)`, `0 4px 20px rgba(0,0,0,.03)`)
+ * and in the reference renders they are barely present: under the help pill the darkest row samples
+ * `#f6f6f6`, nine levels off white, across three rows. Both ways of drawing that on Android cost
+ * far more than they buy:
+ *
+ *   * `boxShadow` composites **over** the view rather than behind it. The help pill's `#ffd600`
+ *     fill rendered as `#ecc600` — a uniform x0.925 on both channels across the whole fill, 19
+ *     levels off, measured. Removing the shadow returned it to exactly `#ffd600`.
+ *   * `elevation` draws outside correctly but far heavier than the design, and it tinted the same
+ *     pill identically. Switching the cards to it pushed `575:2135` from 4.88% to 9.35% differing
+ *     pixels.
+ *
+ * A missing shadow costs at most nine levels over three rows and stays inside the comparison
+ * tolerance; a tinted fill costs nineteen levels over the whole element and does not. So Android
+ * omits it, which is measurably closer to the design than either way of drawing it.
+ *
+ * iOS composites shadows behind the view correctly and keeps the props.
+ */
+export function dropShadow(blur: number, alpha: number, offsetY = 0) {
+  if (Platform.OS === 'android') return {};
+  return {
+    shadowColor: brand.black,
+    shadowOpacity: alpha,
+    shadowRadius: blur,
+    shadowOffset: { width: 0, height: offsetY },
+  } as const;
+}
+
 export const layout = {
   designWidth: 390,
   designHeight: 830,

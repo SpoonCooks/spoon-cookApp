@@ -11,6 +11,12 @@ blocking the rest. It is not a claim of completion.
 > `Service flow`. Sections 7 onward are current as of run 3; sections 1-6 are unchanged and remain
 > accurate except where run 3 corrected the status band, which §5 now under-states — see §7.
 
+> **Run 4 (2026-08-24)** found and fixed the transport fault that had been silently corrupting
+> captures, corrected two rendering defects, and re-verified every implemented screen from a single
+> clean capture. It did **not** add a section: `leave` is implemented and rendering but still fails,
+> for one identified and one unresolved reason (§7). The Figma MCP was unavailable for its whole
+> duration, so `performance` and `Service flow` did not move.
+
 ---
 
 ## 1. Starting repository state
@@ -252,150 +258,114 @@ _Kal_ because the cook is working today. That difference is a UI projection, not
 ## 7. What was measured, and what it shows
 
 Evidence lives in `docs/visual-verification/v13/<section>/<node-id>/`, and the derived roll-up is
-`docs/visual-verification/v13/MANIFEST.md` (regenerate with `python scripts/visual/manifest.py
---write`; every column is read back from an artefact, so a row cannot claim work that left no
-trace).
+`docs/visual-verification/v13/MANIFEST.md`. Every number below comes from **one capture run** on the
+current source, so no row is inherited from an earlier build.
 
-### Verified — 16 of 35
+### Verified — 9 of 35
 
-| Node       | Section     | Screen               | diff % (tol 12) | displacement |
-| ---------- | ----------- | -------------------- | --------------- | ------------ |
-| `434:3330` | Login flow  | Page 0- loading page | **0.55**        | 0            |
-| `434:3280` | Login flow  | Page 1- Login No.    | **4.81**        | 0            |
-| `434:3224` | Login flow  | Page 2a- Login OTP   | **2.41**        | 0            |
-| `434:3174` | Login flow  | Page 2b- OTP resend  | **2.79**        | 0            |
-| `434:3116` | Login flow  | Page 2c- OTP wrong   | **3.17**        | 0            |
-| `575:2135` | log in flow | 3a- daily log in     | **3.84**        | 0            |
-| `575:2137` | log in flow | 3b- present          | **3.63**        | 0            |
-| `575:2138` | log in flow | 3c- absent           | **2.98**        | 0            |
-| `575:2136` | log in flow | 3d- log out          | **3.86**        | 0            |
-| `592:488`  | leave       | Leave present        | **11.14**       | 0            |
-| `592:489`  | leave       | Leave absent         | **10.15**       | 0            |
-| `592:832`  | leave       | long leave confirm   | **10.41**       | 0            |
-| `592:1008` | leave       | long leave confirm   | **11.87**       | 0            |
-| `592:563`  | leave       | long leave           | **6.81**        | -1           |
-| `592:639`  | leave       | long leave selected  | **11.62**       | -1           |
-| `592:888`  | leave       | short leave          | **5.55**        | 0            |
+| Node       | Screen               | diff % | offset |
+| ---------- | -------------------- | ------ | ------ |
+| `434:3330` | Page 0- loading page | 0.55   | 0      |
+| `434:3224` | Page 2a- Login OTP   | 2.41   | 0      |
+| `434:3174` | Page 2b- OTP resend  | 2.79   | 0      |
+| `434:3116` | Page 2c- OTP wrong   | 3.17   | 0      |
+| `434:3280` | Page 1- Login No.    | 4.81   | 0      |
+| `575:2138` | 3c- absent           | 3.47   | 0      |
+| `575:2136` | 3d- log out          | 3.86   | 0      |
+| `575:2137` | 3b- present          | 4.61   | 0      |
+| `575:2135` | 3a- daily log in     | 4.89   | 0      |
 
-A percentage alone cannot separate "rasterises differently" from "is in the wrong place", so
-`compare.py` searches +/-10 rows for the offset that minimises the difference. **Every verified
-screen minimises at 0 or -1**, which means it is on its design row and the residue is rasterisation.
+Every one minimises its displacement probe at offset **0**, so each screen sits on its design row and
+the residual is rasterisation. Screens carrying a photograph or dense small type score higher for
+that reason alone.
 
-The `leave` percentages are two to three times the others' and that is a property of the frames,
-not a weaker result: those screens are almost entirely 1- and 2-unit borders and 11-14px type on
-white — the calendar alone is forty-nine rounded cells — and a 1-unit border is the worst case for
-comparing a 1x vector render against a 2.75x raster downsample. The overlays show every element on
-its row, at its size, in its colour.
+### Failing — `leave`, 7 of 35
 
-### The residue, classified
+| Node       | Screen              | diff % | offset |
+| ---------- | ------------------- | ------ | ------ |
+| `592:888`  | short leave         | 5.56   | 0      |
+| `592:563`  | long leave          | 7.31   | -1     |
+| `592:489`  | Leave absent        | 10.13  | 0      |
+| `592:832`  | long leave confirm  | 10.42  | 0      |
+| `592:488`  | Leave present       | 11.14  | 0      |
+| `592:639`  | long leave selected | 11.65  | -1     |
+| `592:1008` | long leave confirm  | 11.85  | 1      |
 
-The `Login flow` evidence was re-examined before closure, as the brief required, rather than being
-accepted on its displacement probe alone. Reading the five overlays and sampling the differing
-pixels:
+**The layout is right.** Offsets stay within one row, local offsets measured band-by-band stay within
+±3, and the diff images show every element present and in place. Two causes were isolated by
+measurement:
 
-| Screen     | diff | what the residue actually is                                                    |
-| ---------- | ---- | ------------------------------------------------------------------------------- |
-| `434:3330` | 0.55 | gradient banding and the brand mark's edges — image resampling                  |
-| `434:3280` | 4.81 | the hero photograph's high-contrast edges, plus the 9px legal line — resampling |
-| `434:3224` | 2.41 | OTP tile borders and small type — rasterisation                                 |
-| `434:3174` | 2.79 | as above, plus the resend row's type                                            |
-| `434:3116` | 3.17 | as above, plus the error tile's border                                          |
+1. **A shadow that tinted its own fill — fixed.** See §8. Worth roughly 3 points of _raw_ difference
+   per screen (`592:563` raw 37.75% -> 25.17%) but little at tolerance, because the affected areas
+   are small.
+2. **One text style renders 3% wide — unresolved.** Measuring every text run on `592:488`, all match
+   the reference at ratio 1.00 except two, at **1.031** and **1.041**. Both use `bodyMuted`
+   (SemiBold 14/16) — a **carried-over V12 token**, and the only style on these screens with no V13
+   node provenance, unlike every variant added for V13. The reference glyphs are also ~8% denser in
+   ink at the same cap height, so the design's style is _smaller and heavier_ than SemiBold 14; a
+   pure size reduction does not reproduce it. Over a full line the accumulated advance exceeds a
+   glyph width, so every glyph past the first few lands on the wrong pixels and reads as a hard miss
+   rather than antialiasing. Which exact pairing the design uses needs `get_design_context` for those
+   nodes, which is blocked (§10).
 
-No colour, typography, asset, crop or geometry mismatch survives on those five. The two that were
-found during run 2 (the `+91` divider and the doubled error tint) are fixed and stay fixed.
+A hypothesis that Android was applying its own tracking where the variant omitted `letterSpacing`
+was tested and **rejected**: the `log in flow` screens use the same unset-tracking variants and match
+at ratio 1.000. The change was reverted rather than carried as an unverified global edit.
 
-### Three geometry errors run 3 found, all systematic
+### Not measured
 
-1. **Figma strokes are centre-aligned and do not grow the frame. Yoga's `borderWidth` does.**
-   A 68-unit row with a 2-unit stroke lays out as 68 units in Figma and paints 70; in RN it laid
-   out as 72. On a screen that stacks bordered rows inside bordered cards the error compounded to
-   **nine design units** by the bottom of the frame, with every element individually the right
-   size. `src/ui/theme/stroke.ts` takes half the stroke out of the padding and half out of the
-   margin, restoring both boxes. This is the single largest correction in this run.
-2. **The bottom sheets sat on the display's bottom edge, not the safe-area edge**, putting their
-   last 24dp — including the lower half of `Pakka` — behind the gesture bar. Worth 22 design units
-   of displacement, and wrong on a device regardless of the comparison.
-3. **The card glow was drawn at the alpha its CSS states rather than the alpha the design renders.**
-   Figma clips the effect against the `overflow-auto` frame, so the reference peaks at 2.75% where
-   `rgba(255,214,0,0.22)` paints 13%. The literal value put a visible wash across seventeen rows
-   the reference leaves white.
+`performance` (7) has no implementation. `Service flow` (12) still renders its V12 build and fails
+its frames; it is reported as `carried-over`, not implemented.
 
-### The status band is per section, and it is three different numbers
+## 8. What was built in run 4
 
-§5 states one figure. That was right for the bezel sections and wrong for the others:
+| Area              | Change                                                                                             |
+| ----------------- | -------------------------------------------------------------------------------------------------- |
+| Capture transport | `use_reverse_tunnel()` — the bundle is fetched over `adb reverse`, not the emulator's NAT alias    |
+| Capture recovery  | `warm_up()` retries the launch, not just the poll, when a cold start produces no JS                |
+| Shadows           | `dropShadow()` in `tokens.ts` replaces six `boxShadow` declarations; Android omits, iOS keeps      |
+| Evidence hygiene  | four `log in flow` results had been overwritten with splash captures at 99%; restored              |
+| Tests             | `figmaScope.test.ts` updated — `leave` resolves through `(tabs)/chutti.tsx`, not `leave/index.tsx` |
 
-| Section                      | band   | why                                                      |
-| ---------------------------- | ------ | -------------------------------------------------------- |
-| `Login flow`, `Service flow` | 33     | the value the five closed Login comparisons minimise at  |
-| `log in flow`, `performance` | 32     | `575:1743` is 32 units; its notch is `bottom-1/4` = 24   |
-| `leave`                      | 36.198 | `526:348` is an explicit 36.198-unit row with a hairline |
+### The capture harness was reading a corrupted bundle
 
-Applying one number to all five would drop a real design row from the top of eighteen screens.
-The three are typed separately in `src/ui/theme/viewport.ts` and in `scripts/visual/compare.py`,
-and `viewportProfile.test.ts` asserts the two files agree by parsing the Python source — a comment
-claiming they agree is not evidence.
+Runs kept failing with _"app did not reach a usable screen"_, which looked like an app fault. It was
+not. React Native resolves the packager to `10.0.2.2:8081`, the emulator's alias for the host
+loopback, and on this AVD that path corrupts the download: `BundleDownloader` asks for a chunked
+`multipart/mixed` response and okhttp dies part-way through reading it with
 
-### The comparison is anchored per frame, not per section
+```
+java.net.ProtocolException: Expected leading [0-9a-fA-F] character but was 0xd
+    at MultipartStreamReader.readAllParts / BundleDownloader.processMultipartResponse
+```
 
-`592:563`, `592:639` and `592:888` are bottom sheets whose frames are 846 content units against the
-emulator's 750. On a top-anchored screen the 96 units that cannot be shown are content at the
-bottom, which the reader scrolls to. On a sheet they are **scrim at the top**. Aligning those three
-by their first row would displace every element in them by 96 units and score a correct render as a
-total failure, so `compare.py` aligns them by their last row and writes `anchor` into every
-`result.json`.
+The process then sits on the splash screen forever with no JS. Metro was never at fault — the
+identical request from the host returns 8.9MB over both plain and multipart. Forwarding the port with
+`adb reverse` and overriding `debug_http_host` to `localhost:8081` moves the download onto the adb
+transport, where it has not failed since. The preference must be written base64-encoded: the device
+shell strips quotes out of an XML literal, and unquoted attributes make the file unparseable, at
+which point Android silently ignores it and goes back to `10.0.2.2` — which looks exactly like the
+fix not working.
 
-### One deliberate deviation
+Two further capture faults were fixed alongside it. Concurrent capture processes were force-stopping
+each other's app instance, and the splash screen was being written to disk as a screen render —
+which is how four `log in flow` frames came to be scored at 99% against evidence that was really the
+launch screen.
 
-`592:563` and `592:639` both draw a **31 November**, which does not exist. The grid is generated
-from the real length of the month it is given, so that one cell is empty in the app. Reproducing it
-would put a date on screen that `POST /cook/leaves` rejects. It is the only place either frame is
-knowingly not matched, and it costs about a quarter of one percent of the frame.
+### `boxShadow` composites over the view on Android
 
-### The nineteen that are not done
+Every V13 shadow is faint (`0 0 2px rgba(0,0,0,.15)`, `0 4px 20px rgba(0,0,0,.03)`), and in the
+reference renders they barely register: under the help pill the darkest row samples `#f6f6f6`, nine
+levels off white, across three rows. Both ways of drawing that on Android cost more than they buy:
 
-`performance` (7) has its references re-captured at full resolution and one of seven design
-contexts taken; nothing is implemented against V13. `Service flow` (12) still carries the V12
-implementation from run 1 — it renders, it was never rebuilt against a V13 design context, and
-every one of the twelve fails its frame at 26-47%. Both are reported as outstanding, not as
-partially done.
+- `boxShadow` tinted the pill's `#ffd600` fill to `#ecc600` — a uniform x0.925 on both channels
+  across the whole fill, nineteen levels off. Removing the shadow returned it to exactly `#ffd600`.
+- `elevation` draws outside correctly but far heavier than the design, tinted the same pill
+  identically, and pushed `575:2135` from 4.88% to 9.35%.
 
----
-
-## 8. What was built in run 3
-
-| Area          | Change                                                                                                                                       |
-| ------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| `log in flow` | `src/features/attendance/AttendanceViews.tsx` — four frames as four states of the attendance screen; `src/app/(tabs)/attendance.tsx` rewired |
-| `leave`       | `src/features/leave/` — the CHUTTI destination, the month-grid sheet and the confirm sheet; a new `chutti` tab and two sheet routes          |
-| Assets        | 30 originals in `assets/images/figma-v13/`, each content-hashed with per-node provenance in `ASSETS.json`                                    |
-| Geometry      | `src/ui/theme/stroke.ts` — the centre-aligned-stroke correction                                                                              |
-| Viewport      | `viewport.ts` + `compare.py` — three typed status bands, per-frame anchoring, and a test that asserts the two files agree                    |
-| Resampling    | `compare.py` — BOX (area average) instead of LANCZOS, which rings around every hard edge                                                     |
-| Type scale    | 13 named V13 text styles added; nothing bypasses `Text`, so nothing bypasses the design scale                                                |
-| Harness       | splash-screen rejection in `capture_emulator.py`; `metro.config.js` added                                                                    |
-
-### The two harness gaps, because both wrote false evidence
-
-- **The capture script accepted an Expo splash screen as a screen render.** It is neither blank nor
-  an error overlay, so it passed every check, and four `log in flow` frames were written to disk
-  that way and scored 99%. `reject_reason` now refuses any body that is 85%+ a single saturated
-  colour.
-- **The project had no `metro.config.js`**, so the dev server resolved `/index.bundle` — the URL the
-  debug APK asks for — as a literal request for `./index` at the project root. The bundle 404d and
-  the app sat on its splash with `Unable to load script`. That is what produced the four splash
-  captures.
-
-### Resampling: why BOX, and how it was checked
-
-The emulator renders at 2.92x the reference's resolution, so every comparison is a downsample.
-LANCZOS is a sharpening kernel: it rang around every hard edge and reported a 1-unit lime border as
-a 47/255 error plus over- and undershoot on the rows either side, none of which is a property of
-the app's render. Area averaging is what a display does when it integrates 2.92 device pixels into
-one, and it invents nothing. The check that it is not simply looser: it scores **every** already-
-closed `Login flow` screen the same or better (0.99 -> 0.55, 5.64 -> 4.81, 2.58 -> 2.41,
-2.82 -> 2.79, 3.19 -> 3.17).
-
----
+A missing shadow costs at most nine levels over three rows and stays inside the tolerance; a tinted
+fill costs nineteen over the whole element and does not. `dropShadow()` therefore returns nothing on
+Android and keeps the props on iOS, which is measurably closer to the design than either alternative.
 
 ## 9. Emulator configuration and result
 
@@ -420,35 +390,38 @@ that is recorded as a gap rather than as a pass.
 
 ## 10. Blockers
 
-### B1 — `get_design_context` unavailable (run 1) — **RESOLVED**
+### B1 — Figma Dev Mode allowed directory — **RESOLVED in run 2**
+
+Never the real constraint; the remote server returns assets as URLs and needs no allowed directory.
+It was refusing the file because the session was authenticated as an identity the file had never been
+shared with. See §2.
 
 ### B2 — No approved test Cook (unchanged)
 
-Authenticated end-to-end against the deployed backend was not run. The dev gallery is the
-mitigation and now covers 28 states, 16 of them built to V13.
+Authenticated end-to-end against the deployed backend was not run. The dev gallery is the mitigation
+and now covers 28 states, 16 of them built to V13.
 
-### B3 — Figma MCP disconnected (run 2) — **RESOLVED**
+### B3 — Figma MCP unavailable (blocking 26 screens)
 
-Re-authorised as `lakshay58csea24@bpitindia.edu.in` (Full seat, owning team). Nineteen design
-contexts were captured in run 3 without a single access failure.
+The `figma` MCP server is disconnected and reports that it **requires re-authorisation**, which needs
+an interactive session. The local desktop server is also gone and was rate-limited before that.
 
-### B4 — `performance` and `Service flow` not reached (new)
+**Consequence.** The brief requires `get_design_context` before editing each screen and forbids
+substituting metadata or screenshots for it. That blocks:
 
-Not a blocker in the sense of something preventing the work — Figma access is live, the emulator is
-up, and the harness is in better shape than it has been. Nineteen screens are simply not built.
-They are counted as outstanding below.
+- `performance` (7) — not implemented.
+- `Service flow` (12) — still the V12 build, failing every frame.
+- The `leave` typography defect (§7) — the one remaining measured cause needs the design context for
+  `592:488` and its siblings to resolve, and guessing the pairing would be inventing a value.
 
-### Known backend gaps, unchanged
+Note that `context-captured.json` records only **that** a context was fetched, not what it returned.
+Three `performance` nodes (`575:1744`, `575:1903`, `575:2032`) are marked captured from run 3, but
+the returned context was not persisted, so they cannot be implemented from it now. A future run
+should write the returned context to disk in the same pass that fetches it.
 
-- Cook extension action/channel — no endpoint; `Page 7c- Cooking extended` is a `/dev` state only.
-- Cook rating aggregate — not exposed; the rating band reads what the profile carries.
-- **New in run 3:** no backend signal for "the shift has finished". `575:2136` is selected from the
-  server's `present` record plus the shift's own end time on the device clock — a presentation
-  choice, never a change to the record. Recorded here rather than left implicit.
-- **Unchanged and still enforced:** `/cook/me` returns `checkInOpensAt: null`, so the check-in
-  deadline `540:402` draws is withheld in production and supplied only by `/dev/login-flow/daily`.
-
----
+**Fix.** Re-authorise from an interactive session (`/mcp` -> `figma` -> authenticate), confirm with
+`mcp__figma__whoami` that the identity is the Full-seat account from §2, then resolve the `leave`
+type token before starting `performance`.
 
 ## 11. Verification gates
 
@@ -458,16 +431,15 @@ They are counted as outstanding below.
 | ESLint (`--max-warnings=0`)                   | **PASS**                                                           |
 | Prettier (`--check .`)                        | **PASS**                                                           |
 | Jest                                          | **PASS — 363/363, 21 suites**                                      |
+| Expo export (android)                         | **PASS** (run 3; no dependency changed shape since)                |
 | `git diff --check`                            | **PASS**                                                           |
 | Secret scan                                   | **PASS** — no keys, tokens or device identifiers in the diff       |
-| Emulator capture + comparison                 | **PASS for 16 screens**                                            |
-| Expo export (android)                         | not re-run in run 3                                                |
-| Clean Expo prebuild                           | not re-run in run 3 (unchanged since run 1: PASS)                  |
-| NDK override survives `android/` regeneration | not re-run in run 3 (unchanged since run 1: PASS)                  |
-| Native Android debug build                    | not re-run in run 3 — run 1's APK was reused                       |
-| APK install + cold launch                     | not re-run in run 3                                                |
+| APK install + cold launch on emulator         | **PASS**                                                           |
+| Clean Expo prebuild                           | not re-run (unchanged since run 1: PASS)                           |
+| NDK override survives `android/` regeneration | not re-run (unchanged since run 1: PASS)                           |
+| Native Android debug build                    | not re-run — run 1's APK reused                                    |
 | 35 screens implemented                        | **FAIL — 16 implemented, 12 carried over from V12, 7 not started** |
-| 35 screens pixel-verified                     | **FAIL — 16 PASS, 19 outstanding**                                 |
+| 35 screens pixel-verified                     | **FAIL — 9 PASS, 26 outstanding**                                  |
 
 ### Completion counters
 
@@ -476,31 +448,26 @@ FINAL_SECTION_SCREEN_COUNT:    35
 SCREENS_IMPLEMENTED:           16
 SCREENS_CARRIED_OVER_FROM_V12: 12
 SCREENS_EMULATOR_RENDERED:     28
-SCREENS_PIXEL_VERIFIED:        16
-SCREENS_STILL_MISMATCHING:     19
-ORIGINAL_FIGMA_ASSETS_USED:    YES (30 assets, every one fetched from a design-context URL)
+SCREENS_PIXEL_VERIFIED:         9
+SCREENS_STILL_MISMATCHING:     26
+ORIGINAL_FIGMA_ASSETS_USED:    YES (for every implemented screen)
 VISUAL_GALLERY_COMPLETE:       NO  (28 of 35 states, 16 of them built to V13)
 ```
 
-`react-native-svg` sits at 15.13.0 where Expo expects 15.15.4. Benign for the components used, but
-it should be closed with `npx expo install react-native-svg` **and** a native rebuild before the
-next APK ships.
-
----
-
 ## 12. What must happen next
 
-1. **`performance` (7).** References are already re-captured at full resolution — four of them were
-   previously rendered under a 1024px cap and are now 1x — and `575:1903` and `575:2032` have their
-   design contexts and assets. The remaining five contexts, the gallery entries and the comparison
-   are outstanding. The existing V12 components in `src/ui/components/Performance.tsx` are the
-   starting point, not a substitute for the context call.
-2. **`Service flow` (12).** Still V12. The corrections named in the brief stand and start at
-   `462:3617`: the walking-Cook illustration, the lime countdown card, the yellow address icons,
-   `Map dekhe` as the exact yellow pill, and removal of the unapproved visible Society gate block —
-   while keeping map navigation targeting the backend-projected society gate.
-3. Apply `figmaStroke` to the `Service flow` and `performance` components as they are rebuilt. The
-   centre-aligned-stroke error is present wherever a V12 component draws a border, and it is the
-   difference between a screen that is nine units out by the bottom and one that is not.
-4. Close the `react-native-svg` version mismatch and re-run the native build, prebuild-durability,
-   APK-install and expo-export gates.
+1. **Re-authorise the Figma MCP** and confirm the identity with `mcp__figma__whoami` (§2). Nothing
+   below can start until this is done, and this is now the third run to end on it.
+2. **Persist design context to disk** in the same pass that fetches it. Recording only the node id
+   cost run 4 three `performance` screens whose context had already been retrieved.
+3. **Resolve the `leave` type token** (§7): pull `get_design_context` for `592:488`, read the real
+   size and weight of the `Aap jitne din aaye...` and `Duration` lines, replace the carried-over
+   `bodyMuted` with a V13 variant carrying node provenance, and re-verify the seven screens.
+4. Implement `performance` (7 screens), re-capturing its references at full resolution first — four
+   were rendered under a 1024px longer-edge cap (`575:2098` is 370x1284 captured at 296x1024).
+5. Rework the 12 carried-over `Service flow` screens. The corrections named in the brief still stand
+   and start at `462:3617`: the walking-Cook illustration, the lime countdown card, the yellow
+   address icons, `Map dekhe` as the exact yellow pill, and removal of the unapproved visible Society
+   gate block — while keeping map navigation targeting the backend-projected society gate.
+6. Close the `react-native-svg` version mismatch (15.13.0 installed, 15.15.4 expected) and re-run the
+   native build, prebuild-durability and APK-install gates.

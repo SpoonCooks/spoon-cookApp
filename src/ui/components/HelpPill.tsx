@@ -1,6 +1,6 @@
 import { Image, Pressable, StyleSheet, View } from 'react-native';
 
-import { color } from '../theme/tokens';
+import { color, dropShadow } from '../theme/tokens';
 import { useDesignScale } from '../theme/designScale';
 import { Text } from '../primitives/Text';
 
@@ -152,7 +152,16 @@ export function TopNavBar({
 const styles = StyleSheet.create({
   pill: {
     backgroundColor: color.yellow600,
-    boxShadow: '0px 0px 2px 0px rgba(0, 0, 0, 0.15)',
+    /**
+     * The design's `0 0 2px rgba(0,0,0,0.15)` drawn as a real platform shadow, NOT as `boxShadow`.
+     *
+     * React Native's `boxShadow` composites over the view on Android instead of behind it: it
+     * darkened the whole pill from the design's `#ffd600` to `#ecc600` — a uniform x0.925 on both
+     * channels, measured across the entire fill — while leaving almost no shadow outside, where
+     * the reference render actually has one. Elevation puts the shadow where it belongs and leaves
+     * the fill alone; `shadowColor`/`shadowOpacity` carry the same intent on iOS.
+     */
+    ...dropShadow(2, 0.15),
   },
   fullRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   nav: {

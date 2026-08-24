@@ -2,7 +2,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 
 import { SvgXml } from 'react-native-svg';
 
-import { Text, color, figmaStroke, useDesignScale } from '@ui';
+import { Text, color, dropShadow, figmaStroke, useDesignScale } from '@ui';
 import { chevron, monthPrev } from '@ui/icons/figmaV13Icons';
 
 /**
@@ -57,7 +57,10 @@ const GRID = {
   cardGap: 12,
   borderWidth: 1,
   /** `530:1363` — a far softer card shadow than the attendance card's yellow glow. */
-  shadow: '0px 4px 20px 0px rgba(0, 0, 0, 0.03)',
+  /** `0 4px 20px rgba(0,0,0,0.03)` — see `dropShadow` for why this is not a `boxShadow`. */
+  shadowBlur: 20,
+  shadowAlpha: 0.03,
+  shadowOffsetY: 4,
   monthRowPaddingV: 6,
   monthRowGap: 39,
   monthLabelWidth: 139,
@@ -269,7 +272,7 @@ const styles = StyleSheet.create({
     alignSelf: 'stretch',
     borderColor: color.yellow600,
     backgroundColor: color.white,
-    boxShadow: GRID.shadow,
+    ...dropShadow(20, 0.03, 4),
   },
   monthRow: {
     flexDirection: 'row',

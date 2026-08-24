@@ -46,6 +46,7 @@
       "height": 750
     }
   },
+  "anchor": "top",
   "comparedHeightPx": 750,
   "referenceHeightPx": 767,
   "emulatorScaledHeightPx": 750,

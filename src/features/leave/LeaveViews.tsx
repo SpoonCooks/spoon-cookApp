@@ -3,7 +3,16 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { SvgXml } from 'react-native-svg';
 
-import { HelpPill, Text, TopNavBar, color, figmaStroke, fontFamily, useDesignScale } from '@ui';
+import {
+  HelpPill,
+  Text,
+  TopNavBar,
+  color,
+  dropShadow,
+  figmaStroke,
+  fontFamily,
+  useDesignScale,
+} from '@ui';
 import { bookedTick, chevron, sheetBack } from '@ui/icons/figmaV13Icons';
 
 import { LeaveCalendar } from './LeaveCalendar';
@@ -900,9 +909,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignSelf: 'stretch',
   },
-  ctaEnabled: { backgroundColor: color.lime600, boxShadow: '0px 0px 2px 0px rgba(0, 0, 0, 0.15)' },
+  ctaEnabled: { backgroundColor: color.lime600, ...dropShadow(2, 0.15) },
   ctaDisabled: {
     backgroundColor: color.disabledFill,
-    boxShadow: '0px 0px 4px 0px rgba(0, 0, 0, 0.15)',
+    ...dropShadow(4, 0.15),
   },
 });
