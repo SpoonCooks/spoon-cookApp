@@ -26,6 +26,7 @@ emulator, and each capture is verified non-blank AND non-error before it is writ
 from __future__ import annotations
 
 import argparse
+import base64
 import json
 import subprocess
 import time
@@ -46,6 +47,12 @@ WARM_FLOOR_SECONDS = 20.0
 
 #: How many times to relaunch when a cold start produces no JS. See `warm_up`.
 WARM_LAUNCH_ATTEMPTS = 4
+
+#: Where the debug build should fetch its JS bundle from. See `use_reverse_tunnel`.
+DEV_SERVER_HOST = "localhost:8081"
+
+#: React Native reads the dev-server override from this SharedPreferences file.
+PREFS_PATH = f"shared_prefs/{PACKAGE}_preferences.xml"
 
 
 def adb(adb_path: str, *args: str, binary: bool = False):
@@ -112,6 +119,38 @@ def reject_reason(png_bytes: bytes) -> str | None:
     if (banner.mean(axis=1) > 0.9).sum() > 30:
         return "Metro reload banner still on screen"
     return None
+
+
+def use_reverse_tunnel(adb_path: str) -> None:
+    """
+    Point the debug build at `localhost:8081` over `adb reverse`, not the emulator's NAT alias.
+
+    By default React Native resolves the packager to `10.0.2.2:8081`, the emulator's alias for the
+    host loopback. On this AVD that path corrupts the bundle download: `BundleDownloader` asks for
+    a chunked `multipart/mixed` response and okhttp dies part-way through reading it with
+
+        java.net.ProtocolException: Expected leading [0-9a-fA-F] character but was 0xd
+
+    The process then sits on the splash screen forever with no JS, which is indistinguishable from a
+    slow start until you read logcat. Metro is not at fault -- the identical request from the host
+    returns 8.9MB over both plain and multipart -- so the corruption is in the NAT path.
+
+    Forwarding the port with `adb reverse` and overriding `debug_http_host` moves the download onto
+    the adb transport, where it has not failed once. The preference is written with base64 because
+    the device shell strips the quotes out of an XML literal, and unquoted attributes make the file
+    unparseable -- Android then silently ignores it and the app goes back to 10.0.2.2.
+    """
+    adb(adb_path, "reverse", "tcp:8081", "tcp:8081")
+    prefs = (
+        '<?xml version="1.0" encoding="utf-8" standalone="yes" ?>'
+        f'<map><string name="debug_http_host">{DEV_SERVER_HOST}</string></map>'
+    )
+    encoded = base64.b64encode(prefs.encode("utf-8")).decode("ascii")
+    adb(
+        adb_path,
+        "shell",
+        f"run-as {PACKAGE} sh -c 'echo {encoded} | toybox base64 -d > {PREFS_PATH}'",
+    )
 
 
 def warm_up(adb_path: str, budget: float, launches: int = WARM_LAUNCH_ATTEMPTS) -> bool:
@@ -186,6 +225,7 @@ def main() -> int:
     states = json.loads(Path(args.states).read_text(encoding="utf-8"))
     by_node = {row["nodeId"]: row for row in inventory}
 
+    use_reverse_tunnel(args.adb)
     if not warm_up(args.adb, args.warmup):
         print("!! app did not reach a usable screen during warm-up")
         return 1
