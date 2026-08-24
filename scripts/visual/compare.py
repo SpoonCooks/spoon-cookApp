@@ -11,6 +11,25 @@ screenshot is scaled to that crop's width. Comparison happens at the FIGMA rende
 never by upscaling Figma to the emulator's 1080px: upscaling invents detail that is not in the
 source and would report resampling blur as a design mismatch.
 
+## System chrome is excluded from BOTH sides, and the exclusion is recorded
+
+Every V13 frame draws a **status-bar mock** — a 33-unit band with a 12px clock and signal glyphs —
+and the bezel frames also draw a **home-indicator strip**. Neither is application content. On a
+device the OS owns those bands, the app is forbidden by the brief from reproducing them, and the
+emulator's own bands are a different size anyway: the verified AVD has a 136px status bar (49.45dp,
+tall because of its punch-hole cutout) against the design's 33 units, and a 66px gesture bar.
+
+Scoring the app against chrome it must not draw would be meaningless, so the comparison aligns the
+two **application-owned regions** — design row `statusBand` and emulator row `statusBarPx` are
+treated as the same origin — and excludes the chrome bands from the denominator entirely. Exactly
+which rows were dropped, on both sides, is written into `result.json`; nothing is hidden inside a
+tolerance.
+
+This alignment is also what makes the comparison sensitive: because the app's `screenWidth / 370`
+scale is the exact inverse of the emulator-to-reference downscale, a correctly placed element lands
+on its design row to within a pixel, and a real misplacement shows up as a hard red band in
+`diff.png` rather than being absorbed by a global offset.
+
 ## What "differing pixels" means here
 
 Android and Figma rasterise text with different antialiasing, so a byte-identical render is not
@@ -41,6 +60,19 @@ SECTION_SLUGS = {
     "Service flow": "service-flow",
 }
 
+#: Height of the status-bar mock every V13 frame draws, in design units. Mirrors
+#: `STATUS_BAND_HEIGHT` in `src/ui/theme/viewport.ts`; `viewportProfile.test.ts` asserts they agree.
+STATUS_BAND_HEIGHT = 33.0
+
+#: Home-indicator strip height, in design units. Only the bezel frames draw one.
+HOME_INDICATOR_HEIGHT = {"Login flow": 10.0, "Service flow": 10.0}
+
+#: Measured on the Ref393GA AVD with `dumpsys window displays`:
+#:   InsetsSource type=statusBars      frame=[0,0][1080,136]
+#:   InsetsSource type=navigationBars  frame=[0,2326][1080,2392]
+DEFAULT_EMULATOR_STATUS_PX = 136
+DEFAULT_EMULATOR_NAV_PX = 66
+
 
 def load_rgb(path: Path) -> Image.Image:
     return Image.open(path).convert("RGB")
@@ -57,15 +89,26 @@ def compare(
     frame_h: float,
     route: str,
     tolerance: int = 12,
+    emulator_status_px: int = DEFAULT_EMULATOR_STATUS_PX,
+    emulator_nav_px: int = DEFAULT_EMULATOR_NAV_PX,
 ) -> dict:
     figma = load_rgb(figma_path)
-    crop = figma_viewport_crop(section, frame_w, frame_h, figma.width, figma.height)
-    reference = figma.crop((crop.left, crop.top, crop.right, crop.bottom))
+    figma_array = np.asarray(figma).astype(int)
+    crop = figma_viewport_crop(section, frame_w, frame_h, figma.width, figma.height, figma_array)
+    viewport = figma.crop((crop.left, crop.top, crop.right, crop.bottom))
+
+    # Drop the design's own system-chrome bands.
+    status_rows = round(STATUS_BAND_HEIGHT * crop.scale)
+    indicator_rows = round(HOME_INDICATOR_HEIGHT.get(section, 0.0) * crop.scale)
+    reference = viewport.crop((0, status_rows, viewport.width, viewport.height - indicator_rows))
 
     emulator = load_rgb(emulator_path)
-    # Scale the emulator render down to the reference width, preserving its aspect ratio.
-    target_h = round(emulator.height * reference.width / emulator.width)
-    scaled = emulator.resize((reference.width, target_h), Image.LANCZOS)
+    # Drop the emulator's system bars, then scale what remains to the reference width.
+    emulator_content = emulator.crop(
+        (0, emulator_status_px, emulator.width, emulator.height - emulator_nav_px)
+    )
+    target_h = round(emulator_content.height * reference.width / emulator_content.width)
+    scaled = emulator_content.resize((reference.width, target_h), Image.LANCZOS)
 
     # Compare over the overlapping height only, and report what was left out.
     height = min(reference.height, scaled.height)
@@ -96,6 +139,28 @@ def compare(
     diff_img[mask] = [255, 0, 0]
     Image.fromarray(diff_img).save(out_dir / "diff.png")
 
+    # Per-row differing percentage, so a review can see WHERE a screen fails without opening the
+    # image — a single bad band reads very differently from uniform drift.
+    row_pct = (mask.mean(axis=1) * 100.0).round(2)
+    worst = np.argsort(row_pct)[::-1][:8]
+
+    # Global displacement probe. Rasterisation noise and a shifted layout produce similar
+    # percentages but are completely different defects, so the comparison searches +/-10 rows for
+    # the offset that minimises the difference. A best offset of 0 means the screen is in the right
+    # place and the residual is antialiasing; anything else is a real geometry error, and saying so
+    # in the artefact stops a low score from being read as a pass when the screen is simply shifted.
+    span = 10
+    inner = ref_a[span:-span] if height > 2 * span else ref_a
+    best_offset, best_pct = 0, None
+    if height > 2 * span:
+        for offset in range(-span, span + 1):
+            window = emu_a[span + offset : height - span + offset]
+            if window.shape != inner.shape:
+                continue
+            pct = float((np.abs(inner - window).max(axis=2) > tolerance).mean())
+            if best_pct is None or pct < best_pct:
+                best_offset, best_pct = offset, pct
+
     result = {
         "section": section,
         "screenName": name,
@@ -109,11 +174,27 @@ def compare(
             "width": crop.width,
             "height": crop.height,
         },
+        "systemChromeExcluded": {
+            "designStatusBandPx": status_rows,
+            "designHomeIndicatorPx": indicator_rows,
+            "emulatorStatusBarPx": emulator_status_px,
+            "emulatorNavigationBarPx": emulator_nav_px,
+            "note": (
+                "Both sides are cropped to the application-owned region before comparison. The "
+                "app is forbidden from drawing the design's status-bar mock or home indicator, "
+                "and the emulator's own bars are a different size, so those rows are excluded "
+                "from the denominator rather than scored."
+            ),
+        },
         "scalingTransform": {
             "figmaRenderScale": round(crop.scale, 4),
-            "figmaRenderMarginPx": round(crop.margin, 2),
+            "figmaRenderOriginYPx": round(crop.margin, 2),
             "note": crop.note,
             "emulatorPx": {"width": emulator.width, "height": emulator.height},
+            "emulatorContentPx": {
+                "width": emulator_content.width,
+                "height": emulator_content.height,
+            },
             "emulatorScaledToPx": {"width": reference.width, "height": target_h},
             "comparedAtPx": {"width": reference.width, "height": height},
         },
@@ -126,6 +207,17 @@ def compare(
         "rawDifferingPixelPercent": round(100.0 * raw_diff / total, 4),
         "meanChannelDelta": round(float(delta.mean()), 4),
         "maxChannelDelta": int(delta.max()),
+        "worstRows": [
+            {"row": int(r), "percent": float(row_pct[r])} for r in sorted(worst.tolist())
+        ],
+        "displacementProbe": {
+            "bestVerticalOffsetPx": best_offset,
+            "percentAtBestOffset": round(100.0 * best_pct, 4) if best_pct is not None else None,
+            "note": (
+                "0 means the render is on its design row and the residual is rasterisation. A "
+                "non-zero offset is a real layout error even when the headline percentage is low."
+            ),
+        },
     }
     return result
 
@@ -136,6 +228,8 @@ def main() -> int:
     parser.add_argument("--root", default="docs/visual-verification/v13")
     parser.add_argument("--tolerance", type=int, default=12)
     parser.add_argument("--node", default=None, help="Only this node id")
+    parser.add_argument("--emulator-status-px", type=int, default=DEFAULT_EMULATOR_STATUS_PX)
+    parser.add_argument("--emulator-nav-px", type=int, default=DEFAULT_EMULATOR_NAV_PX)
     args = parser.parse_args()
 
     inventory = json.loads(Path(args.inventory).read_text(encoding="utf-8"))
@@ -150,7 +244,8 @@ def main() -> int:
         emulator_path = out_dir / "emulator.png"
         if not figma_path.exists() or not emulator_path.exists():
             skipped += 1
-            print(f"skip {row['nodeId']}: missing {'figma' if not figma_path.exists() else 'emulator'}.png")
+            missing = "figma" if not figma_path.exists() else "emulator"
+            print(f"skip {row['nodeId']}: missing {missing}.png")
             continue
         result = compare(
             figma_path,
@@ -163,6 +258,8 @@ def main() -> int:
             row["h"],
             row.get("route", row.get("galleryState", "")),
             args.tolerance,
+            args.emulator_status_px,
+            args.emulator_nav_px,
         )
         # PASS/FAIL is decided by a human reading the overlay; the script records the measurement
         # and leaves the verdict field for that review rather than asserting one itself.

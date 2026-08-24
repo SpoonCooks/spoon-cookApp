@@ -14,3 +14,8 @@ ios/
 
 expo-env.d.ts
 # @end expo-cli
+
+# Python bytecode from the pixel-verification scripts. Committed once by mistake in run 1;
+# the .py files are the source of truth and the cache is machine-specific.
+__pycache__/
+*.pyc
