@@ -164,6 +164,16 @@ export const lineHeight = {
   helpPill: 15.2,
   /** `505:1702` — a calendar day cell. */
   dayCell: 16.5,
+  /**
+   * `505:1249` — the `Mon…Sun` label under a day disc.
+   *
+   * The design's export reads `leading-[var(--corner-radius/16,16px)]`: the line height is bound
+   * to a **corner-radius** token, which is an authoring slip rather than a type decision, and the
+   * node Figma actually lays out is 13 units tall — auto leading for 12px Bold. Using the 16 the
+   * variable names makes each of the seven cells three units too tall, which walks the card below
+   * the strip four rows down the screen.
+   */
+  dayStrip: 13.2,
   /** `528:391` / `528:458` — the `Chutti` chip and the `Dates chunein` row. */
   chip: 25,
   displayLg: 36,

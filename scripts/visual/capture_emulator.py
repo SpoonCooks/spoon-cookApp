@@ -147,14 +147,23 @@ def reject_reason(png_bytes: bytes) -> str | None:
     # makes this dangerous: `575:1744` was captured with its ANR dialog up and scored 99.54%
     # against a render whose every element was in the right place.
     #
-    # Detected by the two properties together, because neither alone is specific: a wide band of
-    # rows whose brightest pixel is still dark (the scrim can never happen on these white screens)
-    # and a bright panel inside it.
+    # Detected by three properties together. A wide band of rows whose brightest pixel is still
+    # dark, and a bright panel inside that band, are BOTH also true of the `leave` bottom sheets --
+    # `592:563`, `592:639` and `592:888` are white sheets presented over an `rgba(0,0,0,0.8)`
+    # scrim, and an earlier version of this check refused to capture all three.
+    #
+    # What separates them is the margins: a dialog is inset, so the scrim is still visible down the
+    # left and right of its panel, while a sheet is full-bleed and reaches both edges. So the panel
+    # rows are only a dialog when they are ALSO dark at the far edges.
     scrim = (body.max(axis=2) < 170).mean(axis=1) > 0.9
     if scrim.sum() > body.shape[0] * 0.25:
-        centre = body[:, body.shape[1] // 4 : body.shape[1] * 3 // 4, :]
+        width = body.shape[1]
+        centre = body[:, width // 4 : width * 3 // 4, :]
         panel = (centre.min(axis=2) > 235).mean(axis=1) > 0.8
-        if panel.sum() > 60:
+        margin = width // 12
+        edges = body[:, list(range(margin)) + list(range(width - margin, width)), :]
+        inset = (edges.max(axis=2) < 170).mean(axis=1) > 0.9
+        if (panel & inset).sum() > 60:
             return "an Android system dialog is covering the screen"
     return None
 
@@ -241,6 +250,24 @@ def warm_up(adb_path: str, budget: float, launches: int = WARM_LAUNCH_ATTEMPTS) 
             time.sleep(4.0)
         print(f"   warm-up attempt {attempt}/{launches} did not paint; relaunching")
     return False
+
+
+def dismiss_system_dialogs(adb_path: str) -> None:
+    """
+    Clear any Android dialog sitting over the app.
+
+    The emulator raises "System UI isn't responding" under a software renderer often enough that a
+    run will meet one, and it dims the screen behind it — so a capture taken while it is up is
+    unusable even though the app underneath is correct. `reject_reason` catches that, but catching
+    it only turns a bad capture into a failed one; the dialog has to actually go away or every
+    retry meets it again, which is what happened to `592:888`.
+
+    Both signals are sent because neither alone is reliable: the broadcast closes system-owned
+    dialogs, and BACK dismisses the ones that ignore it.
+    """
+    adb(adb_path, "shell", "am", "broadcast", "-a", "android.intent.action.CLOSE_SYSTEM_DIALOGS")
+    adb(adb_path, "shell", "input", "keyevent", "KEYCODE_BACK")
+    time.sleep(0.8)
 
 
 def reset_scroll(args, width: int, height: int) -> None:
@@ -380,8 +407,10 @@ def main() -> int:
         reason: str | None = "not captured"
         for attempt in range(args.retries + 1):
             if attempt > 0:
-                # A reject means the instance is suspect, not just the frame. Reset it rather than
-                # re-sending the link into whatever state produced the bad capture.
+                # A reject means the instance is suspect, not just the frame. Clear anything the
+                # system has put over it, then reset rather than re-sending the link into whatever
+                # state produced the bad capture.
+                dismiss_system_dialogs(args.adb)
                 warm_up(args.adb, args.warmup)
             adb(
                 args.adb,

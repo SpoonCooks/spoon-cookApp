@@ -351,7 +351,7 @@ export function DayStrip({
               />
             )}
           </View>
-          <Text variant="caption" align="center">
+          <Text variant="dayStripLabel" align="center">
             {day.label}
           </Text>
         </View>

@@ -1,0 +1,70 @@
+{
+  "node": "575:2013",
+  "section": "performance",
+  "comparedPx": 391830,
+  "differingPx": 57069,
+  "differingPercent": 14.5647,
+  "edgePx": 37745,
+  "edgeShareOfDiffering": 66.14,
+  "areaPx": 19324,
+  "areaPercentOfScreen": 4.9317,
+  "areaBlobs": [
+    {
+      "pixels": 1197,
+      "top": 485,
+      "bottom": 495,
+      "left": 34,
+      "right": 337
+    },
+    {
+      "pixels": 1181,
+      "top": 754,
+      "bottom": 765,
+      "left": 35,
+      "right": 334
+    },
+    {
+      "pixels": 978,
+      "top": 882,
+      "bottom": 890,
+      "left": 23,
+      "right": 348
+    },
+    {
+      "pixels": 894,
+      "top": 835,
+      "bottom": 843,
+      "left": 36,
+      "right": 334
+    },
+    {
+      "pixels": 661,
+      "top": 499,
+      "bottom": 508,
+      "left": 22,
+      "right": 350
+    },
+    {
+      "pixels": 659,
+      "top": 955,
+      "bottom": 962,
+      "left": 23,
+      "right": 349
+    },
+    {
+      "pixels": 649,
+      "top": 536,
+      "bottom": 544,
+      "left": 24,
+      "right": 346
+    },
+    {
+      "pixels": 641,
+      "top": 990,
+      "bottom": 997,
+      "left": 24,
+      "right": 345
+    }
+  ],
+  "note": "`edge` pixels sit on a gradient in the reference and are rasterisation. `area` pixels sit in a flat region and are a real difference; the blobs locate them. Neither figure adjusts the headline percentage in result.json."
+}

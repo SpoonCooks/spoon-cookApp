@@ -1,0 +1,49 @@
+{
+  "node": "592:489",
+  "section": "leave",
+  "comparedPx": 314237,
+  "differingPx": 24201,
+  "differingPercent": 7.7015,
+  "edgePx": 21976,
+  "edgeShareOfDiffering": 90.81,
+  "areaPx": 2225,
+  "areaPercentOfScreen": 0.7081,
+  "areaBlobs": [
+    {
+      "pixels": 660,
+      "top": 385,
+      "bottom": 397,
+      "left": 21,
+      "right": 346
+    },
+    {
+      "pixels": 553,
+      "top": 477,
+      "bottom": 480,
+      "left": 43,
+      "right": 321
+    },
+    {
+      "pixels": 298,
+      "top": 495,
+      "bottom": 495,
+      "left": 34,
+      "right": 331
+    },
+    {
+      "pixels": 276,
+      "top": 275,
+      "bottom": 275,
+      "left": 47,
+      "right": 322
+    },
+    {
+      "pixels": 40,
+      "top": 407,
+      "bottom": 408,
+      "left": 125,
+      "right": 144
+    }
+  ],
+  "note": "`edge` pixels sit on a gradient in the reference and are rasterisation. `area` pixels sit in a flat region and are a real difference; the blobs locate them. Neither figure adjusts the headline percentage in result.json."
+}

@@ -163,6 +163,13 @@ export const textStyle = {
     letterSpacing: -0.45,
     color: color.textPrimary,
   },
+  /** `505:1249` — a `Mon…Sun` label under a day disc. Livvic Bold 12 on its auto 13.2 line. */
+  dayStripLabel: {
+    fontFamily: fontFamily.bold,
+    fontSize: fontSize.m,
+    lineHeight: lineHeight.dayStrip,
+    color: color.textPrimary,
+  },
   /** `505:1702` — a calendar day. Livvic Black 11 on a 16.5 line. */
   calendarDay: {
     fontFamily: fontFamily.black,
