@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { View } from 'react-native';
 
+import { BootView, OtpView, PhoneView } from '@features/login/LoginViews';
+
 import { otpLength } from '@core/domain/otp';
 import { projectServiceState, type ServiceState } from '@core/domain/serviceState';
 import { serviceFixtures } from '@core/fixtures';
@@ -45,6 +47,13 @@ export interface GalleryEntry {
   /** The V13 Figma node this entry is the counterpart of. */
   readonly nodeId: string;
   readonly label: string;
+  /**
+   * True when the entry renders a whole route-level screen that applies its own safe-area insets.
+   * The gallery host must not pad those, or the inset lands twice and the screen renders ~49dp
+   * low — which reads in a diff as if every element were misplaced. Presentational views that
+   * expect their host to pad them (the Service views) leave this false.
+   */
+  readonly ownsSafeArea?: boolean;
   readonly render: () => React.ReactElement;
 }
 
@@ -115,6 +124,36 @@ function EndOtpFixture(): React.ReactElement {
   );
 }
 
+/** One of the three OTP frames, which differ only in code, countdown and error. */
+function otp(
+  id: string,
+  nodeId: string,
+  label: string,
+  state: { code: string; secondsLeft: number; error: string | null },
+): GalleryEntry {
+  return {
+    id,
+    section: 'Login flow',
+    nodeId,
+    label,
+    ownsSafeArea: true,
+    render: () => (
+      <OtpView
+        phone="9876543210"
+        code={state.code}
+        onChange={noop}
+        onSubmit={noop}
+        onEditPhone={noop}
+        onResend={noop}
+        secondsLeft={state.secondsLeft}
+        error={state.error}
+        isSubmitting={false}
+        length={otpLength.login}
+      />
+    ),
+  };
+}
+
 function service(
   id: string,
   nodeId: string,
@@ -133,11 +172,53 @@ function service(
 /**
  * Every finalized V13 state that is reachable today.
  *
- * `leave` and `log in flow` entries are absent because those eleven screens are not implemented
- * yet — see the closure report. A missing entry is a visible gap in `/dev`, which is the point:
- * the gallery must never imply coverage it does not have.
+ * A missing entry is a visible gap in `/dev`, which is the point: the gallery must never imply
+ * coverage it does not have.
  */
 export const galleryEntries: readonly GalleryEntry[] = [
+  otp('login/otp-countdown', '434:3224', 'OTP - countdown', {
+    code: '333333',
+    secondsLeft: 25,
+    error: null,
+  }),
+  otp('login/otp-resend', '434:3174', 'OTP - resend available', {
+    // 2b draws empty tiles: the countdown has elapsed and the previous code was cleared.
+    code: '',
+    secondsLeft: 0,
+    error: null,
+  }),
+  otp('login/otp-wrong', '434:3116', 'OTP - wrong code', {
+    code: '333333',
+    secondsLeft: 0,
+    error: 'Galat OTP. Firse koshish kare',
+  }),
+  {
+    id: 'login/phone',
+    section: 'Login flow',
+    nodeId: '434:3280',
+    label: 'Login - phone number',
+    ownsSafeArea: true,
+    // The design frame shows a filled, valid number, so the fixture does too. A blank field would
+    // compare the placeholder against the design's real value and read as a text mismatch.
+    render: () => (
+      <PhoneView
+        value="9876543210"
+        onChange={noop}
+        onSubmit={noop}
+        canSubmit
+        isSending={false}
+        error={null}
+      />
+    ),
+  },
+  {
+    id: 'login/boot',
+    section: 'Login flow',
+    nodeId: '434:3330',
+    label: 'Boot — loading',
+    ownsSafeArea: true,
+    render: () => <BootView />,
+  },
   service('service/travel-on-time', '462:3617', 'Travel — on time', serviceFixtures.travelOnTime),
   service(
     'service/travel-at-risk',

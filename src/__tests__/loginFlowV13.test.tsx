@@ -90,8 +90,8 @@ beforeEach(() => {
   mockSendLoginOtp.mockResolvedValue(undefined);
 });
 
-describe('Page 0 loading matches V12', () => {
-  it('renders the gradient and the black Spoon artwork', async () => {
+describe('Page 0 loading matches V13', () => {
+  it('renders the V13 gradient and the Spoon artwork', async () => {
     render(<BootScreen />);
     await act(async () => {});
 
@@ -102,7 +102,7 @@ describe('Page 0 loading matches V12', () => {
     expect(logo.props.source).toBeTruthy();
   });
 
-  it('sizes the Spoon mark to the V12 370x370 box', async () => {
+  it('sizes the Spoon mark to the V13 370x370 box', async () => {
     render(<BootScreen />);
     await act(async () => {});
     const style = flatten(screen.getByTestId('boot-logo').props.style);
@@ -120,7 +120,7 @@ describe('Page 0 loading matches V12', () => {
   });
 });
 
-describe('Pages 2a/2b/2c OTP match V12', () => {
+describe('Pages 2a/2b/2c OTP match V13', () => {
   it('is white and carries the wordmark but no hero', () => {
     const tree = render(<OtpScreen />);
 
@@ -133,7 +133,7 @@ describe('Pages 2a/2b/2c OTP match V12', () => {
     expect(backgrounds).not.toContain(color.cream);
   });
 
-  it('draws six flat V12 tiles, not bordered boxes', () => {
+  it('draws six flat V13 tiles, not bordered boxes', () => {
     render(<OtpScreen />);
 
     for (let i = 0; i < 6; i += 1) {
@@ -142,13 +142,13 @@ describe('Pages 2a/2b/2c OTP match V12', () => {
       expect(tile.height).toBe(s(35));
       expect(tile.borderRadius).toBe(s(5));
       expect(tile.backgroundColor).toBe(color.yellow300);
-      // The V12 tiles carry no stroke at all.
+      // The V13 tiles carry no stroke at all.
       expect(tile.borderWidth).toBeUndefined();
     }
     expect(screen.queryByTestId('login-otp-box-6')).toBeNull();
   });
 
-  it('renders no Verify button — none of the three V12 frames has one', () => {
+  it('renders no Verify button — none of the three V13 frames has one', () => {
     render(<OtpScreen />);
 
     expect(screen.queryByTestId('login-otp-verify')).toBeNull();

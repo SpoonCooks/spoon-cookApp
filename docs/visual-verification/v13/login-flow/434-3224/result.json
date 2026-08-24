@@ -1,7 +1,7 @@
 {
   "section": "Login flow",
-  "screenName": "Page 1- Login No.",
-  "figmaNodeId": "434:3280",
+  "screenName": "Page 2a- Login OTP",
+  "figmaNodeId": "434:3224",
   "route": "",
   "figmaFrameDp": {
     "width": 390.0,
@@ -50,47 +50,47 @@
   "emulatorScaledHeightPx": 750,
   "uncomparedReferenceRows": 17,
   "antialiasingTolerance": 12,
-  "differingPixelPercent": 5.6378,
-  "rawDifferingPixelPercent": 44.8623,
-  "meanChannelDelta": 2.4126,
-  "maxChannelDelta": 226,
+  "differingPixelPercent": 2.5831,
+  "rawDifferingPixelPercent": 5.244,
+  "meanChannelDelta": 1.6068,
+  "maxChannelDelta": 255,
   "worstRows": [
     {
-      "row": 329,
-      "percent": 97.3
+      "row": 162,
+      "percent": 55.95
     },
     {
-      "row": 594,
-      "percent": 80.81
+      "row": 163,
+      "percent": 60.27
     },
     {
-      "row": 595,
-      "percent": 82.16
+      "row": 164,
+      "percent": 57.3
     },
     {
-      "row": 636,
-      "percent": 82.43
+      "row": 165,
+      "percent": 50.81
     },
     {
-      "row": 637,
-      "percent": 81.62
+      "row": 166,
+      "percent": 55.14
     },
     {
-      "row": 653,
-      "percent": 80.81
+      "row": 167,
+      "percent": 59.46
     },
     {
-      "row": 687,
-      "percent": 82.43
+      "row": 168,
+      "percent": 58.38
     },
     {
-      "row": 688,
-      "percent": 80.54
+      "row": 291,
+      "percent": 52.16
     }
   ],
   "displacementProbe": {
     "bestVerticalOffsetPx": 0,
-    "percentAtBestOffset": 5.6268,
+    "percentAtBestOffset": 2.6538,
     "note": "0 means the render is on its design row and the residual is rasterisation. A non-zero offset is a real layout error even when the headline percentage is low."
   },
   "verdict": "PENDING_REVIEW"

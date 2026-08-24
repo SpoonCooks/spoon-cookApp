@@ -24,8 +24,9 @@ import { color, Text } from '@ui';
  */
 export default function DevGalleryState(): React.ReactElement | null {
   const params = useLocalSearchParams<{ state?: string | string[] }>();
-  // The same insets the real routes apply. Without them the gallery would render each screen
-  // 24dp higher than production does and every comparison would inherit that offset.
+  // The same insets the real routes apply, for entries that do not apply them themselves.
+  // Without them a presentational view would render at y=0 and every comparison would inherit
+  // that offset; with them applied twice it would render an inset too low. See `ownsSafeArea`.
   const insets = useSafeAreaInsets();
 
   if (!areFixturesAvailable()) return null;
@@ -45,7 +46,12 @@ export default function DevGalleryState(): React.ReactElement | null {
 
   return (
     <View
-      style={[styles.host, { paddingTop: insets.top, paddingBottom: insets.bottom }]}
+      style={[
+        styles.host,
+        entry.ownsSafeArea === true
+          ? null
+          : { paddingTop: insets.top, paddingBottom: insets.bottom },
+      ]}
       testID={`gallery-${entry.id}`}
     >
       {entry.render()}

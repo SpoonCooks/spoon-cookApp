@@ -1,4 +1,6 @@
 {
+ "login/boot": "434:3330",
+ "login/phone": "434:3280",
  "service/travel-on-time": "462:3617",
  "service/travel-at-risk": "463:3779",
  "service/travel-late": "464:3864",
@@ -10,5 +12,8 @@
  "service/cooking-ending": "483:4795",
  "service/cooking-extended": "483:4835",
  "service/end-otp": "484:4875",
- "service/completed": "485:4917"
+ "service/completed": "485:4917",
+ "login/otp-countdown": "434:3224",
+ "login/otp-resend": "434:3174",
+ "login/otp-wrong": "434:3116"
 }

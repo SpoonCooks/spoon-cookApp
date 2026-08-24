@@ -73,7 +73,7 @@ beforeEach(() => {
   mockSendLoginOtp.mockResolvedValue(undefined);
 });
 
-describe('Login renders the V12 composition', () => {
+describe('Login renders the V13 composition', () => {
   it('renders the hero photograph and the Spoon wordmark', () => {
     render(<LoginScreen />);
 
@@ -88,23 +88,29 @@ describe('Login renders the V12 composition', () => {
     expect(wordmark.props.source).toBeTruthy();
   });
 
-  it('sizes the hero to the V12 full-bleed 329dp band', () => {
+  it('sizes the hero to the V13 371x343.31 image inside a 329-tall window', () => {
     render(<LoginScreen />);
     const style = flatten(screen.getByTestId('login-hero').props.style);
 
-    expect(style.width).toBe(393);
-    expect(style.height).toBe(s(329));
-    expect(screen.getByTestId('login-hero').props.resizeMode).toBe('cover');
+    // `434:3324` is a 371-wide box — one unit wider than the viewport — holding an image scaled to
+    // 104.35% of the box height and clipped back to 329. `cover` would pick its own crop; the
+    // design states an exact one, so the image is stretched to the stated size instead.
+    expect(style.width).toBe(s(371));
+    expect(style.height).toBe(s(343.31));
+    expect(screen.getByTestId('login-hero').props.resizeMode).toBe('stretch');
   });
 
-  it('sizes the wordmark to the V12 134x93 box', () => {
+  it('crops the wordmark the way the 134x93 window does', () => {
     render(<LoginScreen />);
     const style = flatten(screen.getByTestId('login-wordmark').props.style);
 
+    // `434:3284` is a 134x93 window onto a square logo drawn at 143.37% of the window height and
+    // pulled up 14.87%, so the visible band is the middle of the mark. Reproducing that needs the
+    // oversized image plus a negative offset, not a `contain` fit inside 93.
     expect(style.width).toBe(s(134));
-    expect(style.height).toBe(s(93));
-    // `contain` keeps the mark's aspect ratio; `cover` would crop the spoon out of the "o".
-    expect(screen.getByTestId('login-wordmark').props.resizeMode).toBe('contain');
+    expect(style.height).toBe(s(133.33));
+    expect(style.marginTop).toBe(s(-13.83));
+    expect(screen.getByTestId('login-wordmark').props.resizeMode).toBe('stretch');
   });
 
   it('uses ONE unified phone field, never two boxes', () => {
@@ -115,8 +121,9 @@ describe('Login renders the V12 composition', () => {
 
     expect(style.flexDirection).toBe('row');
     expect(style.height).toBe(s(43));
-    // Fully rounded: V12 uses the rounded sentinel, so the radius is exactly half the height.
-    expect(style.borderRadius).toBe(s(43) / 2);
+    // V13 states a literal 15, NOT the fully-rounded sentinel V12 used. Half the height would be
+    // 21.5, which visibly over-rounds the ends.
+    expect(style.borderRadius).toBe(s(15));
     expect(style.borderColor).toBe(color.yellow600);
     expect(style.backgroundColor).toBe(color.white);
 
@@ -130,14 +137,15 @@ describe('Login renders the V12 composition', () => {
     expect(divider.height).toBe(s(24));
   });
 
-  it('paints the CTA V12 yellow at the V12 geometry, not lime', () => {
+  it('paints the CTA V13 yellow at the V13 geometry, not lime', () => {
     render(<LoginScreen />);
     const style = flatten(screen.getByTestId('login-next').props.style);
 
     expect(style.backgroundColor).toBe(color.yellow600);
     expect(style.backgroundColor).not.toBe(color.lime600);
     expect(style.height).toBe(s(34));
-    expect(style.borderRadius).toBe(s(34) / 2);
+    // `434:3303` states radius 16 on a 34-tall button, so the ends are not semicircular.
+    expect(style.borderRadius).toBe(s(16));
   });
 
   it('keeps the CTA touchable despite the 34dp V12 height', () => {
@@ -165,7 +173,7 @@ describe('Login renders the V12 composition', () => {
     expect(found).not.toContain(color.cream);
   });
 
-  it('renders the V12 copy verbatim', () => {
+  it('renders the V13 copy verbatim', () => {
     render(<LoginScreen />);
 
     expect(screen.getByText('Partner')).toBeTruthy();
@@ -177,17 +185,23 @@ describe('Login renders the V12 composition', () => {
     expect(screen.getByText('Terms of use & Privacy policy')).toBeTruthy();
   });
 
-  it('places the form column at the V12 asymmetric gutter', () => {
+  it('places the form column at the V13 asymmetric gutter', () => {
     render(<LoginScreen />);
-    // V12 puts the column at viewport x=20 with width 325 on a 370 viewport: the right margin is
-    // 25. Symmetric padding would displace every right edge by 5dp.
-    const column = flatten(screen.getByTestId('login-form-column').props.style);
-    expect(column.paddingLeft).toBe(s(20));
-    expect(column.width).toBe(s(345));
+    // `434:3291` puts the column at viewport x=20 with width 325 on a 370 viewport, so the right
+    // margin is 25. Symmetric padding would displace every right edge by 5 units.
+    //
+    // Asserted on the field and the CTA rather than on a wrapper: V13 positions each element
+    // absolutely against a measured content offset, so there is no single column view to inspect —
+    // and that is the point, since a margin stack accumulates rounding across fourteen elements.
+    for (const id of ['login-phone-field', 'login-next']) {
+      const style = flatten(screen.getByTestId(id).props.style);
+      expect(style.left).toBe(s(20));
+      expect(style.width).toBe(s(325));
+    }
   });
 });
 
-describe('Login behaviour survives the visual rebuild', () => {
+describe('Login behaviour survives the V13 visual rebuild', () => {
   it('keeps Next disabled until the number is valid', () => {
     render(<LoginScreen />);
     const next = screen.getByTestId('login-next');

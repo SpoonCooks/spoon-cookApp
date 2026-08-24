@@ -1,8 +1,13 @@
 # Cook App — V13 pixel-perfect closure
 
-Status: **incomplete — blocked on a Figma Dev Mode setting.** This report records what was
-established, what was built, what was measured, and exactly what is blocking the rest. It is not a
-claim of completion.
+Status: **incomplete — 5 of 35 screens verified; the remaining 30 are blocked on Figma MCP access.**
+This report records what was established, what was built, what was measured, and exactly what is
+blocking the rest. It is not a claim of completion.
+
+> **Run 2 (2026-08-24)** resolved the blocker that stopped run 1, corrected a 25px error in the
+> comparison harness, and closed the whole `Login flow` section. It then hit a _different_ Figma
+> access failure. Sections 2, 5, 7, 8, 10, 11 and 12 below are current as of run 2; sections 3, 4,
+> 6 and 9 are unchanged from run 1 and remain accurate.
 
 ---
 
@@ -36,11 +41,28 @@ Nothing was reset, cleaned, checked out or rolled back. All prior work was prese
 | ----------- | --------------------------------------------------------------------- |
 | File        | `COBtuKtaNXzjPGhRgqWZ7t` — _V0\_-user-app--13-_                       |
 | Pages       | `0:1` "User App" (customer app — out of scope), `434:2401` "Cook App" |
-| Server used | **local** Figma Dev Mode MCP, `http://127.0.0.1:3845/mcp`             |
+| Server used | **remote** Figma MCP, `https://mcp.figma.com/mcp` (run 2)             |
 
-The remote server (`mcp.figma.com`) refuses this file with _"Looks like you don't have edit
-access"_ for both `get_metadata` and `get_design_context`. The desktop app's local Dev Mode server
-serves the open file and bypasses that seat check, and is the only working path.
+**Run 1** used the desktop app's local Dev Mode server (`http://127.0.0.1:3845/mcp`) because the
+remote server refused the file with _"Looks like you don't have edit access"_.
+
+**Run 2 established that this was an identity problem, not a seat problem.** The remote server was
+authenticated as `lakshayd.intern@spoonhelp.com` — a **View** seat on a starter-tier team that the
+file was never shared with. Re-authenticating (`/mcp` -> `figma` -> clear authentication ->
+reconnect) as `lakshay58csea24@bpitindia.edu.in`, which holds a **Full** seat on the personal team
+that actually owns the V0 file, gave complete read access on the first call:
+
+| Tool                 | Result on `COBtuKtaNXzjPGhRgqWZ7t` |
+| -------------------- | ---------------------------------- |
+| `get_metadata`       | 2,378 nodes                        |
+| `get_screenshot`     | PNG returned and rendered          |
+| `get_variable_defs`  | full token set                     |
+| `get_design_context` | reference code **plus asset URLs** |
+
+The asset URLs matter: the remote server returns `https://.../api/mcp/asset/...` links, so run 1's
+`dirForAssetWrites` blocker (B1 below) simply does not exist on this path. Assets are fetched with
+`curl` and committed. The local desktop server answered _"Rate limit exceeded, please try again
+tomorrow"_ throughout run 2 and was not used.
 
 ---
 
@@ -51,11 +73,11 @@ The count is derived from V13 itself, not inherited from V12's 32. A screen coun
 
 | Section      | Section node | Screen                         | Node       | Frame (dp) | Route / component                   | Status                    |
 | ------------ | ------------ | ------------------------------ | ---------- | ---------- | ----------------------------------- | ------------------------- |
-| Login flow   | `434:3115`   | Page 0- loading page           | `434:3330` | 390×830    | `src/app/index.tsx`                 | implemented, **FAIL**     |
-| Login flow   | `434:3115`   | Page 1- Login No.              | `434:3280` | 390×830    | `src/app/login.tsx`                 | implemented, **FAIL**     |
-| Login flow   | `434:3115`   | Page 2a- Login OTP             | `434:3224` | 390×830    | `src/app/otp.tsx` countdown         | implemented, not rendered |
-| Login flow   | `434:3115`   | Page 2b- OTP resend            | `434:3174` | 390×830    | `src/app/otp.tsx` resend            | implemented, not rendered |
-| Login flow   | `434:3115`   | Page 2c- OTP wrong             | `434:3116` | 390×830    | `src/app/otp.tsx` error             | implemented, not rendered |
+| Login flow   | `434:3115`   | Page 0- loading page           | `434:3330` | 390×830    | `src/app/index.tsx`                 | **PASS 0.99%**            |
+| Login flow   | `434:3115`   | Page 1- Login No.              | `434:3280` | 390×830    | `src/app/login.tsx`                 | **PASS 5.64%**            |
+| Login flow   | `434:3115`   | Page 2a- Login OTP             | `434:3224` | 390×830    | `src/app/otp.tsx` countdown         | **PASS 2.58%**            |
+| Login flow   | `434:3115`   | Page 2b- OTP resend            | `434:3174` | 390×830    | `src/app/otp.tsx` resend            | **PASS 2.82%**            |
+| Login flow   | `434:3115`   | Page 2c- OTP wrong             | `434:3116` | 390×830    | `src/app/otp.tsx` error             | **PASS 3.19%**            |
 | leave        | `540:416`    | Leave present                  | `592:488`  | 371×882    | `src/app/leave/index.tsx`           | **not implemented**       |
 | leave        | `540:416`    | Leave absent                   | `592:489`  | 371×882    | `src/app/leave/index.tsx`           | **not implemented**       |
 | leave        | `540:416`    | long leave                     | `592:563`  | 371×882    | `src/app/leave/range.tsx`           | **not implemented**       |
@@ -123,33 +145,55 @@ Net requiring rework against frames that never matched: **the 24 carried-over sc
 
 ---
 
-## 5. Viewport mapping — revalidated for V13, not inherited
+## 5. Viewport mapping — revalidated for V13, and one 25px error corrected
 
-V13 uses **two authoring conventions**, which the old "every frame is 390×830" rule did not cover:
+V13 uses **two authoring conventions**, which the old "every frame is 390x830" rule did not cover:
 
 | Convention              | Sections                              | Frame                            | Application viewport                               |
 | ----------------------- | ------------------------------------- | -------------------------------- | -------------------------------------------------- |
-| Decorative phone bezel  | `Login flow`, `Service flow`          | 390×830                          | inner **370.44 × 810.45** at offset (10, 9.78)     |
-| Frame _is_ the viewport | `leave`, `log in flow`, `performance` | 371×882 / 370×753 / 370×variable | the whole frame; status bar is a real child at y=0 |
+| Decorative phone bezel  | `Login flow`, `Service flow`          | 390x830                          | inner **370 x 810** at frame offset (10, 10)       |
+| Frame _is_ the viewport | `leave`, `log in flow`, `performance` | 371x882 / 370x753 / 370 x varies | the whole frame; status bar is a real child at y=0 |
 
 **In both conventions the content column measures 370dp.** That is what makes a single
-`screenWidth / 370` factor correct for every V13 screen — so the existing rule is _revalidated_,
-not merely reused. The decorative bezel is not implemented in the app.
+`screenWidth / 370` factor correct for every V13 screen. The conventions are typed in
+`src/ui/theme/viewport.ts` and mirrored in `scripts/visual/viewport.py`.
 
-Render-bounds transform (needed because `get_screenshot` returns _effect_ bounds):
+### The bezel render margin is NOT uniform — this was run 1's silent 25px error
+
+`get_screenshot` returns _effect_ bounds. Run 1 solved a single margin from the frame arithmetic:
 
 ```
 390·s + 2m = 466   and   830·s + 2m = 906   ⇒   440s = 440   ⇒   s = 1, m = 38
 ```
 
-So a 390×830 frame renders at 466×906 with a uniform 38px drop-shadow margin, and the viewport
-crop is (48, 47.78) → 370.44 × 810.45. Frames without an effect render at their own origin with
-m = 0. This is solved per image rather than assumed, in `scripts/visual/viewport.py`, and the
-solved values are written into every `result.json`.
+That is right horizontally and **25px too low vertically**, because the frames carry
+`shadow-[0px_25px_50px_-12px_rgba(0,0,0,0.25)]` — a shadow offset **25px downward**. Locating the
+black bezel in the pixels of every bezel-section render gives its true box as rows 13..842,
+cols 38..427: 390x830 at scale 1.0, origin **(38, 13)**, i.e. left/right margin 38, top margin
+`38 − 25 = 13`, bottom margin `38 + 25 = 63`.
 
-Emulator: 1080×2392 @ 440dpi = **392.7dp** wide, font scale 1.0, portrait, light mode.
+So every `Login flow` and `Service flow` comparison in run 1 was displaced by 25 reference rows —
+about 3% of the frame height, enough to score a correct render as a failure. `viewport.py` now
+**measures** the bezel rather than solving a margin, and records which path it used.
 
----
+### System chrome is excluded from both sides of the comparison
+
+Every V13 frame draws a 33-unit status-bar mock, and the bezel frames add a 10-unit home-indicator
+strip. Neither is application content — the OS owns those bands, and the brief forbids the app from
+drawing decorative phone chrome. The emulator's own bands are a different size again: **136px**
+status bar (49.45dp, tall because of the AVD's punch-hole cutout) and a **66px** gesture bar,
+measured with `dumpsys window displays`.
+
+The harness therefore aligns the two **application-owned regions** — design row 33 and emulator row
+136 are treated as the same origin — and drops the chrome bands from the denominator. Every excluded
+row is written into each `result.json`; nothing hides inside the tolerance.
+
+One consequence is recorded rather than smoothed over: the emulator offers **750 design units**
+between its system bars where a bezel frame's content area is **767**. Screens whose design height
+fills the frame are laid out to fill the available space, and `uncomparedReferenceRows` reports the
+shortfall per screen.
+
+Emulator: 1080x2392 @ 440dpi = **392.7dp** wide, font scale 1.0, portrait, light mode.
 
 ## 6. Backend contract audit (read-only — backend NOT modified)
 
@@ -205,73 +249,88 @@ _Kal_ because the cook is working today. That difference is a UI projection, not
 
 ## 7. What was measured, and what it shows
 
-Evidence lives in `docs/visual-verification/v13/<section>/<node-id>/`.
+Evidence lives in `docs/visual-verification/v13/<section>/<node-id>/`, and the derived roll-up is
+`docs/visual-verification/v13/MANIFEST.md` (regenerate with `python scripts/visual/manifest.py
+--write`; every column is read back from an artefact, so a row cannot claim work that left no
+trace).
 
-- `figma.png` — **35 / 35** captured
-- `emulator.png`, `overlay.png`, `diff.png`, `result.json` — **14 / 35**
+### `Login flow` — 5 / 5 PASS
 
-| Node       | Screen                    | diff % (tol 12) | raw % |
-| ---------- | ------------------------- | --------------- | ----- |
-| `434:3330` | Page 0- loading page      | 10.67           | 83.27 |
-| `434:3280` | Page 1- Login No.         | 53.81           | 62.60 |
-| `462:3617` | Page 4a- travel on time   | 31.02           | 91.35 |
-| `463:3779` | Page 4b- travel (at risk) | 30.77           | 91.20 |
-| `464:3864` | Page 4b- travel (late)    | 30.64           | 91.10 |
-| `468:3935` | Page 5a- arrival on time  | 30.48           | 83.07 |
-| `468:4040` | Page 5b- arrival late     | 30.26           | 83.46 |
-| `482:4587` | Page 6a- Start OTP        | 41.22           | 99.69 |
-| `482:4656` | Page 6b- Start OTP late   | 46.00           | 98.86 |
-| `483:4741` | Page 7a- Cooking          | 47.76           | 99.60 |
-| `483:4795` | Page 7b- Cooking last 7   | 45.58           | 99.64 |
-| `483:4835` | Page 7c- Cooking extended | 45.58           | 99.65 |
-| `484:4875` | Page 9- end OTP           | 44.77           | 98.97 |
-| `485:4917` | Page 10- job end          | 28.84           | 99.95 |
+| Node       | Screen               | diff % (tol 12) | raw % | best vertical offset |
+| ---------- | -------------------- | --------------- | ----- | -------------------- |
+| `434:3330` | Page 0- loading page | **0.99**        | 61.95 | 0                    |
+| `434:3280` | Page 1- Login No.    | **5.64**        | 44.86 | 0                    |
+| `434:3224` | Page 2a- Login OTP   | **2.58**        | 5.24  | 0                    |
+| `434:3174` | Page 2b- OTP resend  | **2.82**        | 5.43  | 0                    |
+| `434:3116` | Page 2c- OTP wrong   | **3.19**        | 5.94  | 0                    |
 
-**Every compared screen FAILS.** The percentages are honest measurements, not antialiasing noise —
-the reviewed screens show missing artwork and missing layout containers, e.g. on `462:3617`:
+A percentage alone cannot separate "rasterises differently" from "is in the wrong place", so
+`compare.py` also searches ±10 rows for the offset that minimises the difference and records it.
+**All five screens minimise at offset 0**, which means each is on its design row and the residue is
+antialiasing. Screens carrying a photograph or dense small type sit higher than flat ones for that
+reason alone — `434:3280` is 5.64% almost entirely from resampling the hero photograph and the 9px
+legal line, while the vector-and-gradient boot screen is 0.99%.
 
-- the walking-cook illustration beside the headline is absent;
-- the countdown is bare hero text where V13 wraps it in a lime card containing a white rounded box;
-- address rows have no yellow leading icons;
-- the app adds a `Society gate` block V13 does not show;
-- `Map dekhe` renders black where V13 uses a yellow pill with a location icon.
+### Defects this section found and fixed
 
-`483:4741` and `485:4917` are missing full-width **photographs**; `575:2136` (`3d- log out`) and
-`575:2135` (`3a- daily log in`) likewise depend on a photograph and an illustration.
+| Defect                                                                              | Found by                         |
+| ----------------------------------------------------------------------------------- | -------------------------------- |
+| Comparison harness displaced 25px on every bezel frame                              | locating the bezel in pixels     |
+| Named text variants used raw design px, so all `variant=` copy rendered ~6% small   | edit glyph landing 12 units left |
+| `+91` divider stretched the full 43-unit field; the design draws one 24-unit rule   | overlay zoom                     |
+| OTP error tile painted `#ffeded`; the design stacks the 7% tint twice -> `#ffdcdc`  | sampling the reference           |
+| Resend row painted a full-width `#ececec` band Android adds to a row-wide pressable | per-band diff (28% in one band)  |
+| Transparent OTP capture field still painted its value across tile 1                 | tile zoom                        |
+| Field radius 21.5 (pill) and CTA radius 17; V13 states literal 15 and 16            | design context                   |
 
-The important conclusion: the 24 carried-over screens were **never pixel-matched** to these frames.
-Because the frames are structurally identical between V12 and V13, this is pre-existing drift that
-V13 surfaced rather than caused. Fixing it is rework, not a regression.
+### The other 30 screens
 
----
+`emulator.png` exists for the 12 `Service flow` screens from run 1, but they are **carried over from
+V12, never rebuilt against a V13 design context, and every one fails its frame**. They are reported
+as `carried-over`, not as implemented. The 18 `leave`, `log in flow` and `performance` screens have
+no V13 context, no assets and no implementation.
 
-## 8. What was built this run
+## 8. What was built in run 2
 
-| Area             | Change                                                                                                                                                                              |
-| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Scope            | `src/core/figma/scope.ts` rewritten for V13: 5 sections, 35 screens, excluded `job flow`, removed V12 frames, duplicate handling                                                    |
-| Tests            | `figmaScope.test.ts` rewritten (22 tests); `gallery.test.tsx` added (12 tests); `fixtureExclusion.test.ts` narrowed to exempt only the dev gallery and to assert its `__DEV__` gate |
-| Dev gallery      | `src/app/dev/_layout.tsx`, `src/app/dev/index.tsx`, `src/app/dev/[...state].tsx`, `src/features/dev/galleryStates.tsx` — deep-linkable, release-gated, 12 Service states            |
-| Evidence tooling | `scripts/visual/viewport.py`, `scripts/visual/compare.py`, `scripts/visual/capture_emulator.py`                                                                                     |
-| Evidence         | 35 Figma references, 14 emulator renders + overlays + diffs + `result.json`                                                                                                         |
+| Area             | Change                                                                                                                                   |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| Figma access     | Remote MCP re-authenticated to the Full-seat identity that owns the file; `get_design_context` captured for all 5 `Login flow` nodes     |
+| Assets           | `assets/images/figma-v13/` — 4 originals fetched from the design-context URLs, content-hashed and deduplicated, with per-node provenance |
+| Vector rendering | `buffer` polyfill added, which unblocks `react-native-svg`; gradients and icons are now drawn, not rastered                              |
+| Viewport         | `src/ui/theme/viewport.ts` — typed `bezel` / `direct` profiles, status-band and home-indicator constants                                 |
+| Login flow       | `src/features/login/LoginViews.tsx` — `BootView`, `PhoneView`, `OtpView`; the three routes reduced to behaviour only                     |
+| Type scale       | `Text` now scales variant metrics by `screenWidth / 370`; they were raw design px, so every named variant rendered ~6% small             |
+| Harness          | `viewport.py` locates the bezel; `compare.py` excludes system chrome and probes displacement; `capture_emulator.py` warms up and retries |
+| Tooling          | `capture_assets.py`, `build_icons.py`, `manifest.py` added                                                                               |
+| Evidence         | 5 emulator renders + overlays + diffs + `result.json`, and a derived `MANIFEST.md`                                                       |
+| Tests            | `loginV12`/`loginFlowV12` renamed and rewritten to the V13 contract; gallery test extended; **336 pass**                                 |
 
-### Development gallery
+### Assets committed
 
-Release-gated at the layout (`if (!areFixturesAvailable()) return null;`) and again on each screen;
-`areFixturesAvailable()` is `__DEV__`, which Metro's release transform folds to `false`. Deep link:
+| File                   | Bytes     | Figma nodes                                    |
+| ---------------------- | --------- | ---------------------------------------------- |
+| `login-hero.png`       | 1,863,547 | `434:3280`                                     |
+| `spoon-logo.png`       | 579,329   | `434:3116`, `434:3280`, `434:3224`, `434:3174` |
+| `spoon-brand-logo.png` | 492,733   | `434:3330`                                     |
+| `edit-icon.svg`        | 1,435     | `434:3116`, `434:3224`, `434:3174`             |
 
-```
-adb shell am start -a android.intent.action.VIEW \
-  -d "spooncook://dev/service/cooking" com.spoonhelp.cookapp.dev
-```
+`capture_assets.py` deduplicates by SHA-256, which is how one `spoon-logo.png` covers four frames
+that each returned a different URL for identical bytes. `build_icons.py` regenerates
+`src/ui/icons/figmaV13Icons.ts` from the committed `.svg`, so the vector data in TypeScript is
+provably the export rather than a redrawing.
 
-It renders the same presentational views the real route renders, via the same
-`projectServiceState` projector, with fixed fixtures. It installs no fake API client and seeds no
-production cache, so production state management is untouched. `/dev` lists all 35 screens and
-marks the 23 without an entry as `not implemented` — it reports real coverage rather than
-flattering it.
+### The capture harness had to be hardened before any of this was trustworthy
 
----
+Three failure modes each produced a plausible-looking PNG that run 1's blank check accepted:
+
+1. **Deep-linking into a cold process** corrupts expo-router's navigation state (`StackRouter`
+   throws on `state.routes`), so the capture is the red dev error overlay. The run now launches
+   through the LAUNCHER intent, waits a floor, then polls for two consecutive clean frames.
+2. **Metro's reload banner** sits on screen right after an edit — exactly when a capture runs.
+3. **A black frame** has enough variance from the gesture pill to clear a standard-deviation check.
+
+`reject_reason()` now names all three, and the run resets the app and retries rather than writing
+them to disk as evidence.
 
 ## 9. Emulator configuration and result
 
@@ -303,66 +362,90 @@ unimplemented or pending rework.
 
 ## 10. Blockers
 
-### B1 — `get_design_context` is unavailable (primary, blocking)
+### B1 — `get_design_context` unavailable (run 1) — **RESOLVED**
 
-Two independent causes:
+Run 1 attributed this to a missing Figma Dev Mode allowed directory plus a local rate limit. Both
+were real for the _local_ server, but neither was the actual constraint: the **remote** server
+returns assets as URLs and needs no allowed directory at all. It was refusing the file because the
+session was authenticated as an identity the file had never been shared with. Re-authenticating as
+the owning account cleared it — see §2. No allowed directory was ever needed.
 
-1. **No allowed directory.** The local Dev Mode server requires `dirForAssetWrites` and refuses
-   every path with _"Cannot write to this directory. The user must add this directory to their
-   allowed directories list in Figma Dev Mode settings (MCP panel > Allowed directories)."_
-   Probed and refused: repo root, `assets/`, `assets/images/figma-v13`, `Downloads`, the scratchpad,
-   plus backslash/trailing-slash/lowercase variants.
-   **Fix: Figma Desktop → Dev Mode → MCP panel → Allowed directories → Add
-   `D:\spoonCook-frontend\assets\images\figma-v13`.**
-2. **Rate limit.** The local server now answers _"Rate limit exceeded, please try again tomorrow"_.
-   This clears on its own.
+### B2 — No approved test Cook (unchanged)
 
-The remote server is not an alternative: it refuses this file with _"you don't have edit access"_
-for both `get_metadata` and `get_design_context`.
+Authenticated end-to-end against the deployed backend was not run. The dev gallery is the
+mitigation and now covers 17 states, but only the 5 `Login flow` entries are built to V13.
 
-**Consequence.** The brief forbids substituting metadata or screenshots for `get_design_context`,
-forbids inventing artwork, and requires original committed assets. V13 depends on at least four
-photographic/illustration assets (walking cook, cooking photo, "Great Job!" celebration photo,
-praying-hands illustration) that cannot be exported. Rather than approximate them, the 11 new
-screens were **not built** and the 24 carried-over screens were **not reworked**.
+### B3 — Figma MCP disconnected mid-run (new; blocks the remaining 30 screens)
 
-`assets/images/figma-v13/` is therefore empty and **no V13 original asset is committed**.
+The `figma` MCP server disconnected during run 2 and now reports that it **requires
+re-authorisation**. The session it disconnected in is non-interactive, so the OAuth flow cannot be
+completed from here. The local desktop server is not an alternative: it answered _"Rate limit
+exceeded, please try again tomorrow"_ for the whole run, and it too is now disconnected.
 
-### B2 — No approved test Cook
+**Consequence.** The brief requires `get_design_context` before editing each screen, forbids
+substituting metadata or screenshots for it, and forbids invented artwork. The 30 remaining screens
+depend on design context and on original assets — the walking-Cook illustration, the cooking
+photographs, the "Great Job!" celebration, the praying-hands artwork, the address and timer icons —
+none of which can be exported while the server is unauthorised. Rather than approximate them, those
+screens were **not built**.
 
-Unchanged from V12. Authenticated end-to-end against the deployed backend was not run. The dev
-gallery is the mitigation and works, but it only covers implemented screens.
-
----
+**Fix.** Re-authorise the Figma MCP from an interactive session (`/mcp` -> `figma` -> authenticate),
+confirm with `mcp__figma__whoami` that the identity is the Full-seat account from §2, then resume at
+`log in flow` — the next section in the brief's order.
 
 ## 11. Verification gates
 
-| Gate                                          | Result                                                       |
-| --------------------------------------------- | ------------------------------------------------------------ |
-| TypeScript (`tsc --noEmit`, strict)           | **PASS**                                                     |
-| ESLint (`--max-warnings=0`)                   | **PASS**                                                     |
-| Prettier (`--check .`)                        | **PASS**                                                     |
-| Jest                                          | **PASS — 335/335, 19 suites**                                |
-| Clean Expo prebuild                           | **PASS**                                                     |
-| NDK override survives `android/` regeneration | **PASS**                                                     |
-| Native Android debug build                    | **PASS**                                                     |
-| APK install on emulator                       | **PASS**                                                     |
-| App cold launch, no fatal exceptions          | **PASS**                                                     |
-| Expo export                                   | not re-run this session                                      |
-| `git diff --check`                            | **PASS**                                                     |
-| Secret scan                                   | **PASS** — no keys, tokens or device identifiers in the diff |
-| 35 screens implemented                        | **FAIL — 24 implemented, 11 not**                            |
-| 35 screens pixel-verified                     | **FAIL — 0 pass, 14 measured and failing, 21 not rendered**  |
+| Gate                                          | Result                                                             |
+| --------------------------------------------- | ------------------------------------------------------------------ |
+| TypeScript (`tsc --noEmit`, strict)           | **PASS**                                                           |
+| ESLint (`--max-warnings=0`)                   | **PASS**                                                           |
+| Prettier (`--check .`)                        | **PASS**                                                           |
+| Jest                                          | **PASS — 336/336, 19 suites**                                      |
+| Expo export (android)                         | **PASS — 4.3MB hbc**                                               |
+| `git diff --check`                            | **PASS**                                                           |
+| Secret scan                                   | **PASS** — no keys, tokens or device identifiers in the diff       |
+| APK install + cold launch on emulator         | **PASS** (run 1 APK, Metro-served bundle)                          |
+| Clean Expo prebuild                           | not re-run in run 2 (unchanged since run 1: PASS)                  |
+| NDK override survives `android/` regeneration | not re-run in run 2 (unchanged since run 1: PASS)                  |
+| Native Android debug build                    | not re-run in run 2 — run 1's APK was reused                       |
+| 35 screens implemented                        | **FAIL — 5 implemented, 12 carried over from V12, 18 not started** |
+| 35 screens pixel-verified                     | **FAIL — 5 PASS, 30 outstanding**                                  |
 
----
+### Completion counters
+
+```
+FINAL_SECTION_SCREEN_COUNT:    35
+SCREENS_IMPLEMENTED:            5
+SCREENS_CARRIED_OVER_FROM_V12: 12
+SCREENS_EMULATOR_RENDERED:     17
+SCREENS_PIXEL_VERIFIED:         5
+SCREENS_STILL_MISMATCHING:     30
+ORIGINAL_FIGMA_ASSETS_USED:    YES (Login flow only — 4 assets, all fetched from Figma)
+VISUAL_GALLERY_COMPLETE:       NO  (17 of 35 states, 5 of them built to V13)
+```
+
+The native build was not re-run because no native dependency changed shape: `buffer` is pure JS, and
+`react-native-svg` was already linked into run 1's APK — its native module was present but unused.
+`react-native-svg` sits at 15.13.0 where Expo expects 15.15.4; that mismatch is benign for the
+components used here, but it should be closed with `npx expo install react-native-svg` **and a
+native rebuild** before the next APK ships.
 
 ## 12. What must happen next
 
-1. Add the allowed directory in Figma Dev Mode and wait out the rate limit.
-2. `get_design_context` per screen; export and commit original assets to
-   `assets/images/figma-v13/`.
-3. Build the 11 new screens (`leave` ×7, `log in flow` ×4) and add their gallery entries.
-4. Rework the 24 carried-over screens against their V13 frames — the header component
-   (back chevron + yellow Help pill) and the missing artwork are shared across Service flow and
-   should be fixed once.
-5. Re-run capture → compare → review per screen until each passes.
+1. **Re-authorise the Figma MCP** from an interactive session and confirm the identity with
+   `mcp__figma__whoami` (§2). Nothing below can start until this is done.
+2. Resume the brief's order at **`log in flow`** (4 screens), then `leave` (7), `performance` (7),
+   `Service flow` (12). Per screen: `get_design_context` -> fetch assets in the same pass (the URLs
+   expire in ~7 days) -> implement -> gallery entry -> capture -> compare -> correct until the
+   displacement probe reads 0 and the residue is antialiasing.
+3. Re-capture the `performance` references at full resolution. Four of them were rendered by the
+   local server under a 1024px longer-edge cap (`575:2098` is 370x1284 captured at 296x1024), so
+   their reference detail is degraded; the remote server accepts a `maxDimension` large enough to
+   avoid it.
+4. Rework the 12 carried-over `Service flow` screens against their V13 context. The corrections
+   named in the brief still stand and start at `462:3617`: the walking-Cook illustration, the lime
+   countdown card, the yellow address icons, `Map dekhe` as the exact yellow pill, and removal of
+   the unapproved visible Society gate block — while keeping map navigation targeting the
+   backend-projected society gate.
+5. Close the `react-native-svg` version mismatch and re-run the native build, prebuild-durability
+   and APK-install gates.

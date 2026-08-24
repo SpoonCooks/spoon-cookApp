@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { figmaScreens } from '@core/figma/scope';
 import { galleryEntries, galleryEntryFor } from '@features/dev/galleryStates';
@@ -57,10 +58,15 @@ describe('gallery entries', () => {
     expect(service).toHaveLength(12);
   });
 
+  it('covers all five Login flow frames', () => {
+    const login = galleryEntries.filter((entry) => entry.section === 'Login flow');
+    expect(login).toHaveLength(5);
+  });
+
   /**
-   * Coverage is asserted as an exact list rather than a count, so that adding the leave and
-   * log-in-flow screens forces this test to be updated deliberately. Until those eleven screens
-   * exist, the gallery must not pretend to cover them.
+   * Coverage is asserted as an exact list rather than a count, so that adding the leave,
+   * log-in-flow and performance screens forces this test to be updated deliberately. Until those
+   * eighteen screens exist, the gallery must not pretend to cover them.
    */
   it('reports honest coverage of the 35 finalized screens', () => {
     const built = new Set(galleryEntries.map((entry) => entry.id));
@@ -69,7 +75,7 @@ describe('gallery entries', () => {
       .map((screen) => screen.galleryState)
       .sort();
 
-    expect(built.size).toBe(12);
+    expect(built.size).toBe(17);
     expect(missing).toEqual(
       [
         'leave/absent',
@@ -83,11 +89,6 @@ describe('gallery entries', () => {
         'login-flow/daily',
         'login-flow/logout',
         'login-flow/present',
-        'login/boot',
-        'login/otp-countdown',
-        'login/otp-resend',
-        'login/otp-wrong',
-        'login/phone',
         'performance/day-history',
         'performance/money-daily',
         'performance/money-monthly',
@@ -101,23 +102,37 @@ describe('gallery entries', () => {
 });
 
 describe('gallery rendering', () => {
+  // The Login views read the real safe-area inset — the design's status band is system chrome they
+  // must sit below — so they need a provider. `initialMetrics` keeps the inset deterministic
+  // instead of letting the harness invent one.
+  const withSafeArea = (node: React.ReactElement): React.ReactElement => (
+    <SafeAreaProvider
+      initialMetrics={{
+        frame: { x: 0, y: 0, width: 393, height: 870 },
+        insets: { top: 49, left: 0, right: 0, bottom: 24 },
+      }}
+    >
+      {node}
+    </SafeAreaProvider>
+  );
+
   it('renders every entry without throwing', () => {
     for (const entry of galleryEntries) {
-      const view = render(entry.render());
+      const view = render(withSafeArea(entry.render()));
       expect(view.toJSON()).not.toBeNull();
       view.unmount();
     }
   });
 
   it('renders the cooking state with the fixture countdown', () => {
-    render(galleryEntryFor('service/cooking')!.render());
+    render(withSafeArea(galleryEntryFor('service/cooking')!.render()));
     expect(screen.getByText('37 mins')).toBeTruthy();
   });
 
   it('renders the late travel state with a negative countdown', () => {
     // The negative value is the whole point of `464:3864`; clamping it to zero would erase the
     // state the frame exists to show.
-    render(galleryEntryFor('service/travel-late')!.render());
+    render(withSafeArea(galleryEntryFor('service/travel-late')!.render()));
     expect(screen.getByText('-2 mins')).toBeTruthy();
   });
 });
