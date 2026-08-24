@@ -396,8 +396,11 @@ const period = (
   endDateIso: '2026-07-24',
   eventCount: 7,
   breakdown: breakdown({}),
-  noShow: { count: null, amountPaise: 25000 },
-  late: { count: null, amountPaise: 5000 },
+  // `502:23` / `502:34` print `1` and `2`. The backend selects `event_count` per event type and
+  // then discards it, so production leaves both `null` and the tiles show `—`; the fixture states
+  // the design's own counts, because a `/dev` frame has to draw the state V13 draws.
+  noShow: { count: 1, amountPaise: 25000 },
+  late: { count: 2, amountPaise: 5000 },
   // The design's own figures. Production leaves every one of these `null` — see the note on
   // `EarningsPeriodView` — but a `/dev` frame has to draw the state V13 draws, or the pixel
   // comparison is measuring the gap rather than the screen.
@@ -406,6 +409,8 @@ const period = (
   perDayBasePaise: 107500,
   extraKaamMultiplier: 1.75,
   extraKaamRatePaise: 15000,
+  fiveStarDays: 1,
+  longHoursDays: 8,
   ...over,
 });
 
@@ -423,7 +428,15 @@ export const performanceFixtures = {
     ),
 
   /** `575:1884` `13- money weekly` and `575:2098` `18- past weekly`. */
-  cycle: (): EarningsPeriodView => devOnly(period({ period: 'cycle' })),
+  cycle: (): EarningsPeriodView =>
+    devOnly(
+      period({
+        period: 'cycle',
+        // `492:5421` prints `+₹100` for the long-hours bonus over a cycle. The daily frame's
+        // `+₹263` is the extra-kaam RESULT, a different figure on a different frame.
+        breakdown: breakdown({ longHoursPaise: 10000 }),
+      }),
+    ),
 
   /** `575:2013` `16- money monthly`. */
   month: (): EarningsPeriodView =>

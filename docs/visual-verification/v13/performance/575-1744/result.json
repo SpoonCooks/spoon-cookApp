@@ -31,68 +31,68 @@
     "note": "frame is the viewport; no bezel",
     "emulatorPx": {
       "width": 1080,
-      "height": 2392
+      "height": 3166
     },
     "emulatorContentPx": {
       "width": 1080,
-      "height": 2190
+      "height": 2964
     },
     "emulatorScaledToPx": {
       "width": 370,
-      "height": 750
+      "height": 1015
     },
     "comparedAtPx": {
       "width": 370,
-      "height": 750
+      "height": 1015
     }
   },
   "anchor": "top",
-  "comparedHeightPx": 750,
+  "comparedHeightPx": 1015,
   "referenceHeightPx": 1017,
-  "emulatorScaledHeightPx": 750,
-  "uncomparedReferenceRows": 267,
+  "emulatorScaledHeightPx": 1015,
+  "uncomparedReferenceRows": 2,
   "antialiasingTolerance": 12,
-  "differingPixelPercent": 27.1791,
-  "rawDifferingPixelPercent": 28.4533,
-  "meanChannelDelta": 17.8745,
+  "differingPixelPercent": 7.8988,
+  "rawDifferingPixelPercent": 9.8541,
+  "meanChannelDelta": 4.7501,
   "maxChannelDelta": 255,
   "worstRows": [
     {
-      "row": 739,
-      "percent": 89.19
+      "row": 701,
+      "percent": 85.41
     },
     {
-      "row": 740,
-      "percent": 89.19
+      "row": 731,
+      "percent": 85.41
     },
     {
-      "row": 741,
-      "percent": 89.46
+      "row": 808,
+      "percent": 85.95
     },
     {
-      "row": 742,
-      "percent": 89.73
+      "row": 831,
+      "percent": 85.95
     },
     {
-      "row": 743,
-      "percent": 89.73
+      "row": 832,
+      "percent": 87.03
     },
     {
-      "row": 744,
-      "percent": 89.73
+      "row": 833,
+      "percent": 87.3
     },
     {
-      "row": 745,
-      "percent": 89.73
+      "row": 998,
+      "percent": 87.03
     },
     {
-      "row": 746,
-      "percent": 89.73
+      "row": 999,
+      "percent": 85.95
     }
   ],
   "displacementProbe": {
-    "bestVerticalOffsetPx": 10,
-    "percentAtBestOffset": 22.0444,
+    "bestVerticalOffsetPx": 0,
+    "percentAtBestOffset": 8.0576,
     "note": "0 means the render is on its design row and the residual is rasterisation. A non-zero offset is a real layout error even when the headline percentage is low."
   },
   "verdict": "PENDING_REVIEW"

@@ -5,6 +5,7 @@ import {
   DIRECT_STATUS_BAND_HEIGHT,
   HOME_INDICATOR_HEIGHT,
   LEAVE_STATUS_BAND_HEIGHT,
+  SERVICE_STATUS_BAND_HEIGHT,
   STATUS_BAND_HEIGHT,
   viewportProfile,
   viewportProfileBySection,
@@ -41,6 +42,18 @@ describe('viewport profiles', () => {
     expect(pythonConstant('DIRECT_STATUS_BAND_HEIGHT')).toBe(DIRECT_STATUS_BAND_HEIGHT);
   });
 
+  it('states the same Service status band as the comparison harness', () => {
+    expect(pythonConstant('SERVICE_STATUS_BAND_HEIGHT')).toBe(SERVICE_STATUS_BAND_HEIGHT);
+  });
+
+  it('gives Service flow the leave status band, not the Login flow one', () => {
+    // `462:3660` and `526:348` are the same 36.198 component; `434:3336` is not. The two bezel
+    // sections therefore do NOT share a status band, which is the whole reason this is asserted.
+    expect(viewportProfile('485:4971').statusBandHeight).toBe(SERVICE_STATUS_BAND_HEIGHT);
+    expect(viewportProfile('485:4971').statusBandHeight).not.toBe(STATUS_BAND_HEIGHT);
+    expect(viewportProfile('485:4971').convention).toBe('bezel');
+  });
+
   it('states the same leave status band as the comparison harness', () => {
     expect(pythonConstant('LEAVE_STATUS_BAND_HEIGHT')).toBe(LEAVE_STATUS_BAND_HEIGHT);
   });
@@ -74,7 +87,6 @@ describe('viewport profiles', () => {
 
   it('gives the direct sections the direct band and the bezel sections the bezel band', () => {
     expect(viewportProfile('434:3115').statusBandHeight).toBe(STATUS_BAND_HEIGHT);
-    expect(viewportProfile('485:4971').statusBandHeight).toBe(STATUS_BAND_HEIGHT);
     for (const section of ['592:1068', '575:1741']) {
       expect(viewportProfile(section).statusBandHeight).toBe(DIRECT_STATUS_BAND_HEIGHT);
     }

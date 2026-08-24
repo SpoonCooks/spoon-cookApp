@@ -28,6 +28,7 @@ from __future__ import annotations
 import argparse
 import base64
 import json
+import re
 import subprocess
 import time
 from pathlib import Path
@@ -54,6 +55,26 @@ DEV_SERVER_HOST = "localhost:8081"
 #: React Native reads the dev-server override from this SharedPreferences file.
 PREFS_PATH = f"shared_prefs/{PACKAGE}_preferences.xml"
 
+#: Downward drags used to rewind a screen to the top before capturing it. The tallest V13 frame is
+#: under two viewports of scroll, so four is comfortably enough and costs nothing when the screen
+#: is already at the top.
+SCROLL_RESET_SWIPES = 4
+
+
+from stitch import scroll_capture  # noqa: E402
+
+
+#: Design units of status-bar mock each section draws, mirroring `COMPARISON_PROFILES` in
+#: `compare.py`. Subtracted from the frame height so a screen is not scrolled looking for rows the
+#: app is forbidden to draw. `viewportProfile.test.ts` asserts the two files agree.
+COMPARISON_STATUS_BAND = {
+    "Login flow": 33.0,
+    "Service flow": 36.198,
+    "leave": 36.198,
+    "log in flow": 32.0,
+    "performance": 32.0,
+}
+
 
 def adb(adb_path: str, *args: str, binary: bool = False):
     result = subprocess.run(
@@ -66,10 +87,11 @@ def reject_reason(png_bytes: bytes) -> str | None:
     """
     Why this screenshot must not be written, or None if it is usable.
 
-    Two failure modes both produce a plausible-looking PNG: a deep link that never landed (one
-    flat colour) and a JS exception (React Native's red dev error overlay). Writing either as
-    evidence would put a false render into the comparison, so both are named and rejected here
-    rather than left to a reviewer to notice.
+    Several failure modes all produce a plausible-looking PNG: a deep link that never landed (one
+    flat colour), a JS exception (React Native's red dev error overlay), a fast-refresh banner, and
+    a system dialog dimming an otherwise correct screen. Writing any of them as evidence would put
+    a false render into the comparison, so each is named and rejected here rather than left to a
+    reviewer to notice.
     """
     from io import BytesIO
 
@@ -118,6 +140,22 @@ def reject_reason(png_bytes: bytes) -> str | None:
     banner = np.all(np.abs(arr[:600] - 61) < 12, axis=2)
     if (banner.mean(axis=1) > 0.9).sum() > 30:
         return "Metro reload banner still on screen"
+
+    # An Android system dialog -- "System UI isn't responding", a permission prompt, a crash box.
+    # It dims everything behind it with a ~50% black scrim and floats a near-white rounded panel in
+    # the middle of the window. The screen underneath can be completely correct, which is what
+    # makes this dangerous: `575:1744` was captured with its ANR dialog up and scored 99.54%
+    # against a render whose every element was in the right place.
+    #
+    # Detected by the two properties together, because neither alone is specific: a wide band of
+    # rows whose brightest pixel is still dark (the scrim can never happen on these white screens)
+    # and a bright panel inside it.
+    scrim = (body.max(axis=2) < 170).mean(axis=1) > 0.9
+    if scrim.sum() > body.shape[0] * 0.25:
+        centre = body[:, body.shape[1] // 4 : body.shape[1] * 3 // 4, :]
+        panel = (centre.min(axis=2) > 235).mean(axis=1) > 0.8
+        if panel.sum() > 60:
+            return "an Android system dialog is covering the screen"
     return None
 
 
@@ -205,6 +243,86 @@ def warm_up(adb_path: str, budget: float, launches: int = WARM_LAUNCH_ATTEMPTS) 
     return False
 
 
+def reset_scroll(args, width: int, height: int) -> None:
+    """
+    Return the screen to the top of its content before it is captured.
+
+    The gallery does not remount between deep links, so three of the `performance` states are the
+    same `MoneyPeriodView` with a different period — and a `ScrollView` that was scrolled for the
+    previous state is still scrolled for the next one. `575:1884` was captured that way: the
+    stitched render was complete and correct and began 324 design rows into the frame, which scored
+    as a 69% mismatch against a screen that had nothing wrong with it.
+
+    Downward drags rather than a scroll API, because there is no scroll API over adb. Enough of
+    them to cover the tallest frame from its bottom, and they are harmless on a screen that is
+    already at the top or does not scroll at all.
+    """
+    x = width // 2
+    top = args.emulator_status_px + int((height - args.emulator_status_px) * 0.30)
+    bottom = args.emulator_status_px + int((height - args.emulator_status_px) * 0.80)
+    for _ in range(SCROLL_RESET_SWIPES):
+        adb(args.adb, "shell", "input", "swipe", str(x), str(top), str(x), str(bottom), "600")
+    time.sleep(1.2)
+
+
+def capture_full_height(args, row: dict, first_png: bytes) -> tuple[bytes, dict | None]:
+    """
+    Return a render tall enough to cover the whole design frame, scrolling if it has to.
+
+    A frame no taller than the viewport is returned exactly as captured — most screens are one
+    screenful and must not be scrolled, because a scroll gesture on a short screen can still bounce
+    the content and would make an otherwise stable capture depend on the overscroll animation.
+
+    For a taller frame the screen is scrolled and reassembled by `stitch.scroll_capture`, and what
+    it assembled is written next to the render as `capture.json`. That file is the honest part: if
+    the app could not scroll far enough to cover the design, the report says so and the comparison
+    still reports the rows it never saw, rather than the run quietly scoring a third of a frame.
+    """
+    from io import BytesIO
+
+    from PIL import Image
+
+    if args.no_scroll:
+        return first_png, None
+
+    shot = Image.open(BytesIO(first_png))
+    viewport_px = shot.height - args.emulator_status_px - args.emulator_nav_px
+
+    # The design frame, expressed in the device pixels it will be compared at. `compare.py` scales
+    # the emulator down to the reference width, so one design unit is `shot.width / frame_width`
+    # device pixels; the section's status band is design chrome the app never draws.
+    per_unit = shot.width / float(row["w"])
+    band = COMPARISON_STATUS_BAND.get(row["section"], 0.0)
+    target_px = int(round((float(row["h"]) - band) * per_unit))
+    if target_px <= viewport_px + 8:
+        return first_png, None
+
+    def screenshot() -> bytes:
+        return adb(args.adb, "exec-out", "screencap", "-p", binary=True)
+
+    def swipe() -> None:
+        x = shot.width // 2
+        top = args.emulator_status_px + int(viewport_px * 0.30)
+        bottom = args.emulator_status_px + int(viewport_px * 0.80)
+        # A slow drag over half a viewport, not a flick across it. A fast or long swipe flings, and
+        # a fling both overshoots by an amount that depends on the frame rate the emulator managed
+        # and can end in an overscroll bounce that is still settling when the shutter fires -- on
+        # `575:2098` that produced an overlap matching nothing at any offset.
+        adb(args.adb, "shell", "input", "swipe", str(x), str(bottom), str(x), str(top), "1200")
+
+    image, report = scroll_capture(
+        screenshot,
+        swipe,
+        args.emulator_status_px,
+        args.emulator_nav_px,
+        target_px,
+        settle=2.2,
+    )
+    buffer = BytesIO()
+    image.save(buffer, format="PNG")
+    return buffer.getvalue(), report
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--adb", required=True)
@@ -213,6 +331,13 @@ def main() -> int:
     parser.add_argument("--root", default="docs/visual-verification/v13")
     parser.add_argument("--settle", type=float, default=5.0)
     parser.add_argument("--retries", type=int, default=3)
+    parser.add_argument("--emulator-status-px", type=int, default=136)
+    parser.add_argument("--emulator-nav-px", type=int, default=66)
+    parser.add_argument(
+        "--no-scroll",
+        action="store_true",
+        help="Capture only the first viewport, even for a frame taller than one.",
+    )
     parser.add_argument(
         "--warmup",
         type=float,
@@ -224,6 +349,13 @@ def main() -> int:
     inventory = json.loads(Path(args.inventory).read_text(encoding="utf-8"))
     states = json.loads(Path(args.states).read_text(encoding="utf-8"))
     by_node = {row["nodeId"]: row for row in inventory}
+
+    size = adb(args.adb, "shell", "wm", "size")
+    match = re.search(r"(\d+)x(\d+)", size)
+    if match is None:
+        print(f"!! could not read the display size from `wm size`: {size.strip()!r}")
+        return 1
+    screen_w, screen_h = int(match.group(1)), int(match.group(2))
 
     use_reverse_tunnel(args.adb)
     if not warm_up(args.adb, args.warmup):
@@ -244,6 +376,7 @@ def main() -> int:
         # clears on its own; failing the first time would make the run depend on how recently the
         # bundle changed, which is not a property of the screen being verified.
         png = b""
+        scroll_report: dict | None = None
         reason: str | None = "not captured"
         for attempt in range(args.retries + 1):
             if attempt > 0:
@@ -262,9 +395,12 @@ def main() -> int:
                 PACKAGE,
             )
             time.sleep(args.settle)
+            if not args.no_scroll:
+                reset_scroll(args, screen_w, screen_h)
             png = adb(args.adb, "exec-out", "screencap", "-p", binary=True)
             reason = "truncated screencap" if len(png) < 5000 else reject_reason(png)
             if reason is None:
+                png, scroll_report = capture_full_height(args, row, png)
                 break
             print(f"   retry {attempt + 1}/{args.retries} for {state_id}: {reason}")
         if reason is not None:
@@ -272,8 +408,13 @@ def main() -> int:
             failed += 1
             continue
         (out_dir / "emulator.png").write_bytes(png)
+        if scroll_report is not None:
+            (out_dir / "capture.json").write_text(
+                json.dumps(scroll_report, indent=2) + "\n", encoding="utf-8"
+            )
         ok += 1
-        print(f"ok {state_id:32} -> {node_id} {len(png) // 1024}KB")
+        segs = "" if scroll_report is None else f" [{scroll_report['segments']} segments]"
+        print(f"ok {state_id:32} -> {node_id} {len(png) // 1024}KB{segs}")
 
     print(f"\ncaptured={ok} failed={failed}")
     return 0 if failed == 0 else 1

@@ -162,6 +162,10 @@ export interface EarningsPeriodView {
   readonly extraKaamMultiplier: number | null;
   /** `532:124` — the `₹150` rate the multiplier is applied to. */
   readonly extraKaamRatePaise: number | null;
+  /** `492:5405` — days in the period rated five stars or better. */
+  readonly fiveStarDays: number | null;
+  /** `492:5416` — days in the period worked past the long-hours threshold. */
+  readonly longHoursDays: number | null;
 }
 
 export interface EarningsCycleRef {

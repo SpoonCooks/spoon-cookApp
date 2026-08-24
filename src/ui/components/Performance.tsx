@@ -63,8 +63,22 @@ const BLOCK = { paddingH: 4, paddingV: 6 } as const;
 /** `434:2931` / `502:196` — the period control. */
 const TABS = { padding: 4, radius: 20, gap: 10, buttonRadius: 12, buttonPaddingV: 8 } as const;
 
-/** `434:2870` / `502:207` — a bordered work/mistakes panel. */
-const CARD = { radius: 15, padding: 12, gap: 12, stroke: 1 } as const;
+/**
+ * `434:2870` / `502:8` — a bordered work/mistakes panel.
+ *
+ * `gap` is the DAILY card's. The cycle and monthly work cards (`492:5390`, `502:207`) set 16 on
+ * the same shell, which is why `CycleWorkCard` passes its own.
+ */
+const CARD = { radius: 15, padding: 12, gap: 12, stroke: 1, cycleGap: 16 } as const;
+
+/**
+ * The daily work card is not a flat stack. `434:2872` groups the `AAJ KA KAAM` label with the
+ * hours row at **6**, and `531:1693` groups `EXTRA KAAM BONUS` with the formula at **2** — neither
+ * is the card's own 12. Laying all four out as siblings put six units under the first label and
+ * ten under the second, which is what walked the rating card sixteen rows down the screen while
+ * every card above it measured correctly on its own.
+ */
+const WORK_GROUP = { labelGap: 6, formulaGap: 2 } as const;
 
 /** `502:40` / `536:218` — a filled band inside or below a card. */
 const BAND = { radius: 16, padding: 16, gap: 9.99 } as const;
@@ -379,54 +393,59 @@ export function DailyWorkCard({
 
   return (
     <Card tone="yellow" testID={testID}>
-      <SectionLabel>{copy.work}</SectionLabel>
-
-      <View style={[styles.row, { gap: s(WORK.rowGap) }]}>
-        <Image
-          source={images.timer}
-          style={{ width: s(WORK.timerWidth), height: s(WORK.timerHeight) }}
-          resizeMode="contain"
-        />
-        <View style={[styles.row, { gap: s(WORK.groupGap) }]}>
-          <WorkUnit value={hours} word="ghante" scale={scale} />
-          <WorkUnit value={minutes} word="mins" scale={scale} />
+      <View style={[styles.stretch, { gap: s(WORK_GROUP.labelGap) }]}>
+        <SectionLabel>{copy.work}</SectionLabel>
+        <View style={[styles.row, { gap: s(WORK.rowGap) }]}>
+          <Image
+            source={images.timer}
+            style={{ width: s(WORK.timerWidth), height: s(WORK.timerHeight) }}
+            resizeMode="contain"
+          />
+          <View style={[styles.row, { gap: s(WORK.groupGap) }]}>
+            <WorkUnit value={hours} word="ghante" scale={scale} />
+            <WorkUnit value={minutes} word="mins" scale={scale} />
+          </View>
         </View>
       </View>
 
       {bonus !== null && <BonusBar bonus={bonus} />}
 
-      <SectionLabel>Extra kaam bonus</SectionLabel>
-      <View style={[styles.formulaRow, { height: s(FORMULA.height), padding: s(FORMULA.padding) }]}>
-        <FormulaCell
-          width={FORMULA.multiplierWidth}
-          fill={color.lime200}
-          muted={view.extraKaamMultiplier === null}
-          testID={`${testID}-multiplier`}
+      <View style={[styles.stretch, { gap: s(WORK_GROUP.formulaGap) }]}>
+        <SectionLabel>Extra kaam bonus</SectionLabel>
+        <View
+          style={[styles.formulaRow, { height: s(FORMULA.height), padding: s(FORMULA.padding) }]}
         >
-          {view.extraKaamMultiplier === null
-            ? unavailableFigure
-            : view.extraKaamMultiplier.toFixed(2)}
-        </FormulaCell>
-        <FormulaCell width={FORMULA.operatorWidth}>x</FormulaCell>
-        <FormulaCell
-          width={FORMULA.rateWidth}
-          fill={color.lime200}
-          muted={view.extraKaamRatePaise === null}
-          testID={`${testID}-rate`}
-        >
-          {view.extraKaamRatePaise === null
-            ? unavailableFigure
-            : formatRupees(view.extraKaamRatePaise)}
-        </FormulaCell>
-        <FormulaCell width={FORMULA.operatorWidth}>=</FormulaCell>
-        <FormulaCell
-          width={FORMULA.resultWidth}
-          height={FORMULA.resultHeight}
-          fill={color.lime400}
-          testID={`${testID}-extra`}
-        >
-          {formatSignedRupees(view.breakdown.longHoursPaise)}
-        </FormulaCell>
+          <FormulaCell
+            width={FORMULA.multiplierWidth}
+            fill={color.lime200}
+            muted={view.extraKaamMultiplier === null}
+            testID={`${testID}-multiplier`}
+          >
+            {view.extraKaamMultiplier === null
+              ? unavailableFigure
+              : view.extraKaamMultiplier.toFixed(2)}
+          </FormulaCell>
+          <FormulaCell width={FORMULA.operatorWidth}>x</FormulaCell>
+          <FormulaCell
+            width={FORMULA.rateWidth}
+            fill={color.lime200}
+            muted={view.extraKaamRatePaise === null}
+            testID={`${testID}-rate`}
+          >
+            {view.extraKaamRatePaise === null
+              ? unavailableFigure
+              : formatRupees(view.extraKaamRatePaise)}
+          </FormulaCell>
+          <FormulaCell width={FORMULA.operatorWidth}>=</FormulaCell>
+          <FormulaCell
+            width={FORMULA.resultWidth}
+            height={FORMULA.resultHeight}
+            fill={color.lime400}
+            testID={`${testID}-extra`}
+          >
+            {formatSignedRupees(view.breakdown.longHoursPaise)}
+          </FormulaCell>
+        </View>
       </View>
     </Card>
   );
@@ -544,7 +563,7 @@ export function CycleWorkCard({
     bonus === null ? 'Lambe din kaam' : `${bonus.thresholdDays} din se upar kaam`;
 
   return (
-    <Card tone="yellow" testID={testID}>
+    <Card tone="yellow" gap={CARD.cycleGap} testID={testID}>
       <SectionLabel>{copy.work}</SectionLabel>
 
       <View style={[styles.tileRow, { gap: s(TILE.columnGap) }]}>
@@ -553,6 +572,7 @@ export function CycleWorkCard({
           glyph={<GlyphOnDisc image={images.star} inset={1} size={25} />}
           title="5+"
           caption="Bohot accha kaam"
+          count={view.fiveStarDays}
           testID={`${testID}-rating`}
         />
         <StatTile
@@ -560,6 +580,7 @@ export function CycleWorkCard({
           glyph={<GlyphOnDisc image={images.timer} size={28} />}
           title="Ghante"
           caption={thresholdLabel}
+          count={view.longHoursDays}
           testID={`${testID}-hours`}
         />
       </View>
@@ -573,7 +594,22 @@ export function CycleWorkCard({
         </AmountChip>
       </View>
 
-      {rating !== null && <RatingStrip rating={rating} />}
+      {rating !== null && (
+        // `502:106` — on a cycle or monthly frame the rating sits on its own lime band. The daily
+        // frame's `536:208` does not: there it is a bare row inside the black-bordered card.
+        <View
+          style={[
+            styles.band,
+            {
+              backgroundColor: color.lime300,
+              borderRadius: s(BAND.radius),
+              padding: s(BAND.padding),
+            },
+          ]}
+        >
+          <RatingStrip rating={rating} />
+        </View>
+      )}
 
       <View
         style={[
@@ -1206,11 +1242,16 @@ const styles = StyleSheet.create({
   tabRow: { flexDirection: 'row', alignItems: 'stretch' },
   tab: { flex: 1, alignItems: 'center', justifyContent: 'center' },
 
-  dayStrip: { flexDirection: 'row', justifyContent: 'space-between' },
-  dayCell: { alignItems: 'center' },
+  // `505:1240` is a seven-column grid, not a spaced row: every cell is exactly a seventh of the
+  // width and its disc is centred inside it. `space-between` instead pins the first and last cells
+  // to the edges, which put `Mon` four units left of its design column and left the strip a few
+  // units short — enough to walk the card below it off its row.
+  dayStrip: { flexDirection: 'row', alignItems: 'flex-start' },
+  dayCell: { flex: 1, alignItems: 'center' },
   dayGlyph: { position: 'absolute', alignSelf: 'center', top: '7%' },
 
   card: { backgroundColor: color.surface, alignSelf: 'stretch' },
+  stretch: { alignSelf: 'stretch' },
   upper: { textTransform: 'uppercase' },
 
   row: { flexDirection: 'row', alignItems: 'center' },

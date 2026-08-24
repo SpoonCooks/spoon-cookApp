@@ -83,6 +83,16 @@ DIRECT_STATUS_BAND_HEIGHT = 32.0
 #: carries a `#f3f4f6` hairline along its bottom edge, which the `log in flow` mock does not have.
 LEAVE_STATUS_BAND_HEIGHT = 36.198
 
+#: Height of the status-bar mock in a **Service flow** frame, in design units. Mirrors
+#: `SERVICE_STATUS_BAND_HEIGHT` in `src/ui/theme/viewport.ts`.
+#:
+#: A fourth value, and not the bezel's 33. `462:3660` is an explicit `h-[36.198px]` row carrying a
+#: `#f3f4f6` hairline along its bottom edge -- the same component the `leave` frames use, not the
+#: one `Login flow` uses. Comparing Service against 33 leaves three design rows of chrome at the
+#: top of the reference, displacing every Service screen by three rows before any element is
+#: examined. Read from the persisted design context for `462:3617`, not inferred.
+SERVICE_STATUS_BAND_HEIGHT = 36.198
+
 #: Frames whose content is anchored to the BOTTOM of the viewport rather than the top.
 #:
 #: The three `leave` bottom sheets are 846 content units tall against the verified emulator's 750,
@@ -110,6 +120,7 @@ class ComparisonProfile:
 
 
 BEZEL_PROFILE = ComparisonProfile(status_band=STATUS_BAND_HEIGHT, home_indicator=10.0)
+SERVICE_PROFILE = ComparisonProfile(status_band=SERVICE_STATUS_BAND_HEIGHT, home_indicator=10.0)
 DIRECT_PROFILE = ComparisonProfile(status_band=DIRECT_STATUS_BAND_HEIGHT, home_indicator=0.0)
 LEAVE_PROFILE = ComparisonProfile(status_band=LEAVE_STATUS_BAND_HEIGHT, home_indicator=0.0)
 
@@ -117,7 +128,7 @@ LEAVE_PROFILE = ComparisonProfile(status_band=LEAVE_STATUS_BAND_HEIGHT, home_ind
 #: section can never pick up the bezel crop and the direct status band, or any other mixture.
 COMPARISON_PROFILES = {
     "Login flow": BEZEL_PROFILE,
-    "Service flow": BEZEL_PROFILE,
+    "Service flow": SERVICE_PROFILE,
     "leave": LEAVE_PROFILE,
     "log in flow": DIRECT_PROFILE,
     "performance": DIRECT_PROFILE,

@@ -89,6 +89,17 @@ export const DIRECT_STATUS_BAND_HEIGHT = 32;
  */
 export const LEAVE_STATUS_BAND_HEIGHT = 36.198;
 
+/**
+ * Height of the status-bar mock in a **Service flow** frame, in design units.
+ *
+ * A fourth value, and not the bezel's 33. `462:3660` is an explicit `h-[36.198px]` row carrying a
+ * `#f3f4f6` hairline along its bottom edge — the same component the `leave` frames use, and not
+ * the one `Login flow` uses. Comparing Service against 33 drops three design rows fewer than it
+ * should from the top of the reference, which displaces every Service screen by three rows before
+ * a single element is examined.
+ */
+export const SERVICE_STATUS_BAND_HEIGHT = 36.198;
+
 /** `434:3325` and its siblings: a 4dp pill in a strip that ends at the viewport's bottom edge. */
 export const HOME_INDICATOR_HEIGHT = 10;
 
@@ -99,6 +110,16 @@ const BEZEL_PROFILE: ViewportProfile = {
   height: BEZEL_VIEWPORT.height,
   statusBandHeight: STATUS_BAND_HEIGHT,
   homeIndicatorHeight: HOME_INDICATOR_HEIGHT,
+};
+
+/**
+ * `Service flow` is a bezel section like `Login flow`, but draws the `leave` status mock. Every
+ * other measurement is the bezel's; only the band differs, so the profile is derived rather than
+ * restated and the two cannot drift apart.
+ */
+const SERVICE_PROFILE: ViewportProfile = {
+  ...BEZEL_PROFILE,
+  statusBandHeight: SERVICE_STATUS_BAND_HEIGHT,
 };
 
 const DIRECT_PROFILE: ViewportProfile = {
@@ -123,7 +144,7 @@ const LEAVE_PROFILE: ViewportProfile = {
 /** Section node id -> viewport profile. Keyed by node id because two sections share a name stem. */
 export const viewportProfileBySection: Readonly<Record<string, ViewportProfile>> = {
   '434:3115': BEZEL_PROFILE, // Login flow
-  '485:4971': BEZEL_PROFILE, // Service flow
+  '485:4971': SERVICE_PROFILE, // Service flow
   '540:416': LEAVE_PROFILE, // leave
   '592:1068': DIRECT_PROFILE, // log in flow
   '575:1741': DIRECT_PROFILE, // performance
