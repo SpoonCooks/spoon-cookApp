@@ -21,6 +21,12 @@ import { layout } from './tokens';
  * Values are rounded to the nearest 1/3 dp. React Native lays out in dp and rasterises at the
  * device pixel ratio (2.75 here), so sub-dp precision would only produce irrational widths that
  * round inconsistently between siblings.
+ *
+ * Passing the raw unrounded product instead — letting Yoga round only the final absolute positions,
+ * which in principle should stop the per-element error accumulating — was measured and is worse on
+ * every section: `575:1744` 7.90% -> 10.23%, `575:2013` 14.55% -> 18.16%, `575:1884` 15.61% ->
+ * 18.84%, `575:2135` 5.03% -> 5.27%. Only `592:488` improved, by 0.16. The 1/3-dp grid is kept
+ * because it is what the reference agrees with, not because it is theoretically tidier.
  */
 export interface DesignScale {
   /** `screenWidth / 370`. */

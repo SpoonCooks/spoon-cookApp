@@ -446,7 +446,13 @@ export const performanceFixtures = {
         startDateIso: '2026-07-01',
         endDateIso: '2026-07-28',
         eventCount: 28,
-        breakdown: breakdown({ grossPaise: 973900, netPaise: 3438900 }),
+        // `536:201` prints `₹4,600` for the month's bonus where `537:241` prints `₹150` for the
+        // cycle's. Different windows of the same signed ledger, and the frames state both.
+        breakdown: breakdown({
+          attendanceBonusPaise: 460000,
+          grossPaise: 973900,
+          netPaise: 3438900,
+        }),
       }),
     ),
 

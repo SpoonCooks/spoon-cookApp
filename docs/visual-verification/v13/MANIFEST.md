@@ -22,10 +22,10 @@ an artefact on disk; nothing here is asserted by hand except the reviewed verdic
 | `592:832` | leave | long leave confirm | yes | 3 | `leave/long-booked` | yes | 8.51 | FAIL |
 | `592:888` | leave | short leave | yes | 2 | `leave/short-confirm` | yes | 5.47 | FAIL |
 | `575:1744` | performance | 12- money daily | yes | 6 | `performance/money-daily` | yes | 7.90 | FAIL |
-| `575:1884` | performance | 13- money weekly | yes | 13 | `performance/money-weekly` | yes | 15.61 | FAIL |
+| `575:1884` | performance | 13- money weekly | yes | 13 | `performance/money-weekly` | yes | 15.67 | FAIL |
 | `575:1903` | performance | 14- day history | yes | 3 | `performance/day-history` | yes | 8.82 | FAIL |
 | `575:1922` | performance | 15- past daily | yes | 7 | `performance/past-daily` | yes | 8.28 | FAIL |
-| `575:2013` | performance | 16- money monthly | yes | 7 | `performance/money-monthly` | yes | 14.56 | FAIL |
+| `575:2013` | performance | 16- money monthly | yes | 7 | `performance/money-monthly` | yes | 14.55 | FAIL |
 | `575:2032` | performance | 17- weekly history | yes | 3 | `performance/weekly-history` | yes | 10.38 | FAIL |
 | `575:2098` | performance | 18- past weekly | yes | 14 | `performance/past-weekly` | yes | 14.57 | FAIL |
 | `462:3617` | Service flow | Page 4a- travel on time | — | 9 | carried-over (`service/travel-on-time`) | yes | 29.41 | FAIL |

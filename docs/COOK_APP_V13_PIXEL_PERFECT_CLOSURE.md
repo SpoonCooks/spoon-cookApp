@@ -29,18 +29,19 @@ evidence is in §7, and every number there is reproducible from the artefacts in
 | Branch                       | `v13-pixel-perfect`                                                                                                 |
 | Baseline                     | `main` = `1b51fc3` — _Initial commit: Spoon Cook App (Expo / React Native)_                                         |
 | HEAD at start of this run    | `f59f922` — _Correct the leave verdicts and stop Android shadows tinting their own fills_ (14 commits above `main`) |
-| HEAD now                     | `b6dd134` (17 commits above `main`)                                                                                 |
+| HEAD now                     | `be43129` (18 commits above `main`)                                                                                 |
 | Worktree                     | clean                                                                                                               |
 | Pushed / merged / deployed   | **no** / **no** / **no**                                                                                            |
 | Backend (`D:\spoon-backend`) | **not modified** — read only                                                                                        |
 
 ### Commits added by this run
 
-| Hash      | Subject                                                                       |
-| --------- | ----------------------------------------------------------------------------- |
-| `33ac950` | Rebuild the performance section against V13 and give it a /dev state          |
-| `5215406` | Capture whole scrolling frames, and model the performance cards' real nesting |
-| `b6dd134` | Classify every differing pixel, and fix what that exposed                     |
+| Hash      | Subject                                                                           |
+| --------- | --------------------------------------------------------------------------------- |
+| `33ac950` | Rebuild the performance section against V13 and give it a /dev state              |
+| `5215406` | Capture whole scrolling frames, and model the performance cards' real nesting     |
+| `b6dd134` | Classify every differing pixel, and fix what that exposed                         |
+| `be43129` | Run every gate on a from-scratch native build, and re-verify all 35 screens on it |
 
 Nothing was reset, cleaned, force-checked-out or rolled back. Every prior commit is intact.
 
@@ -272,10 +273,21 @@ content units against the device's 750 and do not scroll.
 | `575:1884` | 13- money weekly   |  15.61 | 17.03 |      4 | 64.9% |  5.483 |        3 |
 
 From 8.82–31.08% at the start of the section's first real comparison. The four daily/history frames
-are now 92–95% edge with under 0.9% flat-region difference — close to the `leave` band. The three
-cycle/monthly frames carry ~5% real area low in the card stack, located in their `residuals.json`
-as full-width horizontal bands, which is accumulated vertical drift below the earnings block. That
-is a known, located, unfixed defect.
+are now 92–95% edge with under 0.9% flat-region difference — the same band as `leave`.
+
+The three cycle/monthly frames carry ~5% real area, located in their `residuals.json` as full-width
+horizontal bands low in the card stack. **The cause is accumulated rounding, and it is measured.**
+Tracking the red section labels down `575:2013`: the first is on its design row, the second is +2,
+and everything below is +4 to +5. The individual elements are right — the `Base`/`Bonus`/`Tip` cell
+measures exactly 60 units in both renders — so the error is not in any one box but in the sum of
+~20 nested paddings and gaps, each snapped to the 1/3-dp grid.
+
+Passing the raw unrounded product instead, so Yoga rounds only the final absolute positions, was
+tried and is **worse on every section**: `575:1744` 7.90% → 10.23%, `575:2013` 14.55% → 18.16%,
+`575:1884` 15.61% → 18.84%, `575:2135` 5.03% → 5.27%; only `592:488` improved, by 0.16. The 1/3-dp
+grid is kept because it is what the reference agrees with. Closing the last four units would mean
+positioning by cumulative absolute coordinates rather than by summing gaps, which is a different
+layout model and is not attempted here.
 
 ### Service flow — 12 of 12 FAIL, still the V12 build
 
@@ -462,8 +474,9 @@ both are recorded so the next run does not rediscover them.
    rebuild, not a tuning pass. Remove the unapproved visible Society gate block **without**
    changing the gate destination or the 75m arrival rule; keep `TravelRisk` and `TravelLate`
    distinct; do not clamp negative countdowns; leave the OTP lengths as deployed.
-3. Close the three cycle/monthly `performance` frames. The defect is accumulated vertical drift
-   below the earnings block, located as full-width bands in each `residuals.json`.
+3. Close the three cycle/monthly `performance` frames. The defect is accumulated 1/3-dp rounding
+   over ~20 nested gaps, measured in §7; it needs a cumulative-coordinate layout, not a tuning
+   pass, and the cheaper alternative has already been measured and rejected.
 4. Close the `leave` flat-region residue (0.36–1.84% per screen), likewise located.
 5. Re-run every gate and re-verify all 35.
 6. Close the `react-native-svg` version mismatch (15.13.0 installed, 15.15.4 expected).
