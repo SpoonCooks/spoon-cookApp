@@ -728,7 +728,7 @@ function otpColumnStyle(scale: DesignScale) {
 function otpTaglineStyle(scale: DesignScale) {
   return {
     fontFamily: fontFamily.semibold,
-    fontSize: scale.s(14),
+    fontSize: scale.font(14),
     lineHeight: scale.s(16),
   };
 }
@@ -736,7 +736,7 @@ function otpTaglineStyle(scale: DesignScale) {
 function otpDigitStyle(scale: DesignScale) {
   return {
     fontFamily: fontFamily.bold,
-    fontSize: scale.s(18),
+    fontSize: scale.font(18),
     lineHeight: scale.s(28),
     color: color.black70,
   };
@@ -745,7 +745,7 @@ function otpDigitStyle(scale: DesignScale) {
 function otpErrorStyle(scale: DesignScale) {
   return {
     fontFamily: fontFamily.medium,
-    fontSize: scale.s(12),
+    fontSize: scale.font(12),
     lineHeight: scale.s(16),
   };
 }
@@ -753,7 +753,7 @@ function otpErrorStyle(scale: DesignScale) {
 function otpFooterStyle(scale: DesignScale) {
   return {
     fontFamily: fontFamily.semibold,
-    fontSize: scale.s(14),
+    fontSize: scale.font(14),
     lineHeight: scale.s(20),
   };
 }
@@ -761,7 +761,7 @@ function otpFooterStyle(scale: DesignScale) {
 function otpFooterBoldStyle(scale: DesignScale) {
   return {
     fontFamily: fontFamily.bold,
-    fontSize: scale.s(14),
+    fontSize: scale.font(14),
     lineHeight: scale.s(20),
   };
 }
@@ -777,7 +777,7 @@ function columnStyle(scale: DesignScale) {
 function taglineStyle(scale: DesignScale) {
   return {
     fontFamily: fontFamily.semibold,
-    fontSize: scale.s(15),
+    fontSize: scale.font(15),
     lineHeight: scale.s(16),
   };
 }
@@ -785,7 +785,7 @@ function taglineStyle(scale: DesignScale) {
 function fieldTextStyle(scale: DesignScale) {
   return {
     fontFamily: fontFamily.bold,
-    fontSize: scale.s(16),
+    fontSize: scale.font(16),
     lineHeight: scale.s(24),
     letterSpacing: scale.s(1.6),
     color: color.black,
@@ -795,7 +795,7 @@ function fieldTextStyle(scale: DesignScale) {
 function ctaLabelStyle(scale: DesignScale) {
   return {
     fontFamily: fontFamily.black,
-    fontSize: scale.s(16),
+    fontSize: scale.font(16),
     lineHeight: scale.s(24),
     letterSpacing: scale.s(-0.4),
     color: color.black,
@@ -805,7 +805,7 @@ function ctaLabelStyle(scale: DesignScale) {
 function legalStyle(scale: DesignScale) {
   return {
     fontFamily: fontFamily.regular,
-    fontSize: scale.s(9),
+    fontSize: scale.font(9),
     lineHeight: scale.s(13.5),
   };
 }

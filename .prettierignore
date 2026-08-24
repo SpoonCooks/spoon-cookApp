@@ -7,3 +7,8 @@
 # reformatting them would create diff noise on every verification run without changing meaning.
 docs/visual-verification/
 scripts/visual/gallery-states.json
+
+# Verbatim Figma reference code, archived by `get_design_context` for provenance. It is React +
+# Tailwind captured from another tool and is never compiled, imported or edited by hand; the point
+# of keeping it is that it is byte-identical to what the design server returned.
+docs/design-context/

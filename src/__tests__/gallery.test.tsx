@@ -73,30 +73,27 @@ describe('gallery entries', () => {
     expect(leave).toHaveLength(7);
   });
 
+  it('covers all seven performance frames', () => {
+    const performance = galleryEntries.filter((entry) => entry.section === 'performance');
+    expect(performance).toHaveLength(7);
+  });
+
   /**
-   * Coverage is asserted as an exact list rather than a count, so that adding the performance
-   * screens forces this test to be updated deliberately. Until those seven screens exist, the
-   * gallery must not pretend to cover them.
+   * Coverage is asserted as an exact set rather than a count, so a screen can never be dropped
+   * from the gallery and replaced by a duplicate of another without this failing. Every one of the
+   * 35 finalized frames now has a `/dev` state; a `galleryState` the entries do not build is a
+   * visible gap, which is the point — the gallery must never imply coverage it does not have.
    */
-  it('reports honest coverage of the 35 finalized screens', () => {
+  it('covers every one of the 35 finalized screens', () => {
     const built = new Set(galleryEntries.map((entry) => entry.id));
     const missing = figmaScreens
       .filter((screen) => !built.has(screen.galleryState))
       .map((screen) => screen.galleryState)
       .sort();
 
-    expect(built.size).toBe(28);
-    expect(missing).toEqual(
-      [
-        'performance/day-history',
-        'performance/money-daily',
-        'performance/money-monthly',
-        'performance/money-weekly',
-        'performance/past-daily',
-        'performance/past-weekly',
-        'performance/weekly-history',
-      ].sort(),
-    );
+    expect(missing).toEqual([]);
+    expect(built.size).toBe(35);
+    expect(figmaScreens).toHaveLength(35);
   });
 });
 

@@ -1,4 +1,5 @@
 import { Image, Pressable, StyleSheet, View, type ImageSourcePropType } from 'react-native';
+import { SvgXml } from 'react-native-svg';
 
 import {
   formatDeduction,
@@ -11,64 +12,153 @@ import {
   type RatingView,
 } from '@core/domain/money';
 
-import { color, radius, spacing } from '../theme/tokens';
+import * as v13 from '../icons/figmaV13Icons';
 import { Text } from '../primitives/Text';
+import { useDesignScale, type DesignScale } from '../theme/designScale';
+import { figmaStroke } from '../theme/stroke';
+import { color, dropShadow } from '../theme/tokens';
 
 /**
- * Building blocks for the Figma V12 `performance` section (`575:1741`).
+ * Building blocks for the Figma **V13** `performance` section (`575:1741`).
  *
- * The section replaced V11's `Performance & earnings` (`540:397`) wholesale: seven new frames at a
- * 370-wide content column, new Hinglish copy, and a card language of bordered white panels over
- * lime/yellow tints. Every frame is assembled from the pieces below, which is why they live here
- * rather than inside any one screen.
+ * Seven frames — `575:1744`, `575:1884`, `575:1903`, `575:1922`, `575:2013`, `575:2032`,
+ * `575:2098` — are assembled from the pieces below, which is why they live here rather than
+ * inside any one screen. Every measurement is transcribed from the design context persisted in
+ * `docs/design-context/v13/`, and the node that supplied it is named beside the constant.
  *
- * ## Measurements
+ * ## Design units, not device dp
  *
- * Geometry is transcribed from the V12 node tree, colours sampled from the section's own renders:
+ * The `performance` frames are authored against a **370-unit** content column, the same one
+ * `leave` and `log in flow` use. Every length below is therefore stated in design units and
+ * passed through `DesignScale.s` at render time, exactly as the verified sections do. The earlier
+ * build stated them as raw dp in a static `StyleSheet`, which drew the whole section ~6% small on
+ * the 392.7dp reference device — each card looked right on its own and the column they stacked
+ * into did not.
  *
- *   - content column   `370`, cards inset `20` each side (frame `16` + card `4`)
- *   - card radius      `16` (`corner radius/16`), inner chips `12` (`corner radius/12`)
- *   - card strokes     `1` (`stroke weight/1`) — yellow `#ffd600`, red `#ff0000`, black `#000000`
- *   - section labels   Livvic Black 14/20, uppercased, `#ff0000`
+ * ## Every visible glyph is the Figma export
  *
- * Cards are laid out fluid rather than pinned to `330`, so the design's proportions hold on a
- * 390–430pt device instead of floating in a fixed-width column.
+ * Icons come from `assets/images/figma-v13/`, downloaded from the design context's own asset URLs
+ * and hashed in `ASSETS.json`. The previous build drew `assets/icons/*`, which are 1x rasters at
+ * their design size — a 28x28 PNG on a 2.75x display is 77 device pixels stretched from 28, which
+ * is exactly the "no 1x V12 render on a high-density device" case the brief names. The V13
+ * exports are 90x90 for the same glyphs.
  *
  * ## Figures the deployed contract does not expose
  *
- * Several prominent numerals in these frames have no field behind them. `buildBreakdown` in the
- * backend selects `event_count` per event type and then discards it, so "No show 1" / "Late 2"
- * have amounts but no counts; no cook route exposes worked duration, the extra-kaam multiplier, or
- * a per-day base. Those render {@link unavailableFigure} (`—`) rather than a plausible guess, and
- * each is recorded as a backend gap. The AMOUNTS beside them are real, server-computed and signed.
+ * Several prominent numerals have no field behind them. `buildBreakdown` in the backend selects
+ * `event_count` per event type and then discards it, so `No show 1` / `Late 2` have amounts but no
+ * counts; no cook route exposes worked duration, the extra-kaam multiplier, or a per-day base.
+ * Those render {@link unavailableFigure} (`—`) rather than a plausible guess, and each is recorded
+ * as a backend gap. The AMOUNTS beside them are real, server-computed and signed.
  */
 
-const icons = {
-  timerWide: require('../../../assets/icons/timer-wide.png') as ImageSourcePropType,
-  timer: require('../../../assets/icons/timer.png') as ImageSourcePropType,
-  noShow: require('../../../assets/icons/no-show.png') as ImageSourcePropType,
-  lateClock: require('../../../assets/icons/late-clock.png') as ImageSourcePropType,
-  starLg: require('../../../assets/icons/star-lg.png') as ImageSourcePropType,
-  star: require('../../../assets/icons/star.png') as ImageSourcePropType,
-  calendar: require('../../../assets/icons/calendar.png') as ImageSourcePropType,
-  dayDone: require('../../../assets/icons/day-done.png') as ImageSourcePropType,
-  dayMissed: require('../../../assets/icons/day-missed.png') as ImageSourcePropType,
-  chevron: require('../../../assets/icons/chevron.png') as ImageSourcePropType,
+/* ------------------------------------------------------------ design constants --- */
+
+/** `485:5065` — the screen body every frame scrolls. */
+const SCREEN = { padding: 16, gap: 16 } as const;
+
+/** The `px-4 py-6` wrapper the design puts around every panel. */
+const BLOCK = { paddingH: 4, paddingV: 6 } as const;
+
+/** `434:2931` / `502:196` — the period control. */
+const TABS = { padding: 4, radius: 20, gap: 10, buttonRadius: 12, buttonPaddingV: 8 } as const;
+
+/** `434:2870` / `502:207` — a bordered work/mistakes panel. */
+const CARD = { radius: 15, padding: 12, gap: 12, stroke: 1 } as const;
+
+/** `502:40` / `536:218` — a filled band inside or below a card. */
+const BAND = { radius: 16, padding: 16, gap: 9.99 } as const;
+
+/** `434:2889` — the bonus panel and its seven-segment track. */
+const BONUS = {
+  radius: 16,
+  padding: 11.889,
+  gap: 6,
+  trackHeight: 10,
+  trackPadding: 2,
+  segmentGap: 6,
+} as const;
+
+/** `531:1703` — `1.75  x  ₹150  =  +₹263`. */
+const FORMULA = {
+  height: 56,
+  padding: 6,
+  cellRadius: 5,
+  multiplierWidth: 55,
+  operatorWidth: 41.356,
+  rateWidth: 60,
+  resultWidth: 85,
+  resultHeight: 44,
+} as const;
+
+/** `502:13` / `502:212` — a two-up tile and the grid that holds it. */
+const TILE = {
+  radius: 7,
+  paddingH: 12,
+  paddingV: 8,
+  gap: 6,
+  headGap: 12,
+  disc: 28,
+  columnGap: 21,
+} as const;
+
+/** `434:2875` — the timer and the `8 ghante 45 mins` group. */
+const WORK = { timerWidth: 45, timerHeight: 38, rowGap: 12, unitGap: 6, groupGap: 16 } as const;
+
+/** `536:212` — the rating disc and its numeral. `headGap` is the 2-unit label/figure gap. */
+const RATING = { disc: 38, star: 36, gap: 12, valueWidth: 93, headGap: 2 } as const;
+
+/** `532:109` — a `Base` / `Bonus` / `Tip` cell. Its stroke is **2**, not the card's 1. */
+const MINI = { radius: 7, padding: 6, columnGap: 12, stroke: 2 } as const;
+
+/** `505:1241` — one `Mon…Sun` cell. */
+const DAYSTRIP = { disc: 35, tick: 30, cross: 34, gap: 6 } as const;
+
+/** `537:491` / `502:434` — a tappable history row. */
+const ROW = {
+  radius: 15,
+  paddingH: 12,
+  paddingV: 6,
+  gap: 7,
+  calendar: 35,
+  chevron: 32,
+  stroke: 1,
+} as const;
+
+/** `502:628` — a past-cycle row, which is taller and rounder than a day row. */
+const CYCLE_ROW = { radius: 20, height: 62, innerGap: 10 } as const;
+
+/** `537:488` — the back header on every pushed frame. */
+const NAV = { height: 45, gap: 12, glyph: 32 } as const;
+
+const images = {
+  /** `502:62` — the wide timer over `8 ghante 45 mins`. 90x90 export drawn at 45x38. */
+  timer: require('../../../assets/images/figma-v13/timer.png') as ImageSourcePropType,
+  /** `502:860` — the red cross on a no-show tile, and the cross on a missed day. */
+  multiply: require('../../../assets/images/figma-v13/multiply.png') as ImageSourcePropType,
+  /** `502:861` — the red clock on a late tile. */
+  clock: require('../../../assets/images/figma-v13/clock.png') as ImageSourcePropType,
+  /** `536:215` — the star inside the rating disc. */
+  star: require('../../../assets/images/figma-v13/star.png') as ImageSourcePropType,
+  /** `502:626` — the yellow calendar on a history row. */
+  calendar: require('../../../assets/images/figma-v13/calendar-yellow.png') as ImageSourcePropType,
+  /** `506:1868` — the tick on a present day. */
+  dayDone: require('../../../assets/images/figma-v13/day-done.png') as ImageSourcePropType,
 } as const;
 
 /**
  * A figure the deployed contract does not expose.
  *
  * Rendered at the same size as the real value so the layout does not jump when the backend starts
- * supplying it, but in the muted ink — an em dash in Livvic Black at 36pt is a solid bar, and a
+ * supplying it, but in the muted ink — an em dash in Livvic Black at 30pt is a solid bar, and a
  * cook should read "not available", not "redacted".
  */
 function Unavailable({
-  variant = 'displayXl',
+  variant = 'displayLg',
   testID,
 }: {
-  variant?: 'displayXl' | 'displayLg';
-  testID?: string;
+  variant?: 'displayLg' | 'display';
+  testID?: string | undefined;
 }): React.ReactElement {
   return (
     <Text variant={variant} color={color.textMuted} testID={testID}>
@@ -77,7 +167,7 @@ function Unavailable({
   );
 }
 
-/* ----------------------------------------------------------- period tabs --- */
+/* ----------------------------------------------------------------- period tabs --- */
 
 export interface PeriodTabItem {
   readonly key: string;
@@ -93,6 +183,20 @@ export interface PeriodTabsProps {
 }
 
 /**
+ * The fill V13 gives a **selected** tab, per tab.
+ *
+ * Not one colour: `434:2932` (`Aaj`) and `492:5344` (`Cycle`) select to `#ffde33`, while
+ * `502:203` (`Mahina`) selects to `#ffd600`. The two differ by 51 levels of blue — four times the
+ * comparison tolerance — so collapsing them would score one of the three frames as a mismatch.
+ * Stated per key rather than smoothed over, because V13 is the authority on what it draws.
+ */
+const SELECTED_FILL: Record<string, string> = {
+  day: color.yellow500,
+  cycle: color.yellow500,
+  month: color.yellow600,
+};
+
+/**
  * `Aaj · 1 din` / `Cycle · 7 din` / `Mahina · 28 din` (`434:2931`).
  *
  * A filter, not navigation: switching period must not push a route, because the three frames are
@@ -104,22 +208,41 @@ export function PeriodTabs({
   onChange,
   testID = 'period-tabs',
 }: PeriodTabsProps): React.ReactElement {
+  const { s } = useDesignScale();
   return (
-    <View style={styles.tabRow} testID={testID} accessibilityRole="tablist">
+    <View
+      style={[
+        styles.tabRow,
+        { padding: s(TABS.padding), borderRadius: s(TABS.radius), gap: s(TABS.gap) },
+      ]}
+      testID={testID}
+      accessibilityRole="tablist"
+    >
       {items.map((item) => {
         const selected = item.key === value;
         return (
           <Pressable
             key={item.key}
             onPress={() => onChange(item.key)}
-            style={[styles.tab, selected ? styles.tabSelected : styles.tabIdle]}
+            style={[
+              styles.tab,
+              {
+                paddingVertical: s(TABS.buttonPaddingV),
+                borderRadius: s(TABS.buttonRadius),
+                backgroundColor: selected
+                  ? (SELECTED_FILL[item.key] ?? color.yellow500)
+                  : color.yellow300,
+              },
+            ]}
             accessibilityRole="tab"
             accessibilityState={{ selected }}
             accessibilityLabel={`${item.title}, ${item.subtitle}`}
             testID={`${testID}-${item.key}`}
           >
-            <Text variant="headingLgBold">{item.title}</Text>
-            <Text variant="bodyMuted" color={color.textPrimary}>
+            <Text variant="tabLabel" align="center">
+              {item.title}
+            </Text>
+            <Text variant="tabSubLabel" align="center">
               {item.subtitle}
             </Text>
           </Pressable>
@@ -129,9 +252,14 @@ export function PeriodTabs({
   );
 }
 
-/* ------------------------------------------------------------- date band --- */
+/* ------------------------------------------------------------------- date band --- */
 
-/** The yellow banner heading a past period — `26th July`, `11th Jul - 17th Jul`. */
+/**
+ * `537:336` — the yellow banner heading a past period (`26th July`, `11th Jul - 17th Jul`).
+ *
+ * Same shell as {@link PeriodTabs} with a single full-width button, which is how V13 draws it:
+ * `537:336` is the `timline` frame with one child instead of three.
+ */
 export function DateBanner({
   label,
   testID = 'date-banner',
@@ -139,16 +267,31 @@ export function DateBanner({
   label: string;
   testID?: string;
 }): React.ReactElement {
+  const { s } = useDesignScale();
   return (
-    <View style={styles.dateBanner} testID={testID}>
-      <Text variant="headingLgBold" align="center">
-        {label}
-      </Text>
+    <View
+      style={[styles.tabRow, { padding: s(TABS.padding), borderRadius: s(TABS.radius) }]}
+      testID={testID}
+    >
+      <View
+        style={[
+          styles.tab,
+          {
+            paddingVertical: s(TABS.buttonPaddingV),
+            borderRadius: s(TABS.buttonRadius),
+            backgroundColor: color.yellow500,
+          },
+        ]}
+      >
+        <Text variant="chipLabel" align="center">
+          {label}
+        </Text>
+      </View>
     </View>
   );
 }
 
-/* ------------------------------------------------------------- day strip --- */
+/* ------------------------------------------------------------------- day strip --- */
 
 export type DayState = 'present' | 'missed' | 'none';
 
@@ -158,10 +301,11 @@ export interface DayStripEntry {
 }
 
 /**
- * The `Mon…Sun` strip above the cycle frames (`13- money weekly`, `18- past weekly`).
+ * The `Mon…Sun` strip above the cycle frames (`505:1240`).
  *
  * `state` comes from stored attendance for the cycle window. A day with no record is `none` — an
- * empty disc, never a cross: "nothing recorded" and "did not come" are different facts.
+ * empty `#ffef99` disc, never a cross: "nothing recorded" and "did not come" are different facts,
+ * and the design gives them different artwork (`506:1905` vs `506:1869`).
  */
 export function DayStrip({
   days,
@@ -170,31 +314,48 @@ export function DayStrip({
   days: readonly DayStripEntry[];
   testID?: string;
 }): React.ReactElement {
+  const { s } = useDesignScale();
+  const disc = s(DAYSTRIP.disc);
   return (
     <View style={styles.dayStrip} testID={testID}>
       {days.map((day, index) => (
-        <View key={`${day.label}-${index}`} style={styles.dayCell}>
-          <View
-            style={[
-              styles.dayDisc,
-              day.state === 'present' && styles.dayDiscPresent,
-              day.state === 'missed' && styles.dayDiscMissed,
-            ]}
-          >
-            {day.state === 'present' && <Image source={icons.dayDone} style={styles.dayGlyph} />}
-            {day.state === 'missed' && <Image source={icons.dayMissed} style={styles.dayGlyph} />}
+        <View key={`${day.label}-${index}`} style={[styles.dayCell, { gap: s(DAYSTRIP.gap) }]}>
+          <View style={{ width: disc, height: disc }}>
+            <SvgXml xml={discFor(day.state)} width={disc} height={disc} />
+            {day.state === 'present' && (
+              <Image
+                source={images.dayDone}
+                style={[styles.dayGlyph, { width: s(DAYSTRIP.tick), height: s(DAYSTRIP.tick) }]}
+                resizeMode="contain"
+              />
+            )}
+            {day.state === 'missed' && (
+              <Image
+                source={images.multiply}
+                style={[styles.dayGlyph, { width: s(DAYSTRIP.cross), height: s(DAYSTRIP.cross) }]}
+                resizeMode="contain"
+              />
+            )}
           </View>
-          <Text variant="micro">{day.label}</Text>
+          <Text variant="caption" align="center">
+            {day.label}
+          </Text>
         </View>
       ))}
     </View>
   );
 }
 
-/* ------------------------------------------------------------ work cards --- */
+function discFor(state: DayState): string {
+  if (state === 'present') return v13.dayPresentDisc;
+  if (state === 'missed') return v13.dayMissedDisc;
+  return v13.dayEmptyDisc;
+}
+
+/* ------------------------------------------------------------------ work cards --- */
 
 /**
- * `AAJ KA KAAM` (`485:5066`) — the daily work panel.
+ * `AAJ KA KAAM` (`434:2870`) — the daily work panel.
  *
  * Worked hours/minutes and the extra-kaam multiplier are unavailable from the contract and show
  * `—`. The bonus bar's segment COUNT is `bonus.targetDays`, never a hardcoded seven, and its
@@ -211,78 +372,145 @@ export function DailyWorkCard({
   copy: PeriodCopy;
   testID?: string;
 }): React.ReactElement {
+  const scale = useDesignScale();
+  const { s } = scale;
   const hours = view.workedMinutes === null ? null : Math.floor(view.workedMinutes / 60);
   const minutes = view.workedMinutes === null ? null : view.workedMinutes % 60;
 
   return (
-    <View style={[styles.card, styles.cardYellow]} testID={testID}>
+    <Card tone="yellow" testID={testID}>
       <SectionLabel>{copy.work}</SectionLabel>
 
-      <View style={styles.workRow}>
-        <Image source={icons.timerWide} style={styles.timerWide} />
-        <View style={styles.workUnit}>
-          {hours === null ? <Unavailable /> : <Text variant="displayXl">{String(hours)}</Text>}
-          <Text variant="bodyMuted" color={color.textPrimary}>
-            ghante
-          </Text>
-        </View>
-        <View style={styles.workUnit}>
-          {minutes === null ? <Unavailable /> : <Text variant="displayXl">{String(minutes)}</Text>}
-          <Text variant="bodyMuted" color={color.textPrimary}>
-            mins
-          </Text>
+      <View style={[styles.row, { gap: s(WORK.rowGap) }]}>
+        <Image
+          source={images.timer}
+          style={{ width: s(WORK.timerWidth), height: s(WORK.timerHeight) }}
+          resizeMode="contain"
+        />
+        <View style={[styles.row, { gap: s(WORK.groupGap) }]}>
+          <WorkUnit value={hours} word="ghante" scale={scale} />
+          <WorkUnit value={minutes} word="mins" scale={scale} />
         </View>
       </View>
 
       {bonus !== null && <BonusBar bonus={bonus} />}
 
       <SectionLabel>Extra kaam bonus</SectionLabel>
-      <View style={styles.formulaRow}>
-        <Chip tone="lime200" muted testID={`${testID}-multiplier`}>
-          {unavailableFigure}
-        </Chip>
-        <Text variant="headingBlack">x</Text>
-        <Chip tone="lime200" muted testID={`${testID}-rate`}>
-          {unavailableFigure}
-        </Chip>
-        <Text variant="headingBlack">=</Text>
-        <Chip tone="lime400" testID={`${testID}-extra`}>
+      <View style={[styles.formulaRow, { height: s(FORMULA.height), padding: s(FORMULA.padding) }]}>
+        <FormulaCell
+          width={FORMULA.multiplierWidth}
+          fill={color.lime200}
+          muted={view.extraKaamMultiplier === null}
+          testID={`${testID}-multiplier`}
+        >
+          {view.extraKaamMultiplier === null
+            ? unavailableFigure
+            : view.extraKaamMultiplier.toFixed(2)}
+        </FormulaCell>
+        <FormulaCell width={FORMULA.operatorWidth}>x</FormulaCell>
+        <FormulaCell
+          width={FORMULA.rateWidth}
+          fill={color.lime200}
+          muted={view.extraKaamRatePaise === null}
+          testID={`${testID}-rate`}
+        >
+          {view.extraKaamRatePaise === null
+            ? unavailableFigure
+            : formatRupees(view.extraKaamRatePaise)}
+        </FormulaCell>
+        <FormulaCell width={FORMULA.operatorWidth}>=</FormulaCell>
+        <FormulaCell
+          width={FORMULA.resultWidth}
+          height={FORMULA.resultHeight}
+          fill={color.lime400}
+          testID={`${testID}-extra`}
+        >
           {formatSignedRupees(view.breakdown.longHoursPaise)}
-        </Chip>
+        </FormulaCell>
       </View>
+    </Card>
+  );
+}
+
+/** `532:95` — one `8 ghante` pair. The numeral and the word share a baseline. */
+function WorkUnit({
+  value,
+  word,
+  scale,
+}: {
+  value: number | null;
+  word: string;
+  scale: DesignScale;
+}): React.ReactElement {
+  return (
+    <View style={[styles.unit, { gap: scale.s(WORK.unitGap) }]}>
+      {value === null ? <Unavailable /> : <Text variant="displayLg">{String(value)}</Text>}
+      <Text variant="unitLabel">{word}</Text>
     </View>
   );
 }
 
 /**
- * The bonus progress bar (`434:2889`).
+ * The bonus panel (`434:2889`).
  *
  * Both the sentence and the geometry are backend-driven: `thresholdDays` supplies the number the
  * cook must beat and `targetDays` supplies the segment count, so a policy change in the earnings
- * config moves this bar without an app release. The design's literal `7` is copy, not policy.
+ * config moves this bar without an app release.
+ *
+ * ## The unit word is `din`, and V13 says `ghante`
+ *
+ * `434:2892` reads `Bonus ke liye: 7 se zyada ghante kaam` — **hours**. The deployed contract has
+ * no hours field at all: `CookBonusProgress` exposes `currentProgressDays`, `thresholdDays` and
+ * `targetDays`, and the ledger awards the bonus on present DAYS. Printing the design's word would
+ * promise a rule the backend will not honour, and a cook who worked eight hours on three days
+ * would read it as earned.
+ *
+ * So the sentence says `din`, and this is recorded as an approved, region-limited deviation in
+ * `docs/COOK_APP_V13_PIXEL_PERFECT_CLOSURE.md` alongside the invalid `31 November` cell — the same
+ * class of correction, for the same reason: production stays correct and the divergence is
+ * documented rather than hidden. It reverts to the design's word the day the contract grows one.
  */
 function BonusBar({ bonus }: { bonus: BonusProgress }): React.ReactElement {
+  const { s } = useDesignScale();
   const segments = Math.max(1, Math.min(31, bonus.targetDays));
   const filled = Math.max(0, Math.min(segments, bonus.completedDays));
 
   return (
-    <View style={styles.bonusBox} testID="bonus-bar">
-      <Text variant="caption" testID="bonus-bar-hint">
+    <View
+      style={[
+        styles.bonusBox,
+        { borderRadius: s(BONUS.radius), padding: s(BONUS.padding), gap: s(BONUS.gap) },
+        dropShadow(2, 0.05, 1),
+      ]}
+      testID="bonus-bar"
+    >
+      <Text variant="bonusHint" testID="bonus-bar-hint">
         {'Bonus ke liye: '}
-        <Text variant="caption" color={color.success}>
+        <Text variant="bonusHint" color={color.success}>
           {`${bonus.thresholdDays} se zyada`}
         </Text>
         {' din kaam'}
       </Text>
       <View
-        style={styles.bonusTrack}
+        style={[
+          styles.bonusTrack,
+          {
+            height: s(BONUS.trackHeight),
+            padding: s(BONUS.trackPadding),
+            gap: s(BONUS.segmentGap),
+            borderRadius: s(BONUS.trackHeight),
+          },
+        ]}
         accessibilityRole="progressbar"
         accessibilityValue={{ min: 0, max: segments, now: filled }}
       >
         {Array.from({ length: segments }, (_, index) => (
           <View
             key={index}
-            style={[styles.bonusSegment, index < filled && styles.bonusSegmentFilled]}
+            style={[
+              styles.bonusSegment,
+              { backgroundColor: index < filled ? color.lime600 : color.yellow200 },
+            ]}
           />
         ))}
       </View>
@@ -291,7 +519,7 @@ function BonusBar({ bonus }: { bonus: BonusProgress }): React.ReactElement {
 }
 
 /**
- * `CYCLE KA KAAM` / `MAHINE KA KAAM` (`575:1884`, `575:2013`).
+ * `CYCLE KA KAAM` / `MAHINE KA KAAM` (`492:5352`, `502:207`).
  *
  * Two tiles over their amounts, then the rating strip and the earnings block. The tile COUNTS
  * (`5+` five-star days, long-hours days) are not exposed by the contract; their amounts are.
@@ -309,54 +537,63 @@ export function CycleWorkCard({
   bonus: BonusProgress | null;
   testID?: string;
 }): React.ReactElement {
+  const { s } = useDesignScale();
+  // `492:5414` reads `7 hr ke upar kaam`. The contract counts days, so the caption states the
+  // server's unit for the same reason `BonusBar` does — see its note.
   const thresholdLabel =
-    bonus === null ? 'lambe ghante kaam' : `${bonus.thresholdDays} din se zyada kaam`;
+    bonus === null ? 'Lambe din kaam' : `${bonus.thresholdDays} din se upar kaam`;
 
   return (
-    <View style={[styles.card, styles.cardYellow]} testID={testID}>
+    <Card tone="yellow" testID={testID}>
       <SectionLabel>{copy.work}</SectionLabel>
 
-      <View style={styles.tileRow}>
-        <View style={styles.tile}>
-          <View style={styles.tileHead}>
-            <Image source={icons.star} style={styles.starSmall} />
-            <Text variant="heading">5+</Text>
-          </View>
-          <Text variant="captionMuted" color={color.textPrimary}>
-            Bohot accha kaam
-          </Text>
-          <Unavailable testID={`${testID}-rating-count`} />
-        </View>
-
-        <View style={styles.tile}>
-          <View style={styles.tileHead}>
-            <Image source={icons.timer} style={styles.timerSmall} />
-            <Text variant="heading">Ghante</Text>
-          </View>
-          <Text variant="captionMuted" color={color.textPrimary}>
-            {thresholdLabel}
-          </Text>
-          <Unavailable testID={`${testID}-hours-count`} />
-        </View>
+      <View style={[styles.tileRow, { gap: s(TILE.columnGap) }]}>
+        <StatTile
+          fill={color.lime300}
+          glyph={<GlyphOnDisc image={images.star} inset={1} size={25} />}
+          title="5+"
+          caption="Bohot accha kaam"
+          testID={`${testID}-rating`}
+        />
+        <StatTile
+          fill={color.lime300}
+          glyph={<GlyphOnDisc image={images.timer} size={28} />}
+          title="Ghante"
+          caption={thresholdLabel}
+          testID={`${testID}-hours`}
+        />
       </View>
 
-      <View style={styles.tileRow}>
-        <Chip tone="lime100" flex testID={`${testID}-rating-bonus`}>
+      <View style={[styles.tileRow, { gap: s(TILE.columnGap) }]}>
+        <AmountChip fill={color.lime100} testID={`${testID}-rating-bonus`}>
           {formatSignedRupees(view.breakdown.ratingBonusPaise)}
-        </Chip>
-        <Chip tone="lime100" flex testID={`${testID}-hours-bonus`}>
+        </AmountChip>
+        <AmountChip fill={color.lime100} testID={`${testID}-hours-bonus`}>
           {formatSignedRupees(view.breakdown.longHoursPaise)}
-        </Chip>
+        </AmountChip>
       </View>
 
       {rating !== null && <RatingStrip rating={rating} />}
 
-      <View style={styles.earningsBlock} testID={`${testID}-earnings`}>
-        <SectionLabel>{copy.earnings}</SectionLabel>
-        <Text variant="displayLg" testID={`${testID}-gross`}>
-          {formatRupees(view.breakdown.grossPaise)}
-        </Text>
-        <View style={styles.tileRow}>
+      <View
+        style={[
+          styles.band,
+          {
+            backgroundColor: color.lime300,
+            borderRadius: s(BAND.radius),
+            padding: s(BAND.padding),
+            gap: s(BAND.gap),
+          },
+        ]}
+        testID={`${testID}-earnings`}
+      >
+        <View style={{ gap: s(RATING.headGap) }}>
+          <SectionLabel>{copy.earnings}</SectionLabel>
+          <Text variant="display" testID={`${testID}-gross`}>
+            {formatRupees(view.breakdown.grossPaise)}
+          </Text>
+        </View>
+        <View style={[styles.tileRow, { gap: s(MINI.columnGap) }]}>
           <MiniStat label="Base" value={formatRupees(view.breakdown.basePaise)} />
           <MiniStat
             label="Bonus"
@@ -366,13 +603,13 @@ export function CycleWorkCard({
           <MiniStat label="Tip" value={formatRupees(view.breakdown.tipsPaise)} />
         </View>
       </View>
-    </View>
+    </Card>
   );
 }
 
-/* --------------------------------------------------------------- rating --- */
+/* ----------------------------------------------------------------------- rating --- */
 
-/** `RATING · Last 50 kaam` + the average, straight from `/cook/me`. */
+/** `536:208` — `RATING · Last 50 kaam` + the average, straight from `/cook/me`. */
 export function RatingStrip({
   rating,
   testID = 'rating-strip',
@@ -380,16 +617,28 @@ export function RatingStrip({
   rating: RatingView;
   testID?: string;
 }): React.ReactElement {
+  const { s } = useDesignScale();
+  const disc = s(RATING.disc);
   return (
-    <View style={styles.ratingStrip} testID={testID}>
+    <View style={[styles.row, { gap: s(RATING.headGap) }]} testID={testID}>
       <View style={styles.ratingText}>
         <SectionLabel>rating</SectionLabel>
-        <Text variant="captionMuted" color={color.textPrimary}>
+        <Text variant="captionMuted" color={color.black80}>
           {`Last ${rating.count} kaam`}
         </Text>
       </View>
-      <View style={styles.ratingValue}>
-        <Image source={icons.starLg} style={styles.starLarge} />
+      <View style={[styles.ratingValue, { width: s(RATING.valueWidth), gap: s(RATING.gap) }]}>
+        <View style={{ width: disc, height: disc }}>
+          <SvgXml xml={v13.ratingDisc} width={disc} height={disc} />
+          <Image
+            source={images.star}
+            style={[
+              styles.discGlyph,
+              { left: s(1), top: s(1), width: s(RATING.star), height: s(RATING.star) },
+            ]}
+            resizeMode="contain"
+          />
+        </View>
         <Text variant="display" testID={`${testID}-average`}>
           {rating.average.toFixed(1)}
         </Text>
@@ -399,7 +648,7 @@ export function RatingStrip({
 }
 
 /**
- * The daily frame's closing panel: rating over `CYCLE BASE (PRATI DIN)`.
+ * `536:207` — the daily frame's closing panel: rating over `CYCLE BASE (PRATI DIN)`.
  *
  * A per-day base would be `base ÷ days`, which the contract does not provide and the app must not
  * divide into — so the figure shows `—`.
@@ -413,27 +662,38 @@ export function DailyRatingCard({
   perDayBasePaise: number | null;
   testID?: string;
 }): React.ReactElement {
+  const { s } = useDesignScale();
   return (
-    <View style={[styles.card, styles.cardBlack]} testID={testID}>
+    <Card tone="black" radius={BAND.radius} padding={BAND.padding} gap={BAND.gap} testID={testID}>
       {rating !== null && <RatingStrip rating={rating} />}
-      <View style={styles.baseBlock}>
+      <View
+        style={[
+          styles.band,
+          {
+            backgroundColor: color.yellow200,
+            borderRadius: s(BAND.radius),
+            padding: s(BAND.padding),
+            gap: s(RATING.headGap),
+          },
+        ]}
+      >
         <SectionLabel>cycle base (prati din)</SectionLabel>
         {perDayBasePaise === null ? (
-          <Unavailable variant="displayLg" testID={`${testID}-per-day`} />
+          <Unavailable variant="display" testID={`${testID}-per-day`} />
         ) : (
-          <Text variant="displayLg" testID={`${testID}-per-day`}>
+          <Text variant="display" testID={`${testID}-per-day`}>
             {formatRupees(perDayBasePaise)}
           </Text>
         )}
       </View>
-    </View>
+    </Card>
   );
 }
 
-/* ------------------------------------------------------------- mistakes --- */
+/* --------------------------------------------------------------------- mistakes --- */
 
 /**
- * `AAJ KI GALATIYAAN` (`502:191`) — no-show and late, then the period's total katauti.
+ * `AAJ KI GALATIYAAN` (`502:8`) — no-show and late, then the period's total katauti.
  *
  * The two counts show `—`: the backend aggregates penalties by amount and drops the per-type
  * count. `totalDeductionsPaise` IS server-computed (the signed sum of every negative row) and is
@@ -448,83 +708,65 @@ export function MistakesCard({
   copy: PeriodCopy;
   testID?: string;
 }): React.ReactElement {
+  const { s } = useDesignScale();
   return (
-    <View style={[styles.card, styles.cardRed]} testID={testID}>
+    <Card tone="red" testID={testID}>
       <SectionLabel>{copy.mistakes}</SectionLabel>
 
-      <View style={styles.tileRow}>
-        <MistakeTile
-          icon={icons.noShow}
+      <View style={[styles.tileRow, { gap: s(TILE.columnGap) }]}>
+        <StatTile
+          fill={color.yellow300}
+          glyph={<GlyphOnDisc image={images.multiply} size={TILE.disc} />}
           title="No show"
+          titleVariant="timeStrong"
           caption="Kaam pe NAHI gaye"
           count={view.noShow.count}
           testID={`${testID}-no-show`}
         />
-        <MistakeTile
-          icon={icons.lateClock}
+        <StatTile
+          fill={color.yellow300}
+          glyph={<GlyphOnDisc image={images.clock} size={TILE.disc} />}
           title="Late"
+          titleVariant="timeStrong"
           caption="Kaam pe LATE gaye"
           count={view.late.count}
           testID={`${testID}-late`}
         />
       </View>
 
-      <View style={styles.tileRow}>
-        <Chip tone="yellow400" flex testID={`${testID}-no-show-amount`}>
+      <View style={[styles.tileRow, { gap: s(TILE.columnGap) }]}>
+        <AmountChip fill={color.yellow400} testID={`${testID}-no-show-amount`}>
           {formatDeduction(view.noShow.amountPaise)}
-        </Chip>
-        <Chip tone="yellow400" flex testID={`${testID}-late-amount`}>
+        </AmountChip>
+        <AmountChip fill={color.yellow400} testID={`${testID}-late-amount`}>
           {formatDeduction(view.late.amountPaise)}
-        </Chip>
+        </AmountChip>
       </View>
 
-      <View style={styles.katautiBlock}>
+      <View
+        style={[
+          styles.band,
+          {
+            backgroundColor: color.yellow200,
+            borderRadius: s(BAND.radius),
+            padding: s(BAND.padding),
+            gap: s(RATING.headGap),
+          },
+        ]}
+      >
         <SectionLabel>{copy.deductions}</SectionLabel>
-        <Text variant="displayLg" testID={`${testID}-total`}>
+        <Text variant="display" testID={`${testID}-total`}>
           {formatDeduction(view.breakdown.totalDeductionsPaise)}
         </Text>
       </View>
-    </View>
+    </Card>
   );
 }
 
-function MistakeTile({
-  icon,
-  title,
-  caption,
-  count,
-  testID,
-}: {
-  icon: ImageSourcePropType;
-  title: string;
-  caption: string;
-  count: number | null;
-  testID: string;
-}): React.ReactElement {
-  return (
-    <View style={styles.mistakeTile} testID={testID}>
-      <View style={styles.tileHead}>
-        <Image source={icon} style={styles.mistakeIcon} />
-        <Text variant="heading">{title}</Text>
-      </View>
-      <Text variant="captionMuted" color={color.textPrimary}>
-        {caption}
-      </Text>
-      {count === null ? (
-        <Unavailable testID={`${testID}-count`} />
-      ) : (
-        <Text variant="displayXl" testID={`${testID}-count`}>
-          {String(count)}
-        </Text>
-      )}
-    </View>
-  );
-}
-
-/* ----------------------------------------------------------------- bands --- */
+/* ------------------------------------------------------------------------ bands --- */
 
 /**
- * `AAJ KI BASE KE UPAR KI KAMAI`.
+ * `492:5296` — `AAJ KI BASE KE UPAR KI KAMAI`.
  *
  * `aboveBasePaise` is `null` by design. Deriving it as `gross − base` would omit reversals, which
  * the backend keeps in their own signed category — a reversed bonus would still be counted here.
@@ -539,20 +781,20 @@ export function AboveBaseBand({
   testID?: string;
 }): React.ReactElement {
   return (
-    <View style={styles.limeBand} testID={testID}>
+    <LimeBand testID={testID}>
       <SectionLabel>{copy.aboveBase}</SectionLabel>
       {view.aboveBasePaise === null ? (
-        <Unavailable variant="displayLg" testID={`${testID}-value`} />
+        <Unavailable variant="display" testID={`${testID}-value`} />
       ) : (
-        <Text variant="displayLg" testID={`${testID}-value`}>
+        <Text variant="display" testID={`${testID}-value`}>
           {formatSignedRupees(view.aboveBasePaise)}
         </Text>
       )}
-    </View>
+    </LimeBand>
   );
 }
 
-/** `FINAL CYCLE KAMAI` / `FINAL KAMAI` — the server's signed net for the period. */
+/** `540:105` — `FINAL CYCLE KAMAI` / `FINAL KAMAI`. `netPaise` is the ledger's own net. */
 export function FinalBand({
   label,
   netPaise,
@@ -563,16 +805,16 @@ export function FinalBand({
   testID?: string;
 }): React.ReactElement {
   return (
-    <View style={styles.limeBand} testID={testID}>
+    <LimeBand testID={testID}>
       <SectionLabel>{label}</SectionLabel>
-      <Text variant="displayLg" testID={`${testID}-value`}>
+      <Text variant="display" testID={`${testID}-value`}>
         {formatRupees(netPaise)}
       </Text>
-    </View>
+    </LimeBand>
   );
 }
 
-/** `SPOON SE AAJ TAK KI KAMAI` — the lifetime total heading the cycle history. */
+/** `502:301` — `SPOON SE AAJ TAK KI KAMAI`, the lifetime total on the cycle-history frame. */
 export function LifetimeBand({
   netPaise,
   testID = 'lifetime-band',
@@ -581,19 +823,23 @@ export function LifetimeBand({
   testID?: string;
 }): React.ReactElement {
   return (
-    <View style={styles.limeBand} testID={testID}>
+    <LimeBand testID={testID}>
       <SectionLabel>Spoon se aaj tak ki kamai</SectionLabel>
-      <Text variant="displayLg" testID={`${testID}-value`}>
+      <Text variant="display" testID={`${testID}-value`}>
         {formatRupees(netPaise)}
       </Text>
-    </View>
+    </LimeBand>
   );
 }
 
-/* ------------------------------------------------------------------ rows --- */
+/* ------------------------------------------------------------------------- rows --- */
 
 /**
- * A tappable row — the `Cycle ke din` / `Pichle cycles` links and the history lists themselves.
+ * `502:434` / `537:491` / `502:628` — a tappable row: the `Cycle ke din` / `Pichle cycles` links
+ * and the history lists themselves.
+ *
+ * With a `sublabel` the row is a past **cycle** (`502:628`): rounder, taller, and stacking the
+ * range over `Kamai: ₹7,839`. Without one it is a link or a past **day** (`537:491`).
  *
  * The chevron is decorative; the row carries the accessible label so a screen reader announces
  * the destination rather than "image, button".
@@ -609,35 +855,62 @@ export function LinkRow({
   onPress: () => void;
   testID: string;
 }): React.ReactElement {
+  const scale = useDesignScale();
+  const { s } = scale;
+  const isCycle = sublabel !== undefined;
   return (
     <Pressable
       onPress={onPress}
-      style={styles.linkRow}
+      style={[
+        styles.linkRow,
+        figmaStroke(scale, {
+          width: ROW.stroke,
+          paddingH: ROW.paddingH,
+          paddingV: ROW.paddingV,
+          align: 'inside',
+        }),
+        {
+          borderRadius: s(isCycle ? CYCLE_ROW.radius : ROW.radius),
+          gap: s(ROW.gap),
+          ...(isCycle ? { minHeight: s(CYCLE_ROW.height) } : {}),
+        },
+      ]}
       accessibilityRole="button"
       accessibilityLabel={sublabel === undefined ? label : `${label}, ${sublabel}`}
       testID={testID}
     >
-      <Image source={icons.calendar} style={styles.calendarIcon} />
+      <Image
+        source={images.calendar}
+        style={{ width: s(ROW.calendar), height: s(ROW.calendar) }}
+        resizeMode="contain"
+      />
       <View style={styles.linkRowText}>
-        <Text variant="title">{label}</Text>
-        {sublabel !== undefined && (
-          <Text variant="captionMuted" color={color.textPrimary}>
-            {sublabel}
-          </Text>
+        {isCycle ? (
+          <View style={{ gap: s(CYCLE_ROW.innerGap) }}>
+            <Text variant="cycleRowTitle">{label}</Text>
+            <View style={[styles.row, { gap: s(CYCLE_ROW.innerGap) }]}>
+              <Text variant="unitLabel">Kamai:</Text>
+              <Text variant="title">{sublabel}</Text>
+            </View>
+          </View>
+        ) : (
+          <Text variant="headingBlack">{label}</Text>
         )}
       </View>
-      <Image source={icons.chevron} style={styles.chevron} />
+      <View style={styles.rowChevron}>
+        <SvgXml xml={v13.rowChevron} width={s(ROW.chevron)} height={s(ROW.chevron)} />
+      </View>
     </Pressable>
   );
 }
 
-/* ---------------------------------------------------------------- header --- */
+/* ----------------------------------------------------------------------- header --- */
 
 /**
- * `‹ Cycle ke din` — the back header on every pushed Performance screen.
+ * `537:488` — `‹ Cycle ke din`, the back header on every pushed Performance frame.
  *
- * The chevron and the title are ONE control with a 44pt target, so the whole affordance is
- * tappable rather than just the 28pt glyph.
+ * The glyph and the title are ONE control with a 44pt target, so the whole affordance is tappable
+ * rather than just the 32-unit glyph.
  */
 export function BackHeader({
   title,
@@ -648,59 +921,251 @@ export function BackHeader({
   onBack: () => void;
   testID?: string;
 }): React.ReactElement {
+  const { s } = useDesignScale();
   return (
-    <View style={styles.header}>
+    <View style={[styles.header, { height: s(NAV.height) }]}>
       <Pressable
         onPress={onBack}
-        style={styles.backButton}
+        style={[
+          styles.backButton,
+          {
+            gap: s(NAV.gap),
+            paddingHorizontal: s(BLOCK.paddingH),
+            paddingVertical: s(BLOCK.paddingV),
+          },
+        ]}
         accessibilityRole="button"
         accessibilityLabel={`Wapas, ${title}`}
-        hitSlop={spacing.s}
+        hitSlop={8}
         testID={testID}
       >
-        <Image source={icons.chevron} style={styles.backGlyph} />
+        <SvgXml xml={v13.navBack} width={s(NAV.glyph)} height={s(NAV.glyph)} />
         <Text variant="headingLg">{title}</Text>
       </Pressable>
     </View>
   );
 }
 
-/* -------------------------------------------------------------- internals --- */
+/* -------------------------------------------------------------------- internals --- */
 
-/** The red uppercase caption that opens every panel. */
+/** The red uppercase caption that opens every panel (`502:371`). */
 function SectionLabel({ children }: { children: React.ReactNode }): React.ReactElement {
   return (
-    <Text variant="bodyStrong" color={color.danger} style={styles.sectionLabel}>
+    <Text variant="overline" color={color.danger} style={styles.upper}>
       {children}
     </Text>
   );
 }
 
-type ChipTone = 'lime100' | 'lime200' | 'lime400' | 'yellow400';
-
-function Chip({
+/** `434:2870` — a bordered panel. The stroke is centre-aligned, so it goes through `figmaStroke`. */
+function Card({
   children,
   tone,
-  flex = false,
-  muted = false,
+  radius = CARD.radius,
+  padding = CARD.padding,
+  gap = CARD.gap,
   testID,
 }: {
   children: React.ReactNode;
-  tone: ChipTone;
-  flex?: boolean;
-  /** The chip holds a figure the contract does not expose. */
-  muted?: boolean;
+  tone: 'yellow' | 'red' | 'black';
+  radius?: number;
+  padding?: number;
+  gap?: number;
   testID?: string;
 }): React.ReactElement {
+  const scale = useDesignScale();
+  const border = tone === 'yellow' ? color.yellow600 : tone === 'red' ? color.danger : color.black;
   return (
-    <View style={[styles.chip, chipTone[tone], flex && styles.chipFlex]} testID={testID}>
-      <Text variant="headingBlack" align="center" {...(muted ? { color: color.textMuted } : {})}>
+    <View
+      style={[
+        styles.card,
+        figmaStroke(scale, { width: CARD.stroke, padding, align: 'inside' }),
+        { borderColor: border, borderRadius: scale.s(radius), gap: scale.s(gap) },
+      ]}
+      testID={testID}
+    >
+      {children}
+    </View>
+  );
+}
+
+/** `492:5296` — a filled lime panel with a label over one figure. */
+function LimeBand({
+  children,
+  testID,
+}: {
+  children: React.ReactNode;
+  testID?: string;
+}): React.ReactElement {
+  const { s } = useDesignScale();
+  return (
+    <View
+      style={[
+        styles.band,
+        {
+          backgroundColor: color.lime300,
+          borderRadius: s(CARD.radius),
+          padding: s(CARD.padding),
+          gap: s(RATING.headGap),
+        },
+      ]}
+      testID={testID}
+    >
+      {children}
+    </View>
+  );
+}
+
+/** `502:852` — a 28-unit white disc with a Figma glyph centred on it. */
+function GlyphOnDisc({
+  image,
+  size,
+  inset = 0,
+}: {
+  image: ImageSourcePropType;
+  size: number;
+  inset?: number;
+}): React.ReactElement {
+  const { s } = useDesignScale();
+  const disc = s(TILE.disc);
+  return (
+    <View style={{ width: disc, height: disc }}>
+      <SvgXml xml={v13.mistakeDisc} width={disc} height={disc} />
+      <Image
+        source={image}
+        style={[
+          styles.discGlyph,
+          { left: s(inset), top: s(inset), width: s(size), height: s(size) },
+        ]}
+        resizeMode="contain"
+      />
+    </View>
+  );
+}
+
+/** `502:13` / `502:212` — a two-up tile: glyph + title, caption, then a figure. */
+function StatTile({
+  fill,
+  glyph,
+  title,
+  titleVariant = 'headingLgBold',
+  caption,
+  count,
+  testID,
+}: {
+  fill: string;
+  glyph: React.ReactElement;
+  title: string;
+  titleVariant?: 'headingLgBold' | 'timeStrong';
+  caption: string;
+  count?: number | null;
+  testID?: string;
+}): React.ReactElement {
+  const { s } = useDesignScale();
+  return (
+    <View
+      style={[
+        styles.tile,
+        {
+          backgroundColor: fill,
+          borderRadius: s(TILE.radius),
+          paddingHorizontal: s(TILE.paddingH),
+          paddingVertical: s(TILE.paddingV),
+          gap: s(TILE.gap),
+        },
+      ]}
+      testID={testID}
+    >
+      <View style={{ gap: s(TILE.gap) }}>
+        <View style={[styles.row, { gap: s(TILE.headGap) }]}>
+          {glyph}
+          <Text variant={titleVariant} color={color.grey900}>
+            {title}
+          </Text>
+        </View>
+        <Text variant="captionMuted" color={color.black80}>
+          {caption}
+        </Text>
+      </View>
+      <View style={styles.tileCount}>
+        {count === undefined || count === null ? (
+          <Unavailable testID={testID === undefined ? undefined : `${testID}-count`} />
+        ) : (
+          <Text variant="displayLg" testID={`${testID}-count`}>
+            {String(count)}
+          </Text>
+        )}
+      </View>
+    </View>
+  );
+}
+
+/** `502:36` / `502:236` — a filled amount cell under a tile pair. */
+function AmountChip({
+  children,
+  fill,
+  testID,
+}: {
+  children: React.ReactNode;
+  fill: string;
+  testID?: string;
+}): React.ReactElement {
+  const { s } = useDesignScale();
+  return (
+    <View
+      style={[
+        styles.amountChip,
+        {
+          backgroundColor: fill,
+          borderRadius: s(TILE.radius),
+          paddingHorizontal: s(TILE.paddingH),
+          paddingVertical: s(TILE.paddingV),
+        },
+      ]}
+      testID={testID}
+    >
+      <Text variant="headingLgBold" align="center">
         {children}
       </Text>
     </View>
   );
 }
 
+/** `531:1703` — one cell of the extra-kaam formula. Operators have no fill. */
+function FormulaCell({
+  children,
+  width,
+  height,
+  fill,
+  muted = false,
+  testID,
+}: {
+  children: React.ReactNode;
+  width: number;
+  height?: number;
+  fill?: string;
+  muted?: boolean;
+  testID?: string;
+}): React.ReactElement {
+  const { s } = useDesignScale();
+  return (
+    <View
+      style={[
+        styles.formulaCell,
+        { width: s(width) },
+        height === undefined ? styles.formulaCellStretch : { height: s(height) },
+        fill === undefined ? null : { backgroundColor: fill, borderRadius: s(FORMULA.cellRadius) },
+      ]}
+      testID={testID}
+    >
+      <Text variant="timeStrong" align="center" {...(muted ? { color: color.textMuted } : {})}>
+        {children}
+      </Text>
+    </View>
+  );
+}
+
+/** `532:109` — a `Base` / `Bonus` / `Tip` cell. White, with a 2-unit lime stroke. */
 function MiniStat({
   label,
   value,
@@ -710,207 +1175,84 @@ function MiniStat({
   value: string;
   testID?: string;
 }): React.ReactElement {
+  const scale = useDesignScale();
   return (
-    <View style={styles.miniStat} testID={testID}>
-      <Text variant="captionMuted" color={color.textPrimary} align="center">
+    <View
+      style={[
+        styles.miniStat,
+        figmaStroke(scale, { width: MINI.stroke, padding: MINI.padding, align: 'inside' }),
+        { borderRadius: scale.s(MINI.radius) },
+      ]}
+      testID={testID}
+    >
+      <Text variant="captionMuted" color={color.black} align="center">
         {label}
       </Text>
-      <Text variant="title" align="center">
+      <Text variant="timeStrong" align="center">
         {value}
       </Text>
     </View>
   );
 }
 
-const chipTone: Record<ChipTone, { backgroundColor: string }> = {
-  lime100: { backgroundColor: color.lime100 },
-  lime200: { backgroundColor: color.lime200 },
-  lime400: { backgroundColor: color.lime400 },
-  yellow400: { backgroundColor: color.yellow400 },
-};
+/** Design-space measurements the screens need when they lay these pieces out. */
+export const performanceLayout = {
+  screen: SCREEN,
+  block: BLOCK,
+  nav: NAV,
+} as const;
 
 const styles = StyleSheet.create({
-  /* tabs */
-  tabRow: { flexDirection: 'row', gap: spacing.s },
-  tab: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: spacing.s,
-    borderRadius: radius.m,
-    minHeight: 60,
-  },
-  tabSelected: { backgroundColor: color.yellow600 },
-  tabIdle: { backgroundColor: color.yellow300 },
+  tabRow: { flexDirection: 'row', alignItems: 'stretch' },
+  tab: { flex: 1, alignItems: 'center', justifyContent: 'center' },
 
-  /* date banner */
-  dateBanner: {
-    backgroundColor: color.yellow600,
-    borderRadius: radius.m,
-    paddingVertical: spacing.m,
-    paddingHorizontal: spacing.l,
-  },
-
-  /* day strip */
   dayStrip: { flexDirection: 'row', justifyContent: 'space-between' },
-  dayCell: { alignItems: 'center', gap: spacing.xs },
-  dayDisc: {
-    width: 34,
-    height: 34,
-    borderRadius: radius.full,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: color.yellow300,
-  },
-  dayDiscPresent: { backgroundColor: color.lime300 },
-  dayDiscMissed: { backgroundColor: color.yellow300 },
-  dayGlyph: { width: 26, height: 26, resizeMode: 'contain' },
+  dayCell: { alignItems: 'center' },
+  dayGlyph: { position: 'absolute', alignSelf: 'center', top: '7%' },
 
-  /* cards */
-  card: {
-    backgroundColor: color.surface,
-    borderRadius: radius.l,
-    borderWidth: 1,
-    padding: spacing.m,
-    gap: spacing.m,
-  },
-  cardYellow: { borderColor: color.yellow600 },
-  cardRed: { borderColor: color.danger },
-  cardBlack: { borderColor: color.black },
+  card: { backgroundColor: color.surface, alignSelf: 'stretch' },
+  upper: { textTransform: 'uppercase' },
 
-  sectionLabel: { textTransform: 'uppercase' },
+  row: { flexDirection: 'row', alignItems: 'center' },
+  unit: { flexDirection: 'row', alignItems: 'center' },
 
-  /* daily work */
-  workRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.m },
-  workUnit: { flexDirection: 'row', alignItems: 'baseline', gap: spacing.xs },
-  timerWide: { width: 45, height: 38, resizeMode: 'contain' },
+  bonusBox: { backgroundColor: color.lime100, alignSelf: 'stretch' },
+  bonusTrack: { flexDirection: 'row', backgroundColor: color.surface, overflow: 'hidden' },
+  bonusSegment: { flex: 1, borderRadius: 999 },
 
-  bonusBox: {
-    backgroundColor: color.lime50,
-    borderRadius: radius.m,
-    padding: spacing.m,
-    gap: spacing.s,
-  },
-  bonusTrack: { flexDirection: 'row', gap: spacing.xs },
-  bonusSegment: {
-    flex: 1,
-    height: 6,
-    borderRadius: radius.xxs,
-    backgroundColor: color.lime100,
-  },
-  bonusSegmentFilled: { backgroundColor: color.lime600 },
+  formulaRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
+  formulaCell: { alignItems: 'center', justifyContent: 'center' },
+  formulaCellStretch: { alignSelf: 'stretch' },
 
-  formulaRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.s },
+  tileRow: { flexDirection: 'row', alignItems: 'stretch' },
+  tile: { flex: 1 },
+  tileCount: { alignItems: 'center', justifyContent: 'center' },
+  amountChip: { flex: 1, alignItems: 'center', justifyContent: 'center' },
 
-  /* chips */
-  chip: {
-    borderRadius: radius.m,
-    paddingVertical: spacing.s,
-    paddingHorizontal: spacing.m,
-    minWidth: 56,
-    justifyContent: 'center',
-  },
-  chipFlex: { flex: 1 },
+  band: { alignSelf: 'stretch' },
 
-  /* cycle tiles */
-  tileRow: { flexDirection: 'row', gap: spacing.s },
-  tile: {
-    flex: 1,
-    backgroundColor: color.lime300,
-    borderRadius: radius.m,
-    padding: spacing.m,
-    gap: spacing.xs,
-  },
-  tileHead: { flexDirection: 'row', alignItems: 'center', gap: spacing.s },
-  starSmall: { width: 25, height: 25, resizeMode: 'contain' },
-  timerSmall: { width: 28, height: 28, resizeMode: 'contain' },
+  ratingText: { flex: 1 },
+  ratingValue: { flexDirection: 'row', alignItems: 'center' },
+  discGlyph: { position: 'absolute' },
 
-  earningsBlock: {
-    backgroundColor: color.lime300,
-    borderRadius: radius.m,
-    padding: spacing.m,
-    gap: spacing.s,
-  },
   miniStat: {
     flex: 1,
     backgroundColor: color.surface,
-    borderRadius: radius.m,
-    paddingVertical: spacing.s,
-    paddingHorizontal: spacing.xs,
-    gap: spacing.xxs,
-  },
-
-  /* rating */
-  ratingStrip: {
-    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: color.lime100,
-    borderRadius: radius.m,
-    padding: spacing.m,
-    gap: spacing.m,
-  },
-  ratingText: { flex: 1, gap: spacing.xxs },
-  ratingValue: { flexDirection: 'row', alignItems: 'center', gap: spacing.s },
-  starLarge: { width: 36, height: 36, resizeMode: 'contain' },
-
-  baseBlock: {
-    backgroundColor: color.yellow200,
-    borderRadius: radius.m,
-    padding: spacing.m,
-    gap: spacing.xxs,
+    borderColor: color.lime600,
   },
 
-  /* mistakes */
-  mistakeTile: {
-    flex: 1,
-    backgroundColor: color.yellow300,
-    borderRadius: radius.m,
-    padding: spacing.m,
-    gap: spacing.xs,
-  },
-  mistakeIcon: { width: 28, height: 28, resizeMode: 'contain' },
-  katautiBlock: {
-    backgroundColor: color.yellow200,
-    borderRadius: radius.m,
-    padding: spacing.m,
-    gap: spacing.xxs,
-  },
+  header: { justifyContent: 'center' },
+  backButton: { flexDirection: 'row', alignItems: 'center' },
 
-  /* bands */
-  limeBand: {
-    backgroundColor: color.lime300,
-    borderRadius: radius.m,
-    padding: spacing.l,
-    gap: spacing.xxs,
-  },
-
-  /* header */
-  header: { paddingBottom: spacing.s },
-  backButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.m,
-    minHeight: 44,
-  },
-  // The exported asset is the Figma `back` control — a chevron INSIDE its own ring — so no disc
-  // is drawn around it here. It points right; the back affordance points left.
-  backGlyph: { width: 33, height: 33, resizeMode: 'contain', transform: [{ scaleX: -1 }] },
-
-  /* rows */
   linkRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.m,
     backgroundColor: color.surface,
-    borderRadius: radius.l,
-    borderWidth: 1,
     borderColor: color.yellow600,
-    paddingVertical: spacing.m,
-    paddingHorizontal: spacing.l,
-    minHeight: 64,
+    overflow: 'hidden',
   },
-  linkRowText: { flex: 1, gap: spacing.xxs },
-  calendarIcon: { width: 35, height: 35, resizeMode: 'contain' },
-  chevron: { width: 28, height: 28, resizeMode: 'contain' },
+  linkRowText: { flex: 1 },
+  // `502:438` — the exported `back` glyph turned into the row's forward chevron.
+  rowChevron: { transform: [{ rotate: '179.55deg' }] },
 });

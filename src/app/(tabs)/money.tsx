@@ -1,7 +1,6 @@
 import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { RefreshControl } from 'react-native';
 
 import {
   periodResponseFor,
@@ -14,30 +13,15 @@ import { useAttendanceRange, useCookProfile, useEarnings } from '@core/api/queri
 import {
   earningsPeriodLabels,
   earningsPeriods,
-  periodCopy,
   type EarningsPeriod,
   type RatingView,
 } from '@core/domain/money';
 import { useSession } from '@core/session/store';
-import {
-  AboveBaseBand,
-  color,
-  CycleWorkCard,
-  DailyRatingCard,
-  DailyWorkCard,
-  DayStrip,
-  ErrorState,
-  FinalBand,
-  LinkRow,
-  LoadingState,
-  MistakesCard,
-  PeriodTabs,
-  spacing,
-  type DayStripEntry,
-} from '@ui';
+import { MoneyPeriodView } from '@features/performance/PerformanceViews';
+import { ErrorState, LoadingState, type DayStripEntry } from '@ui';
 
 /**
- * My Money — Figma V12 section `performance` (`575:1741`).
+ * My Money — Figma V13 section `performance` (`575:1741`).
  *
  * Three frames, one screen, selected by the `Aaj / Cycle / Mahina` control:
  *
@@ -45,11 +29,11 @@ import {
  *   `575:1884` `13- money weekly`  → `earnings.sevenDay`  (today-6 … today)
  *   `575:2013` `16- money monthly` → `earnings.monthly`   (month start … today)
  *
- * ## V11 → V12
+ * ## Composition
  *
- * The old `Performance & earnings` section (`540:397`) was deleted from the file, not edited: all
- * seven of its 390-wide frames are gone and seven new 370-wide frames replace them under a new
- * section id. This screen is therefore a rebuild rather than a restyle.
+ * The frames themselves live in `@features/performance/PerformanceViews` so `/dev` can render the
+ * identical screen from a fixture. This route owns only the data: which period is selected, what
+ * the contract returned, and where a tap navigates.
  *
  * ## Every figure here is the server's
  *
@@ -68,7 +52,6 @@ import {
  * real `startDate`/`endDate` beneath it rather than implying 28 days were measured.
  */
 export default function MoneyScreen(): React.ReactElement {
-  const insets = useSafeAreaInsets();
   const signOut = useSession((s) => s.signOut);
   const [period, setPeriod] = useState<EarningsPeriod>('day');
 
@@ -140,7 +123,6 @@ export default function MoneyScreen(): React.ReactElement {
 
   if (view === null) return <LoadingState testID="money-loading" />;
 
-  const copy = periodCopy[period];
   const tabs = earningsPeriods.map((key) => ({
     key,
     title: earningsPeriodLabels[key].title,
@@ -148,67 +130,23 @@ export default function MoneyScreen(): React.ReactElement {
   }));
 
   return (
-    <View style={styles.flex}>
-      <ScrollView
-        contentContainerStyle={[
-          styles.content,
-          { paddingTop: insets.top + spacing.m, paddingBottom: insets.bottom + spacing.huge },
-        ]}
-        refreshControl={
-          <RefreshControl
-            refreshing={earnings.isFetching}
-            onRefresh={() => void earnings.refetch()}
-          />
-        }
-        testID="money-scroll"
-      >
-        <PeriodTabs
-          items={tabs}
-          value={period}
-          onChange={(key) => setPeriod(key as EarningsPeriod)}
+    <MoneyPeriodView
+      period={period}
+      view={view}
+      bonus={bonus}
+      rating={rating}
+      days={days}
+      tabs={tabs}
+      onChangePeriod={setPeriod}
+      onOpenDays={() => router.push('/money/days')}
+      onOpenCycles={() => router.push('/money/cycles')}
+      refreshControl={
+        <RefreshControl
+          refreshing={earnings.isFetching}
+          onRefresh={() => void earnings.refetch()}
         />
-
-        {period === 'cycle' && days.length > 0 && <DayStrip days={days} />}
-
-        {period === 'day' ? (
-          <DailyWorkCard view={view} bonus={bonus} copy={copy} />
-        ) : (
-          <CycleWorkCard
-            view={view}
-            // The monthly frame carries no rating strip; the weekly one does.
-            rating={period === 'cycle' ? rating : null}
-            copy={copy}
-            bonus={bonus}
-          />
-        )}
-
-        <MistakesCard view={view} copy={copy} />
-
-        {period === 'day' ? (
-          <>
-            <AboveBaseBand view={view} copy={copy} />
-            <DailyRatingCard rating={rating} perDayBasePaise={view.perDayBasePaise} />
-          </>
-        ) : (
-          <FinalBand label={copy.final} netPaise={view.breakdown.netPaise} />
-        )}
-
-        {period === 'cycle' && (
-          <LinkRow
-            label="Cycle ke din"
-            onPress={() => router.push('/money/days')}
-            testID="money-cycle-days"
-          />
-        )}
-        {period === 'month' && (
-          <LinkRow
-            label="Pichle cycles"
-            onPress={() => router.push('/money/cycles')}
-            testID="money-past-cycles"
-          />
-        )}
-      </ScrollView>
-    </View>
+      }
+    />
   );
 }
 
@@ -225,8 +163,3 @@ function weekdayLabel(dateIso: string): string {
   if (Number.isNaN(at)) return '';
   return WEEKDAYS[new Date(at).getUTCDay()] ?? '';
 }
-
-const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: color.background },
-  content: { paddingHorizontal: spacing.xl, gap: spacing.l },
-});

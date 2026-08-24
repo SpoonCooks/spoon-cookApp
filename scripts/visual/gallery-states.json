@@ -26,5 +26,12 @@
  "leave/long-selected": "592:639",
  "leave/long-booked": "592:832",
  "leave/applied-and-booked": "592:1008",
- "leave/short-confirm": "592:888"
+ "leave/short-confirm": "592:888",
+ "performance/money-daily": "575:1744",
+ "performance/money-weekly": "575:1884",
+ "performance/day-history": "575:1903",
+ "performance/past-daily": "575:1922",
+ "performance/money-monthly": "575:2013",
+ "performance/weekly-history": "575:2032",
+ "performance/past-weekly": "575:2098"
 }

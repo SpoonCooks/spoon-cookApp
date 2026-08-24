@@ -28,6 +28,27 @@ import type { DesignScale } from './designScale';
  * of `2P + C` — the frame. Both match Figma, and the stroke overflows its parent exactly as it does
  * in the design.
  */
+/**
+ * Which side of its frame edge a stroke sits on.
+ *
+ * Figma has three (`strokeAlign: CENTER | INSIDE | OUTSIDE`) and the choice is per node, so a file
+ * mixes them. It changes the arithmetic completely and the two cases here are not interchangeable:
+ *
+ *   - `center` — the stroke straddles the edge and does NOT grow the frame. Yoga's `borderWidth`
+ *     does grow it, so the correction below takes the width back out of the padding and the
+ *     margin. This is what the `leave` cards do, and getting it wrong put their rows nine design
+ *     units out of place by the bottom of the screen.
+ *   - `inside` — the stroke is painted within the frame, which is exactly Yoga's own model: the
+ *     border is part of the box and the padding is measured from inside it. No correction at all.
+ *
+ * Which one a node uses is settled by measuring the reference render, never assumed. On
+ * `575:1903` the design's `gap-16` produces **16** clear pixels between two painted row borders
+ * and a painted row **49** tall over 47 of content — both of which are the `inside` model. Applying
+ * the centre correction there pulled each row half a unit into the gap on each side and walked the
+ * seventh row fourteen pixels up the screen.
+ */
+export type FigmaStrokeAlign = 'center' | 'inside';
+
 export interface FigmaStrokeOptions {
   /** Stroke width in design units. */
   readonly width: number;
@@ -35,11 +56,13 @@ export interface FigmaStrokeOptions {
   readonly padding?: number | undefined;
   readonly paddingH?: number | undefined;
   readonly paddingV?: number | undefined;
+  /** Defaults to `center`, the alignment the `leave` and `log in flow` sections verified. */
+  readonly align?: FigmaStrokeAlign | undefined;
 }
 
 export function figmaStroke(
   scale: DesignScale,
-  { width, padding, paddingH, paddingV }: FigmaStrokeOptions,
+  { width, padding, paddingH, paddingV, align = 'center' }: FigmaStrokeOptions,
 ): ViewStyle {
   const { s, factor } = scale;
   const half = width / 2;
@@ -49,12 +72,11 @@ export function figmaStroke(
   // `roundToNearestPixel` on the exact scaled width draws three, i.e. 1.09. Both land within a
   // third of a unit of the target and the measured difference is inside the comparison's noise;
   // this is the arithmetically closer of the two, not a fix for a visible defect.
-  const style: ViewStyle = {
-    borderWidth: PixelRatio.roundToNearestPixel(width * factor),
-    margin: -s(half),
-  };
-  if (padding !== undefined) style.padding = s(padding - half);
-  if (paddingH !== undefined) style.paddingHorizontal = s(paddingH - half);
-  if (paddingV !== undefined) style.paddingVertical = s(paddingV - half);
+  const style: ViewStyle = { borderWidth: PixelRatio.roundToNearestPixel(width * factor) };
+  if (align === 'center') style.margin = -s(half);
+  const inset = align === 'center' ? half : 0;
+  if (padding !== undefined) style.padding = s(padding - inset);
+  if (paddingH !== undefined) style.paddingHorizontal = s(paddingH - inset);
+  if (paddingV !== undefined) style.paddingVertical = s(paddingV - inset);
   return style;
 }

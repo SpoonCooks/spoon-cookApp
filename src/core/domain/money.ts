@@ -145,9 +145,23 @@ export interface EarningsPeriodView {
   readonly late: DeductionLine;
 
   /* ---- designed but not exposed by the deployed contract; render `—` ---- */
+
+  /**
+   * Every field below is `null` from every adapter, because no deployed cook route returns it.
+   * They are typed rather than dropped so the screens have somewhere to put the value the day the
+   * contract grows one, and so `/dev` can state the design's own figure and prove the frame.
+   *
+   * A fixture may set them. Production may not compute them: `aboveBasePaise` as `gross − base`
+   * would swallow reversals, and `perDayBasePaise` as `base ÷ days` would invent a rate the
+   * ledger never agreed to.
+   */
   readonly workedMinutes: number | null;
   readonly aboveBasePaise: number | null;
   readonly perDayBasePaise: number | null;
+  /** `531:1706` — the `1.75` in `1.75 x ₹150 = +₹263`. */
+  readonly extraKaamMultiplier: number | null;
+  /** `532:124` — the `₹150` rate the multiplier is applied to. */
+  readonly extraKaamRatePaise: number | null;
 }
 
 export interface EarningsCycleRef {

@@ -1,26 +1,11 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useMemo } from 'react';
-import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-
 import { serviceDatesBetween, toCycleDetailView } from '@core/api/adapters';
 import { apiErrorMessage } from '@core/api/errors';
 import { useAttendanceRange, useCookProfile, useEarningsCycle } from '@core/api/queries';
-import { formatDateRange, periodCopy, type RatingView } from '@core/domain/money';
-import {
-  BackHeader,
-  color,
-  CycleWorkCard,
-  DateBanner,
-  DayStrip,
-  ErrorState,
-  FinalBand,
-  LinkRow,
-  LoadingState,
-  MistakesCard,
-  spacing,
-  type DayStripEntry,
-} from '@ui';
+import { formatDateRange, type RatingView } from '@core/domain/money';
+import { PastCycleView } from '@features/performance/PerformanceViews';
+import { ErrorState, LoadingState, type DayStripEntry } from '@ui';
 
 /**
  * `18- past weekly` (`575:2098`) — `Cycle ki kamai`.
@@ -36,7 +21,6 @@ import {
  * live progress bar on a settled one would misreport a closed period.
  */
 export default function PastCycleScreen(): React.ReactElement {
-  const insets = useSafeAreaInsets();
   const { cycleId } = useLocalSearchParams<{ cycleId?: string }>();
   const id = cycleId ?? '';
 
@@ -92,38 +76,17 @@ export default function PastCycleScreen(): React.ReactElement {
     );
   }
 
-  const copy = periodCopy.cycle;
-
   return (
-    <View style={styles.flex}>
-      <ScrollView
-        contentContainerStyle={[
-          styles.content,
-          { paddingTop: insets.top + spacing.m, paddingBottom: insets.bottom + spacing.huge },
-        ]}
-        refreshControl={
-          <RefreshControl refreshing={cycle.isFetching} onRefresh={() => void cycle.refetch()} />
-        }
-        testID="cycle-scroll"
-      >
-        <BackHeader title="Cycle ki kamai" onBack={() => router.back()} />
-        <DateBanner label={formatDateRange(cycle.data.startDate, cycle.data.endDate)} />
-
-        {days.length > 0 && <DayStrip days={days} />}
-
-        <CycleWorkCard view={view} rating={rating} copy={copy} bonus={null} />
-        <MistakesCard view={view} copy={copy} />
-        <FinalBand label={copy.final} netPaise={view.breakdown.netPaise} />
-
-        <LinkRow
-          label="Cycle ke din"
-          onPress={() =>
-            router.push({ pathname: '/money/days', params: { cycleId: cycle.data.cycleId } })
-          }
-          testID="cycle-days"
-        />
-      </ScrollView>
-    </View>
+    <PastCycleView
+      label={formatDateRange(cycle.data.startDate, cycle.data.endDate)}
+      view={view}
+      rating={rating}
+      days={days}
+      onBack={() => router.back()}
+      onOpenDays={() =>
+        router.push({ pathname: '/money/days', params: { cycleId: cycle.data.cycleId } })
+      }
+    />
   );
 }
 
@@ -134,8 +97,3 @@ function weekdayLabel(dateIso: string): string {
   if (Number.isNaN(at)) return '';
   return WEEKDAYS[new Date(at).getUTCDay()] ?? '';
 }
-
-const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: color.background },
-  content: { paddingHorizontal: spacing.xl, gap: spacing.l },
-});

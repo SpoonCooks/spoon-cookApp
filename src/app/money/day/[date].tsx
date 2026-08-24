@@ -1,25 +1,11 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useMemo } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-
 import { toBonusProgress, toEarningsPeriodView } from '@core/api/adapters';
 import { apiErrorMessage } from '@core/api/errors';
 import { useCookProfile, useEarnings } from '@core/api/queries';
-import { formatOrdinalDate, periodCopy, type RatingView } from '@core/domain/money';
-import {
-  AboveBaseBand,
-  BackHeader,
-  color,
-  DailyRatingCard,
-  DailyWorkCard,
-  DateBanner,
-  EmptyState,
-  ErrorState,
-  LoadingState,
-  MistakesCard,
-  spacing,
-} from '@ui';
+import { formatOrdinalDate, type RatingView } from '@core/domain/money';
+import { PastDayView } from '@features/performance/PerformanceViews';
+import { EmptyState, ErrorState, LoadingState } from '@ui';
 
 /**
  * `15- past daily` (`575:1922`) — `Din ki kamai`.
@@ -38,7 +24,6 @@ import {
  * gap plainly for any other date. Recorded as `GAP-V12-01`.
  */
 export default function PastDayScreen(): React.ReactElement {
-  const insets = useSafeAreaInsets();
   const { date } = useLocalSearchParams<{ date?: string }>();
   const dateIso = date ?? '';
 
@@ -84,39 +69,22 @@ export default function PastDayScreen(): React.ReactElement {
     );
   }
 
-  const copy = periodCopy.day;
+  if (view === null) {
+    return (
+      <EmptyState
+        message="Purane din ka hisaab abhi nahi dikh sakta. Poore cycle ka hisaab dekhein."
+        testID="day-unavailable"
+      />
+    );
+  }
 
   return (
-    <View style={styles.flex}>
-      <ScrollView
-        contentContainerStyle={[
-          styles.content,
-          { paddingTop: insets.top + spacing.m, paddingBottom: insets.bottom + spacing.huge },
-        ]}
-        testID="day-scroll"
-      >
-        <BackHeader title="Din ki kamai" onBack={() => router.back()} />
-        <DateBanner label={formatOrdinalDate(dateIso)} />
-
-        {view === null ? (
-          <EmptyState
-            message="Purane din ka hisaab abhi nahi dikh sakta. Poore cycle ka hisaab dekhein."
-            testID="day-unavailable"
-          />
-        ) : (
-          <>
-            <DailyWorkCard view={view} bonus={bonus} copy={copy} />
-            <MistakesCard view={view} copy={copy} />
-            <AboveBaseBand view={view} copy={copy} />
-            <DailyRatingCard rating={rating} perDayBasePaise={view.perDayBasePaise} />
-          </>
-        )}
-      </ScrollView>
-    </View>
+    <PastDayView
+      label={formatOrdinalDate(dateIso)}
+      view={view}
+      bonus={bonus}
+      rating={rating}
+      onBack={() => router.back()}
+    />
   );
 }
-
-const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: color.background },
-  content: { paddingHorizontal: spacing.xl, gap: spacing.l },
-});

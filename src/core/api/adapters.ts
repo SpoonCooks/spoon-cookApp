@@ -341,6 +341,8 @@ export function toEarningsPeriodView(
     workedMinutes: null,
     aboveBasePaise: null,
     perDayBasePaise: null,
+    extraKaamMultiplier: null,
+    extraKaamRatePaise: null,
   };
 }
 
@@ -373,6 +375,8 @@ export function toCycleDetailView(detail: CookCycleDetailResponse): EarningsPeri
     workedMinutes: null,
     aboveBasePaise: null,
     perDayBasePaise: null,
+    extraKaamMultiplier: null,
+    extraKaamRatePaise: null,
   };
 }
 

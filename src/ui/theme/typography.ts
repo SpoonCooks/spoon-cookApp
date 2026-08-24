@@ -114,6 +114,55 @@ export const textStyle = {
     lineHeight: lineHeight.chip,
     color: color.textPrimary,
   },
+  /**
+   * `434:2934` / `502:198` — a `performance` period tab (`Aaj` / `Cycle` / `Mahina`). Livvic
+   * Black 16 on a 24 line with **negative** tracking; the design tightens this one label rather
+   * than the sub-line under it, so the two cannot share a variant.
+   */
+  tabLabel: {
+    fontFamily: fontFamily.black,
+    fontSize: fontSize.xl,
+    lineHeight: lineHeight.xl,
+    letterSpacing: -0.4,
+    color: color.textPrimary,
+  },
+  /** `491:5161` / `502:199` — the `1 din` / `7 din` / `28 din` line under a period tab. Bold 14/20. */
+  tabSubLabel: {
+    fontFamily: fontFamily.bold,
+    fontSize: fontSize.l,
+    lineHeight: lineHeight.l,
+    color: color.black80,
+  },
+  /**
+   * `434:2892` / `537:732` — `Bonus ke liye: N se zyada …`. Livvic Black **11** on a 16.5 line,
+   * the smallest Black run in the section. Shares its metrics with `calendarDay` and is kept
+   * separate because the two carry different node provenance and would drift independently.
+   */
+  bonusHint: {
+    fontFamily: fontFamily.black,
+    fontSize: fontSize.s,
+    lineHeight: lineHeight.dayCell,
+    color: color.textPrimary,
+  },
+  /**
+   * `532:93` / `532:98` / `540:123` — the unit word beside a large numeral (`ghante`, `mins`,
+   * `Kamai:`). Livvic SemiBold **16** on a 16 line: the design sets a line box equal to the type
+   * so the word sits on the numeral's baseline rather than below it.
+   */
+  unitLabel: {
+    fontFamily: fontFamily.semibold,
+    fontSize: fontSize.xl,
+    lineHeight: lineHeight.s,
+    color: color.textPrimary,
+  },
+  /** `502:631` — a past-cycle row title, `18 Jul - 21 Jul`. Black 18/28, tracking `-0.45`. */
+  cycleRowTitle: {
+    fontFamily: fontFamily.black,
+    fontSize: fontSize.xxl,
+    lineHeight: lineHeight.xxl,
+    letterSpacing: -0.45,
+    color: color.textPrimary,
+  },
   /** `505:1702` — a calendar day. Livvic Black 11 on a 16.5 line. */
   calendarDay: {
     fontFamily: fontFamily.black,

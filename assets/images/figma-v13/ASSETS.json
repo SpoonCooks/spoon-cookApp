@@ -12,10 +12,16 @@
       "nodes": ["592:1008"],
       "sha256": "55535cc4f508c7ab103020207de77f65ba693173a533c2222c5d5cc821c356db"
     },
+    "building.png": {
+      "bytes": 480,
+      "constName": "imgBuilding",
+      "nodes": ["462:3617"],
+      "sha256": "0682ab19d8e58300ae070f626bbd406766bd05aea5d0b3008dd27668771bffb3"
+    },
     "calendar-yellow.png": {
       "bytes": 559,
       "constName": "imgCalendarYellow",
-      "nodes": ["575:1903", "575:2032"],
+      "nodes": ["575:1903", "575:2032", "575:2013", "575:1884", "575:2098"],
       "sha256": "8c2111bf8726f258672941cb761d3fc5d16cdc309dbec230431b48ae612f4ec6"
     },
     "calendar.png": {
@@ -23,6 +29,12 @@
       "constName": "imgCalendar",
       "nodes": ["592:488", "592:489", "592:832", "592:1008"],
       "sha256": "83d562b90b0ec8afb64851566fa93d015d4d1060280263902f7f95317fd9cc08"
+    },
+    "call-icon.svg": {
+      "bytes": 1378,
+      "constName": "imgCallIcon",
+      "nodes": ["462:3617"],
+      "sha256": "e50a60dad6a4519c47c3128b88b90462bee836f0480f4e4fc1aad600adb1048c"
     },
     "check-tick.svg": {
       "bytes": 344,
@@ -54,10 +66,16 @@
       "nodes": ["592:488", "592:489", "592:563", "592:639", "592:832", "592:1008"],
       "sha256": "02297ce17643032be941101f6295beda46a851513ee91fa8fbe8967194b82658"
     },
+    "city-buildings.png": {
+      "bytes": 445,
+      "constName": "imgCityBuildings",
+      "nodes": ["462:3617"],
+      "sha256": "03b5e37d2df6b1099d5f3549a2c24ce7304c3ec96817c0c49808fecb1bc57e70"
+    },
     "clock.png": {
       "bytes": 1352,
       "constName": "imgClock",
-      "nodes": ["575:1744"],
+      "nodes": ["575:1744", "575:2013", "575:1884", "575:1922", "575:2098"],
       "sha256": "2cf9db01fb668061ec9295130e702e5e3374413f893fca68ad35d3096b4cefe4"
     },
     "cook-resting.png": {
@@ -65,6 +83,12 @@
       "constName": "imgCookResting",
       "nodes": ["575:2136"],
       "sha256": "e901c1b36cf8867ee31033e06d67bb1ae87722a42a00b1bca3be45acb1515098"
+    },
+    "cook-walking.png": {
+      "bytes": 1495906,
+      "constName": "imgCookWalking",
+      "nodes": ["462:3617"],
+      "sha256": "8304e6da25fd036a7f23543b5fcbc5866e7cc6324dc7e5a96c4805d3ab845b5f"
     },
     "cross-tick.svg": {
       "bytes": 1046,
@@ -78,6 +102,48 @@
       "nodes": ["575:2135", "575:2137", "575:2138", "575:2136"],
       "sha256": "b965a71f17a1611cdcd69f387233706a8309a85f2c81f4ab1d50def200d3253a"
     },
+    "day-done.png": {
+      "bytes": 442,
+      "constName": "imgDayDone",
+      "nodes": ["575:1884", "575:2098"],
+      "sha256": "069b4c8324a59a85f2ff596289c2ff2509b1ed68c6b7001086f028b9b314fb2a"
+    },
+    "day-empty-disc-2.svg": {
+      "bytes": 542,
+      "constName": "imgDayEmptyDisc2",
+      "nodes": ["575:1884"],
+      "sha256": "071db795d52e793ebbd3b1046579cdceb39e916daca78378f27cc97d227d9e61"
+    },
+    "day-empty-disc-3.svg": {
+      "bytes": 548,
+      "constName": "imgDayEmptyDisc3",
+      "nodes": ["575:2098"],
+      "sha256": "827addeb0d142d66ae244d338968829eb0ef32e24d9ee65c687fc742b96c1670"
+    },
+    "day-empty-disc-4.svg": {
+      "bytes": 542,
+      "constName": "imgDayEmptyDisc4",
+      "nodes": ["575:2098"],
+      "sha256": "d197fee5ffa9c3e6c20f4f8921027f4d4893502109953b44203298b7815abee2"
+    },
+    "day-empty-disc.svg": {
+      "bytes": 548,
+      "constName": "imgDayEmptyDisc",
+      "nodes": ["575:1884"],
+      "sha256": "13b38775524d153a4533f7492638c1a4478b81d545fca6c6cf3ee311865d28b2"
+    },
+    "day-missed-disc.svg": {
+      "bytes": 326,
+      "constName": "imgDayMissedDisc",
+      "nodes": ["575:1884", "575:2098"],
+      "sha256": "8a3c79895a147b8ce38b9d10c5e1ca772aa5c4e55cef3d6a0fc6cb0308297ddb"
+    },
+    "day-present-disc.svg": {
+      "bytes": 326,
+      "constName": "imgDayPresentDisc",
+      "nodes": ["575:1884", "575:2098"],
+      "sha256": "90971e42c0e5cd54ca68aabb60967610b5734402b732183c0285a93aaff114b0"
+    },
     "edit-icon.svg": {
       "bytes": 1435,
       "constName": "editIcon",
@@ -90,16 +156,28 @@
       "nodes": ["575:2135"],
       "sha256": "63031dd488170971df3294d076c938ab0d79ed2898c35478db5bb56c808fa5fb"
     },
+    "home-page.png": {
+      "bytes": 850,
+      "constName": "imgHomePage",
+      "nodes": ["462:3617"],
+      "sha256": "55d03316c3ab7d38ee27104d6ab7c782da06f465211aae802aac2db4a3bf4f52"
+    },
     "login-hero.png": {
       "bytes": 1863746,
       "constName": "loginHero",
       "nodes": ["434:3280"],
       "sha256": "a47cf07abd39e6bda8159f578cfca4157590abe7b8a2d2271e9f26e9de6482f3"
     },
+    "map-pin.svg": {
+      "bytes": 367,
+      "constName": "imgMapPin",
+      "nodes": ["462:3617"],
+      "sha256": "9edb2a05f65d3aa900caf92b0c37f02ffdfd87b677a4d16c302369575c26551e"
+    },
     "mistake-disc.svg": {
       "bytes": 234,
       "constName": "imgMistakeDisc",
-      "nodes": ["575:1744"],
+      "nodes": ["575:1744", "575:2013", "575:1884", "575:1922", "575:2098"],
       "sha256": "f44972f607a2531271ec5a71197acf1eb8478ed714f44a727e1f46b8745571ad"
     },
     "month-prev.svg": {
@@ -111,8 +189,20 @@
     "multiply.png": {
       "bytes": 828,
       "constName": "imgMultiply",
-      "nodes": ["575:1744"],
+      "nodes": ["575:1744", "575:2013", "575:1884", "575:1922", "575:2098"],
       "sha256": "68de709cdfd5c7a4bab26e8fe7cf689c39527b4dba1487ba577f076c49a2e5de"
+    },
+    "nav-back-2.svg": {
+      "bytes": 1324,
+      "constName": "imgNavBack2",
+      "nodes": ["575:2098"],
+      "sha256": "c24f292a7e10e548a4a79671ec733788f2672de50d3e8727b53e44c9f9a57c7d"
+    },
+    "nav-back.svg": {
+      "bytes": 1324,
+      "constName": "imgNavBack",
+      "nodes": ["575:1922"],
+      "sha256": "8b841d1e2b3702ab04e9b7dd6c72d30777b238ca159904de41e4449b920066e3"
     },
     "praying-hands.png": {
       "bytes": 121686,
@@ -123,8 +213,26 @@
     "rating-disc.svg": {
       "bytes": 234,
       "constName": "imgRatingDisc",
-      "nodes": ["575:1744"],
+      "nodes": ["575:1744", "575:1884", "575:1922", "575:2098"],
       "sha256": "097b9cfbcd2436e529ea36d2543bc28c0b7017e5ed656b2ea8e88d7117ba460d"
+    },
+    "row-chevron-2.svg": {
+      "bytes": 1251,
+      "constName": "imgRowChevron2",
+      "nodes": ["575:2098"],
+      "sha256": "f0adf881c3e86e54b3b8062000a394b5094890663fb43588d2d6920602d10f35"
+    },
+    "row-chevron.svg": {
+      "bytes": 1251,
+      "constName": "imgRowChevron",
+      "nodes": ["575:2013", "575:1884"],
+      "sha256": "105e52bb2dc9536dda7b898a658b003a7fca594e7ab8e137a5408891b28c9537"
+    },
+    "service-back.svg": {
+      "bytes": 1246,
+      "constName": "imgServiceBack",
+      "nodes": ["462:3617"],
+      "sha256": "fabecea1c9d844620e311f769c6ea0ab20fd116c69b056a3c24e29ff1a149468"
     },
     "sheet-back-2.svg": {
       "bytes": 1246,
@@ -162,16 +270,22 @@
       "nodes": ["434:3116", "434:3280", "434:3224", "434:3174"],
       "sha256": "bf470773080af0c4b6012bf0a27f8a6bb9c1e92b723915609782bf04b69520e0"
     },
+    "stairs-up.png": {
+      "bytes": 659,
+      "constName": "imgStairsUp",
+      "nodes": ["462:3617"],
+      "sha256": "11d2c8e3d09529a6546d084c64f8cfdb92eee20fa3848dbda97bb6560a3eb59c"
+    },
     "star.png": {
       "bytes": 1410,
       "constName": "imgStar",
-      "nodes": ["575:1744"],
+      "nodes": ["575:1744", "575:2013", "575:1884", "575:1922", "575:2098"],
       "sha256": "0ea4de52d8ad498d6a038acf068345c2d37464f0e18570f3d9ee6b1b2b5fdea5"
     },
     "timer.png": {
       "bytes": 1944,
       "constName": "imgTimer",
-      "nodes": ["575:1744"],
+      "nodes": ["575:1744", "575:2013", "575:1884", "575:1922", "575:2098"],
       "sha256": "47a65003ccedf30cc1fc130fe14ae02384e925ab2982ba1942bb5224bd06f65e"
     },
     "whats-app.png": {
@@ -188,7 +302,8 @@
         "592:888",
         "592:639",
         "592:832",
-        "592:1008"
+        "592:1008",
+        "462:3617"
       ],
       "sha256": "1e57d94e42dba593935930cda903f7bbb0ad051b82bc7bbe8956ab80a0332d65"
     }

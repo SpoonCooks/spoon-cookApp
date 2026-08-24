@@ -15,10 +15,18 @@ import {
   type SingleDayLeaveOption,
 } from '@features/leave/LeaveViews';
 import { BootView, OtpView, PhoneView } from '@features/login/LoginViews';
+import {
+  CycleHistoryView,
+  DayHistoryView,
+  MoneyPeriodView,
+  PastCycleView,
+  PastDayView,
+} from '@features/performance/PerformanceViews';
 
+import { earningsPeriodLabels, earningsPeriods } from '@core/domain/money';
 import { otpLength } from '@core/domain/otp';
 import { projectServiceState, type ServiceState } from '@core/domain/serviceState';
-import { serviceFixtures } from '@core/fixtures';
+import { performanceFixtures, serviceFixtures } from '@core/fixtures';
 import {
   ArrivalView,
   CompletedView,
@@ -218,6 +226,30 @@ const CHUTTI_DAYS: Record<string, readonly SingleDayLeaveOption[]> = {
 const PICK_DATES: LongLeaveCard = { label: 'Dates chunein', upcoming: null };
 const CHANGE_DATES: LongLeaveCard = { label: 'Dates badle', upcoming: '16 Nov se 25 Nov tak' };
 
+/**
+ * One of the seven `performance` frames. All own their safe area, as `PerformanceScreen` does.
+ *
+ * Every entry renders the SAME view the `src/app/money/*` route renders and differs only in where
+ * its numbers come from — a fixture instead of `GET /cook/earnings`. Nothing here calls an API,
+ * and no callback advances anything: the links are inert so a review can open a frame without
+ * navigating out of it.
+ */
+function performance(
+  id: string,
+  nodeId: string,
+  label: string,
+  render: () => React.ReactElement,
+): GalleryEntry {
+  return { id, section: 'performance', nodeId, label, ownsSafeArea: true, render };
+}
+
+/** The `Aaj / Cycle / Mahina` control, labelled exactly as the three frames label it. */
+const PERIOD_TABS = earningsPeriods.map((key) => ({
+  key,
+  title: earningsPeriodLabels[key].title,
+  subtitle: earningsPeriodLabels[key].subtitle,
+}));
+
 function service(
   id: string,
   nodeId: string,
@@ -410,6 +442,80 @@ export const galleryEntries: readonly GalleryEntry[] = [
   ),
   service('service/end-otp', '484:4875', 'End OTP', serviceFixtures.endOtp),
   service('service/completed', '485:4917', 'Job end', serviceFixtures.completed),
+  /*
+   * `performance` (`575:1741`). Three states of the money tab and four pushed frames.
+   */
+  performance('performance/money-daily', '575:1744', 'Money — Aaj', () => (
+    <MoneyPeriodView
+      period="day"
+      view={performanceFixtures.daily()}
+      bonus={performanceFixtures.bonus()}
+      rating={performanceFixtures.rating()}
+      days={[]}
+      tabs={PERIOD_TABS}
+      onChangePeriod={noop}
+    />
+  )),
+  performance('performance/money-weekly', '575:1884', 'Money — Cycle', () => (
+    <MoneyPeriodView
+      period="cycle"
+      view={performanceFixtures.cycle()}
+      bonus={performanceFixtures.bonus()}
+      rating={performanceFixtures.rating()}
+      days={performanceFixtures.days()}
+      tabs={PERIOD_TABS}
+      onChangePeriod={noop}
+      onOpenDays={noop}
+    />
+  )),
+  performance('performance/money-monthly', '575:2013', 'Money — Mahina', () => (
+    <MoneyPeriodView
+      period="month"
+      view={performanceFixtures.month()}
+      bonus={performanceFixtures.bonus()}
+      rating={performanceFixtures.rating()}
+      days={[]}
+      tabs={PERIOD_TABS}
+      onChangePeriod={noop}
+      onOpenCycles={noop}
+    />
+  )),
+  performance('performance/day-history', '575:1903', 'Cycle ke din', () => (
+    <DayHistoryView
+      days={performanceFixtures.dayHistory()}
+      emptyMessage="Is cycle mein koi din nahi hai."
+      onBack={noop}
+      onOpenDay={noop}
+    />
+  )),
+  performance('performance/past-daily', '575:1922', 'Din ki kamai', () => (
+    <PastDayView
+      label="26th July"
+      view={performanceFixtures.daily()}
+      bonus={performanceFixtures.bonus()}
+      rating={performanceFixtures.rating()}
+      onBack={noop}
+    />
+  )),
+  performance('performance/weekly-history', '575:2032', 'Pichle cycles', () => (
+    <CycleHistoryView
+      lifetimePaise={performanceFixtures.lifetimePaise()}
+      cycles={performanceFixtures.cycleHistory()}
+      emptyMessage="Koi pichla cycle nahi hai."
+      onBack={noop}
+      onOpenCycle={noop}
+    />
+  )),
+  performance('performance/past-weekly', '575:2098', 'Cycle ki kamai', () => (
+    <PastCycleView
+      label="11th Jul - 17th Jul"
+      view={performanceFixtures.cycle()}
+      rating={performanceFixtures.rating()}
+      days={performanceFixtures.days()}
+      onBack={noop}
+      onOpenDays={noop}
+    />
+  )),
 ];
 
 export function galleryEntryFor(id: string): GalleryEntry | null {

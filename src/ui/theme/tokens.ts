@@ -40,6 +40,13 @@ export const neutral = {
    * samples to. Kept as the translucent original so it composites correctly on any background.
    */
   black70: 'rgba(0, 0, 0, 0.7)',
+  /**
+   * Figma variable `color/black/ -80%` (`rgba(0,0,0,0.8)`). The `performance` section's secondary
+   * ink: the `1 din` line under a period tab and every `Kaam pe …` tile caption. Distinct from
+   * `black70`, which the Login flow uses, and both appear in V13 — over white they resolve to
+   * `#333333` and `#4d4d4d`, nearly seven levels apart, so neither substitutes for the other.
+   */
+  black80: 'rgba(0, 0, 0, 0.8)',
   grey50: '#f9fafb',
   grey100: '#f3f4f6',
   /**

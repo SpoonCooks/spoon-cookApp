@@ -1,13 +1,11 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useMemo } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-
 import { serviceDatesBetween } from '@core/api/adapters';
 import { apiErrorMessage } from '@core/api/errors';
 import { useEarnings, useEarningsCycle } from '@core/api/queries';
 import { formatShortDate } from '@core/domain/money';
-import { BackHeader, color, EmptyState, ErrorState, LinkRow, LoadingState, spacing } from '@ui';
+import { DayHistoryView } from '@features/performance/PerformanceViews';
+import { ErrorState, LoadingState } from '@ui';
 
 /**
  * `14- day history` (`575:1903`) — `Cycle ke din`.
@@ -22,7 +20,6 @@ import { BackHeader, color, EmptyState, ErrorState, LinkRow, LoadingState, spaci
  *   - from `18- past weekly` with an id  → that settled cycle's window
  */
 export default function CycleDaysScreen(): React.ReactElement {
-  const insets = useSafeAreaInsets();
   const { cycleId } = useLocalSearchParams<{ cycleId?: string }>();
   const id = cycleId ?? '';
 
@@ -58,40 +55,19 @@ export default function CycleDaysScreen(): React.ReactElement {
     );
   }
 
-  return (
-    <View style={styles.flex}>
-      <ScrollView
-        contentContainerStyle={[
-          styles.content,
-          { paddingTop: insets.top + spacing.m, paddingBottom: insets.bottom + spacing.huge },
-        ]}
-        testID="days-scroll"
-      >
-        <BackHeader title="Cycle ke din" onBack={() => router.back()} />
+  // Newest first — a cook checking "what did I earn yesterday" should not scroll a week.
+  const rows = [...dates]
+    .reverse()
+    .map((dateIso) => ({ dateIso, label: formatShortDate(dateIso) }));
 
-        {dates.length === 0 ? (
-          <EmptyState message="Is cycle mein koi din nahi hai." />
-        ) : (
-          // Newest first — a cook checking "what did I earn yesterday" should not scroll a week.
-          [...dates]
-            .reverse()
-            .map((dateIso) => (
-              <LinkRow
-                key={dateIso}
-                label={formatShortDate(dateIso)}
-                onPress={() =>
-                  router.push({ pathname: '/money/day/[date]', params: { date: dateIso } })
-                }
-                testID={`day-${dateIso}`}
-              />
-            ))
-        )}
-      </ScrollView>
-    </View>
+  return (
+    <DayHistoryView
+      days={rows}
+      emptyMessage="Is cycle mein koi din nahi hai."
+      onBack={() => router.back()}
+      onOpenDay={(dateIso) =>
+        router.push({ pathname: '/money/day/[date]', params: { date: dateIso } })
+      }
+    />
   );
 }
-
-const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: color.background },
-  content: { paddingHorizontal: spacing.xl, gap: spacing.m },
-});

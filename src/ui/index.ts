@@ -20,10 +20,16 @@ export { LoadingState, ErrorState, EmptyState } from './components/states';
 export type { ErrorStateProps } from './components/states';
 
 export * from './theme/tokens';
-export { useDesignScale, makeDesignScale } from './theme/designScale';
+export {
+  useDesignScale,
+  makeDesignScale,
+  snapFontSize,
+  androidRasterisedFontPx,
+} from './theme/designScale';
 export { figmaStroke } from './theme/stroke';
 export type { FigmaStrokeOptions } from './theme/stroke';
 export type { DesignScale } from './theme/designScale';
+export type { FigmaStrokeAlign } from './theme/stroke';
 export {
   BEZEL_VIEWPORT,
   DIRECT_STATUS_BAND_HEIGHT,

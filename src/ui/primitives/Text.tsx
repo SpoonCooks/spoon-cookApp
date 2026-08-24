@@ -30,6 +30,11 @@ export interface TextProps extends RNTextProps {
  * through `style` are deliberately **not** touched: a caller passing an explicit `fontSize` is
  * working in device dp and has already scaled it (see the `otpFooterStyle` helpers), so scaling it
  * again would compound the factor.
+ *
+ * `fontSize` goes through `font` rather than `s` because Android ceilings type to a whole device
+ * pixel and would otherwise draw a 14-unit style 2.8% large — see `snapFontSize` in
+ * `designScale.ts`. `lineHeight` and `letterSpacing` keep their sub-pixel precision, which is what
+ * React Native does with them.
  */
 export function Text({
   variant = 'body',
@@ -38,19 +43,26 @@ export function Text({
   style,
   ...rest
 }: TextProps): React.ReactElement {
-  const { s } = useDesignScale();
+  const { s, font } = useDesignScale();
 
   const scaled = useMemo(() => {
     const base = textStyle[variant];
     return {
       ...base,
-      fontSize: s(base.fontSize),
+      // Android reserves extra room above and below a line for the font's own ascent/descent
+      // metrics unless this is off, which makes a text box taller than the `lineHeight` it was
+      // given. Figma boxes a text node at exactly its line height, so with the padding on, every
+      // label on a screen is a few units tall than the design and the error accumulates down the
+      // column -- on `575:1744` it put `AAJ KI GALATIYAAN` sixteen rows below its design row while
+      // each individual card was the right size. No effect on iOS, which never adds it.
+      includeFontPadding: false,
+      fontSize: font(base.fontSize),
       lineHeight: s(base.lineHeight),
       ...('letterSpacing' in base && typeof base.letterSpacing === 'number'
         ? { letterSpacing: s(base.letterSpacing) }
         : {}),
     };
-  }, [variant, s]);
+  }, [variant, s, font]);
 
   return (
     <RNText

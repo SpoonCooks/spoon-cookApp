@@ -1,22 +1,11 @@
 import { router } from 'expo-router';
 import { useMemo } from 'react';
-import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-
 import { toCycleRef } from '@core/api/adapters';
 import { apiErrorMessage } from '@core/api/errors';
 import { useEarnings, useEarningsCycles } from '@core/api/queries';
 import { formatRupees, unavailableFigure } from '@core/domain/money';
-import {
-  BackHeader,
-  color,
-  EmptyState,
-  ErrorState,
-  LifetimeBand,
-  LinkRow,
-  LoadingState,
-  spacing,
-} from '@ui';
+import { CycleHistoryView } from '@features/performance/PerformanceViews';
+import { ErrorState, LoadingState } from '@ui';
 
 /**
  * `17- weekly history` (`575:2032`) — `Pichle cycles`.
@@ -34,8 +23,6 @@ import {
  * cycle has no settled payout, and printing its running total under `Kamai:` would look like one.
  */
 export default function CycleHistoryScreen(): React.ReactElement {
-  const insets = useSafeAreaInsets();
-
   const cycles = useEarningsCycles();
   const earnings = useEarnings();
 
@@ -54,45 +41,20 @@ export default function CycleHistoryScreen(): React.ReactElement {
   }
 
   return (
-    <View style={styles.flex}>
-      <ScrollView
-        contentContainerStyle={[
-          styles.content,
-          { paddingTop: insets.top + spacing.m, paddingBottom: insets.bottom + spacing.huge },
-        ]}
-        refreshControl={
-          <RefreshControl refreshing={cycles.isFetching} onRefresh={() => void cycles.refetch()} />
-        }
-        testID="cycles-scroll"
-      >
-        <BackHeader title="Pichle cycles" onBack={() => router.back()} />
-
-        {earnings.data !== undefined && <LifetimeBand netPaise={earnings.data.totalPaise} />}
-
-        {rows.length === 0 ? (
-          <EmptyState message="Koi pichla cycle nahi hai." />
-        ) : (
-          rows.map((cycle) => (
-            <LinkRow
-              key={cycle.cycleId}
-              label={cycle.label}
-              sublabel={`Kamai:  ${cycle.finalPaise === null ? unavailableFigure : formatRupees(cycle.finalPaise)}`}
-              onPress={() =>
-                router.push({
-                  pathname: '/money/cycle/[cycleId]',
-                  params: { cycleId: cycle.cycleId },
-                })
-              }
-              testID={`cycle-${cycle.cycleId}`}
-            />
-          ))
-        )}
-      </ScrollView>
-    </View>
+    <CycleHistoryView
+      lifetimePaise={earnings.data?.totalPaise ?? null}
+      cycles={rows.map((cycle) => ({
+        cycleId: cycle.cycleId,
+        label: cycle.label,
+        // `502:628` prints the settled amount beside a `Kamai:` label the row itself draws. A
+        // cycle the backend has not closed returns `null`, not zero, and shows the em dash.
+        earnings: cycle.finalPaise === null ? unavailableFigure : formatRupees(cycle.finalPaise),
+      }))}
+      emptyMessage="Koi pichla cycle nahi hai."
+      onBack={() => router.back()}
+      onOpenCycle={(cycleId) =>
+        router.push({ pathname: '/money/cycle/[cycleId]', params: { cycleId } })
+      }
+    />
   );
 }
-
-const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: color.background },
-  content: { paddingHorizontal: spacing.xl, gap: spacing.m },
-});

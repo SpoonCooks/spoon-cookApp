@@ -1,4 +1,4 @@
-import { useWindowDimensions } from 'react-native';
+import { PixelRatio, Platform, useWindowDimensions } from 'react-native';
 
 import { layout } from './tokens';
 
@@ -27,6 +27,11 @@ export interface DesignScale {
   readonly factor: number;
   /** Scales a design-space length to device dp. */
   readonly s: (designValue: number) => number;
+  /**
+   * Scales a design-space **font** size to device dp, snapped so it rasterises on a whole device
+   * pixel. Use this for every `fontSize`; use `s` for every other length.
+   */
+  readonly font: (designValue: number) => number;
   /** Full screen width in dp. */
   readonly width: number;
   /** Full screen height in dp. */
@@ -35,13 +40,64 @@ export interface DesignScale {
 
 const PRECISION = 3;
 
-export function makeDesignScale(width: number, height: number): DesignScale {
+/**
+ * Why font sizes do not go through `s`.
+ *
+ * React Native on Android does not rasterise type at the size it is given. `TextAttributes`
+ * resolves `effectiveFontSize` as
+ *
+ *     Math.ceil(PixelUtil.toPixelFromSP(fontSize))   // -> Int
+ *
+ * so the size is **ceilinged to a whole device pixel**, while `effectiveLineHeight` and
+ * `effectiveLetterSpacing` keep their sub-pixel precision. A fractional dp therefore always
+ * rounds *up*, and never down, however close it sits to the pixel below it.
+ *
+ * That interacts badly with `s`, which snaps to 1/3 dp. A 14-unit design size scales to 14.86dp,
+ * which `s` rounds up to 15.0dp = 41.25 device px, which Android then ceilings to **42** — against
+ * the 40.87 the design asks for, a 2.8% overshoot. It is invisible on a single glyph and obvious
+ * over a sentence: measured against the reference render, `592:488`'s two SemiBold-14 runs came
+ * out 3.1% long, enough that every glyph past the first few lands on the wrong pixel and scores as
+ * a hard miss rather than as antialiasing.
+ *
+ * So the size is resolved in device pixels — round to the nearest whole pixel, which is the
+ * closest the hardware can actually draw — and then expressed as the dp value that lands there:
+ * half a pixel below on Android, where the ceiling will take it back up, and exactly on it
+ * everywhere else, where the value is used as given.
+ */
+export function snapFontSize(
+  designValue: number,
+  factor: number,
+  pixelRatio: number,
+  platform: string = Platform.OS,
+): number {
+  const px = Math.max(1, Math.round(designValue * factor * pixelRatio));
+  // Half a pixel below the target on Android, so the ceiling above lands exactly on it and cannot
+  // be tipped onto the next pixel by the float error in `dp * pixelRatio`. Everywhere else the
+  // value is rasterised as given, so it is stated exactly.
+  return (platform === 'android' ? px - 0.5 : px) / pixelRatio;
+}
+
+/**
+ * The device pixel React Native's Android text stack will actually rasterise `dp` at, transcribed
+ * from `TextAttributes.effectiveFontSize`. Exported so the rule `snapFontSize` is written against
+ * is stated once and can be asserted, rather than restated by hand in a test.
+ */
+export function androidRasterisedFontPx(dp: number, pixelRatio: number): number {
+  return Math.ceil(dp * pixelRatio);
+}
+
+export function makeDesignScale(
+  width: number,
+  height: number,
+  pixelRatio: number = PixelRatio.get(),
+): DesignScale {
   const factor = width / layout.contentWidth;
   return {
     factor,
     width,
     height,
     s: (designValue: number) => Math.round(designValue * factor * PRECISION) / PRECISION,
+    font: (designValue: number) => snapFontSize(designValue, factor, pixelRatio),
   };
 }
 
