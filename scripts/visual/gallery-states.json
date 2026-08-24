@@ -15,5 +15,9 @@
  "service/completed": "485:4917",
  "login/otp-countdown": "434:3224",
  "login/otp-resend": "434:3174",
- "login/otp-wrong": "434:3116"
+ "login/otp-wrong": "434:3116",
+ "login-flow/daily": "575:2135",
+ "login-flow/present": "575:2137",
+ "login-flow/absent": "575:2138",
+ "login-flow/logout": "575:2136"
 }

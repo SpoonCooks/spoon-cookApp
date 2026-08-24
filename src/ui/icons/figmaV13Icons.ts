@@ -9,6 +9,18 @@
  * so the markup has to reach the bundle as source rather than as an import.
  */
 
+/** `check-tick.svg` — Figma nodes: 575:2137. */
+export const checkTick =
+  '<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">\n<g id="Frame">\n<path id="Vector" d="M3.03069 21.1024L14.3651 33.1397L37.034 9.06502" stroke="white" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>\n</g>\n</svg>';
+
+/** `cross-tick.svg` — Figma nodes: 575:2138. */
+export const crossTick =
+  '<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="42" height="42" viewBox="0 0 42 42" fill="none" xmlns="http://www.w3.org/2000/svg">\n<g id="cross">\n<path id="Vector" d="M32.604 35.9105C33.3814 36.6952 34.6385 36.6921 35.4119 35.9034C36.1853 35.1148 36.1821 33.8393 35.4047 33.0546L34.0044 34.4825L32.604 35.9105ZM8.40036 5.79301C7.62302 5.00827 6.3659 5.01142 5.59251 5.80005C4.81911 6.58868 4.82231 7.86414 5.59964 8.64888L7 7.22095L8.40036 5.79301ZM34.0044 34.4825L35.4047 33.0546L8.40036 5.79301L7 7.22095L5.59964 8.64888L32.604 35.9105L34.0044 34.4825Z" fill="white"/>\n<path id="Vector_2" d="M5.8216 33.3083C5.04691 34.0957 5.04703 35.3721 5.82186 36.1593C6.5967 36.9466 7.85284 36.9464 8.62753 36.1591L7.22457 34.7337L5.8216 33.3083ZM35.903 8.43783C36.6777 7.65047 36.6775 6.37403 35.9027 5.58682C35.1279 4.79961 33.8717 4.79972 33.097 5.58707L34.5 7.01245L35.903 8.43783ZM7.22457 34.7337L8.62753 36.1591L35.903 8.43783L34.5 7.01245L33.097 5.58707L5.8216 33.3083L7.22457 34.7337Z" fill="white"/>\n</g>\n</svg>';
+
 /** `edit-icon.svg` — Figma nodes: 434:3116, 434:3224, 434:3174. */
 export const editIcon =
   '<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">\n<g id="Edit icon" clip-path="url(#clip0_0_4)">\n<path id="Vector" d="M10.5652 0.18632L2.72513 7.31366C2.64796 7.38337 2.58993 7.46861 2.55573 7.56248L1.43572 10.6171C1.40067 10.7127 1.39112 10.8146 1.40788 10.9143C1.42463 11.0139 1.4672 11.1086 1.53208 11.1904C1.59695 11.2722 1.68228 11.3388 1.78102 11.3847C1.87977 11.4306 1.9891 11.4545 2.10002 11.4545C2.17518 11.4544 2.24985 11.4435 2.32122 11.4221L5.68126 10.4039C5.78435 10.3724 5.87803 10.3197 5.95496 10.2499L13.795 3.12253C13.9263 3.00319 14 2.84136 14 2.67262C14 2.50387 13.9263 2.34204 13.795 2.2227L11.555 0.18632C11.4238 0.0670196 11.2457 0 11.0601 0C10.8745 0 10.6965 0.0670196 10.5652 0.18632ZM5.08205 9.24377L3.20673 9.81205L3.83184 8.10722L11.0601 1.53606L12.3103 2.67262L5.08205 9.24377ZM0 13.3636C0 13.5324 0.0737505 13.6943 0.205027 13.8136C0.336304 13.933 0.514354 14 0.700007 14H12.6001C12.7858 14 12.9638 13.933 13.0951 13.8136C13.2264 13.6943 13.3001 13.5324 13.3001 13.3636C13.3001 13.1949 13.2264 13.033 13.0951 12.9136C12.9638 12.7943 12.7858 12.7273 12.6001 12.7273H0.700007C0.514354 12.7273 0.336304 12.7943 0.205027 12.9136C0.0737505 13.033 0 13.1949 0 13.3636Z" fill="#FFD600"/>\n</g>\n<defs>\n<clipPath id="clip0_0_4">\n<rect width="14" height="14" fill="white"/>\n</clipPath>\n</defs>\n</svg>';
+
+/** `ellipse-4.svg` — Figma nodes: 575:2135. */
+export const ellipse4 =
+  '<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="50" height="50" viewBox="0 0 50 50" fill="none" xmlns="http://www.w3.org/2000/svg">\n<circle id="Ellipse 4" cx="25" cy="25" r="25" fill="#ECFF9B"/>\n</svg>';

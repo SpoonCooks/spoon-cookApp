@@ -60,11 +60,25 @@ export interface ViewportProfile {
 export const BEZEL_VIEWPORT = { x: 10, y: 9.78, width: 370.44, height: 810.45 } as const;
 
 /**
- * The status-bar mock is 33 design units tall in every V13 frame that draws one — a 12px clock on
- * a `pt-12 pb-4` row. Verified identical on `434:3280`, `434:3224`, `434:3116` and the Service
- * frames.
+ * The status-bar mock inside a **bezel** frame, in design units.
+ *
+ * Measured against the located bezel viewport on `434:3280`, `434:3224` and `434:3116`, and the
+ * value the five verified `Login flow` comparisons were closed at. Do not tune it: those five
+ * screens minimise their displacement probe at offset 0 against this number, so a change here
+ * re-opens work that is already evidenced.
  */
 export const STATUS_BAND_HEIGHT = 33;
+
+/**
+ * The status-bar mock inside a **direct** frame, in design units.
+ *
+ * Not the same as the bezel figure, and that is the point of typing the two separately. In the
+ * direct sections the mock is `575:1743` — a 32-unit `Component 1` whose notch island is
+ * `top-0 bottom-1/4`, i.e. exactly 24 units. Every uncapped direct reference render puts that
+ * island on rows 0..23, which fixes the band at **32**. Applying the bezel's 33 here would drop a
+ * real design row from the top of every `leave`, `log in flow` and `performance` comparison.
+ */
+export const DIRECT_STATUS_BAND_HEIGHT = 32;
 
 /** `434:3325` and its siblings: a 4dp pill in a strip that ends at the viewport's bottom edge. */
 export const HOME_INDICATOR_HEIGHT = 10;
@@ -83,7 +97,8 @@ const DIRECT_PROFILE: ViewportProfile = {
   origin: { x: 0, y: 0 },
   width: layout.contentWidth,
   height: 'per-frame',
-  statusBandHeight: STATUS_BAND_HEIGHT,
+  statusBandHeight: DIRECT_STATUS_BAND_HEIGHT,
+  // A direct frame ends at its own last content row; only the phone mockups draw an indicator.
   homeIndicatorHeight: 0,
 };
 

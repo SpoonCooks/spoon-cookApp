@@ -51,11 +51,23 @@ export const neutral = {
 export const semantic = {
   danger: '#ff0000',
   /**
+   * `575:2138`'s absent disc (`#ff0909`). Very close to `danger` but not equal, and the two sit on
+   * the same screen — the headline is `red` and the disc is `#ff0909` — so collapsing them would
+   * paint one of the pair wrong.
+   */
+  dangerDisc: '#ff0909',
+  /**
    * Figma variable `color/spring green/24`. The ONLY green in the V12 `performance` section: it
    * emphasises the backend-supplied bonus threshold inside `Bonus ke liye: N se zyada ghante
    * kaam`. Never used to signal success generally.
    */
   success: '#007a55',
+  /**
+   * Figma variable `color/spring green/30` (`#009966`). The `log in flow` check-in window row and
+   * the present-verdict disc. Distinct from `success` (`#007a55`), which the `performance` section
+   * uses for the bonus threshold; both greens appear in V13 and neither substitutes for the other.
+   */
+  springGreen30: '#009966',
   dangerDeep: '#e7000b',
   slate: '#0f172b',
   slate800: '#1e2939',
@@ -104,6 +116,8 @@ export const fontSize = {
   xs: 10,
   s: 11,
   m: 12,
+  /** `572:604` — the white note beside the check-in time. */
+  md: 13,
   l: 14,
   xl: 16,
   xxl: 18,
@@ -125,6 +139,8 @@ export const lineHeight = {
   xxl: 28,
   xxxl: 28,
   display: 32,
+  /** `505:1666` / `572:701` — the lime CTA sets 24px type on a 30px line, not the usual 32. */
+  displayTight: 30,
   displayLg: 36,
   displayXl: 40,
   hero: 40,

@@ -18,6 +18,7 @@
     "height": 810
   },
   "systemChromeExcluded": {
+    "profile": "statusBand=33.0 homeIndicator=10.0",
     "designStatusBandPx": 33,
     "designHomeIndicatorPx": 10,
     "emulatorStatusBarPx": 136,
@@ -50,47 +51,47 @@
   "emulatorScaledHeightPx": 750,
   "uncomparedReferenceRows": 17,
   "antialiasingTolerance": 12,
-  "differingPixelPercent": 3.1932,
-  "rawDifferingPixelPercent": 5.942,
-  "meanChannelDelta": 1.9463,
+  "differingPixelPercent": 3.1683,
+  "rawDifferingPixelPercent": 4.0544,
+  "meanChannelDelta": 1.9074,
   "maxChannelDelta": 255,
   "worstRows": [
     {
       "row": 162,
-      "percent": 55.95
+      "percent": 53.78
     },
     {
       "row": 163,
-      "percent": 60.27
+      "percent": 59.19
     },
     {
       "row": 164,
-      "percent": 57.3
+      "percent": 55.41
     },
     {
       "row": 165,
-      "percent": 50.81
+      "percent": 48.38
     },
     {
       "row": 166,
-      "percent": 55.14
+      "percent": 50.0
     },
     {
       "row": 167,
-      "percent": 59.46
+      "percent": 57.57
     },
     {
       "row": 168,
-      "percent": 58.38
+      "percent": 54.59
     },
     {
-      "row": 386,
-      "percent": 37.84
+      "row": 169,
+      "percent": 41.89
     }
   ],
   "displacementProbe": {
     "bestVerticalOffsetPx": 0,
-    "percentAtBestOffset": 3.2806,
+    "percentAtBestOffset": 3.2551,
     "note": "0 means the render is on its design row and the residual is rasterisation. A non-zero offset is a real layout error even when the headline percentage is low."
   },
   "verdict": "PENDING_REVIEW"

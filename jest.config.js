@@ -1,3 +1,8 @@
+// Pin the timezone so any test that turns a server instant into a local clock time is
+// deterministic. The Cook App's shifts are stated in India local time, so that is the timezone
+// the screens are authored against; without this the result depends on the runner's machine.
+process.env.TZ = 'Asia/Kolkata';
+
 module.exports = {
   preset: 'jest-expo',
   setupFilesAfterEnv: ['<rootDir>/jest.setup.ts'],

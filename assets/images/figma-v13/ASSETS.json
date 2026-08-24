@@ -1,16 +1,64 @@
 {
   "assets": {
+    "arrow-right.png": {
+      "bytes": 644,
+      "constName": "imgArrowRight",
+      "nodes": ["575:2135", "575:2137"],
+      "sha256": "dde156a6612ff4630b33a6be672c4ef5882ffc7d7f00f90a8da13c03a29da7ff"
+    },
+    "check-tick.svg": {
+      "bytes": 344,
+      "constName": "imgCheckTick",
+      "nodes": ["575:2137"],
+      "sha256": "a4ee9b5d7d34de08a2767d0c631bbbde46c11c6285b492442217813372dc771a"
+    },
+    "checked-user-male.png": {
+      "bytes": 1408,
+      "constName": "imgCheckedUserMale",
+      "nodes": ["575:2135"],
+      "sha256": "dab7b46a7a7da2475101c286260f202960b6e9187fb18471fcaafef66daaf819"
+    },
+    "cook-resting.png": {
+      "bytes": 2098594,
+      "constName": "imgCookResting",
+      "nodes": ["575:2136"],
+      "sha256": "e901c1b36cf8867ee31033e06d67bb1ae87722a42a00b1bca3be45acb1515098"
+    },
+    "cross-tick.svg": {
+      "bytes": 1046,
+      "constName": "imgCrossTick",
+      "nodes": ["575:2138"],
+      "sha256": "b3bac568aecf5edff23e7c44cab1821283a476d053b863bd867c0d4c70de849c"
+    },
+    "customer.png": {
+      "bytes": 883,
+      "constName": "imgCustomer",
+      "nodes": ["575:2135", "575:2137", "575:2138", "575:2136"],
+      "sha256": "b965a71f17a1611cdcd69f387233706a8309a85f2c81f4ab1d50def200d3253a"
+    },
     "edit-icon.svg": {
       "bytes": 1435,
       "constName": "editIcon",
       "nodes": ["434:3116", "434:3224", "434:3174"],
       "sha256": "aa101f7a46aede145f393872a7b1b769514216c62013d5840e17e496df1d93da"
     },
+    "ellipse-4.svg": {
+      "bytes": 236,
+      "constName": "imgEllipse4",
+      "nodes": ["575:2135"],
+      "sha256": "63031dd488170971df3294d076c938ab0d79ed2898c35478db5bb56c808fa5fb"
+    },
     "login-hero.png": {
       "bytes": 1863746,
       "constName": "loginHero",
       "nodes": ["434:3280"],
       "sha256": "a47cf07abd39e6bda8159f578cfca4157590abe7b8a2d2271e9f26e9de6482f3"
+    },
+    "praying-hands.png": {
+      "bytes": 121686,
+      "constName": "imgPrayingHands",
+      "nodes": ["575:2135", "575:2137", "575:2138", "575:2136"],
+      "sha256": "2d4c7689d1e8c124ab4f29b7e8497db263d676835cd912f13fcf7a63053ea23c"
     },
     "spoon-brand-logo.png": {
       "bytes": 493286,
@@ -23,6 +71,12 @@
       "constName": "spoonLogo",
       "nodes": ["434:3116", "434:3280", "434:3224", "434:3174"],
       "sha256": "bf470773080af0c4b6012bf0a27f8a6bb9c1e92b723915609782bf04b69520e0"
+    },
+    "whats-app.png": {
+      "bytes": 1419,
+      "constName": "imgWhatsApp",
+      "nodes": ["575:2135", "575:2137", "575:2138", "575:2136"],
+      "sha256": "1e57d94e42dba593935930cda903f7bbb0ad051b82bc7bbe8956ab80a0332d65"
     }
   }
 }

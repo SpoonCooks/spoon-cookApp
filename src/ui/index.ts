@@ -21,6 +21,7 @@ export { useDesignScale, makeDesignScale } from './theme/designScale';
 export type { DesignScale } from './theme/designScale';
 export {
   BEZEL_VIEWPORT,
+  DIRECT_STATUS_BAND_HEIGHT,
   HOME_INDICATOR_HEIGHT,
   STATUS_BAND_HEIGHT,
   designContentHeight,

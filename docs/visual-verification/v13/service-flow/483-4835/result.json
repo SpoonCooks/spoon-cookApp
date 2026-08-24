@@ -13,41 +13,86 @@
   },
   "viewportCropPx": {
     "left": 48,
-    "top": 48,
+    "top": 23,
     "width": 370,
     "height": 810
   },
+  "systemChromeExcluded": {
+    "profile": "statusBand=33.0 homeIndicator=10.0",
+    "designStatusBandPx": 33,
+    "designHomeIndicatorPx": 10,
+    "emulatorStatusBarPx": 136,
+    "emulatorNavigationBarPx": 66,
+    "note": "Both sides are cropped to the application-owned region before comparison. The app is forbidden from drawing the design's status-bar mock or home indicator, and the emulator's own bars are a different size, so those rows are excluded from the denominator rather than scored."
+  },
   "scalingTransform": {
     "figmaRenderScale": 1.0,
-    "figmaRenderMarginPx": 38.0,
-    "note": "390x830 bezel frame; inner 370.44x810.45 viewport at (10, 9.78)",
+    "figmaRenderOriginYPx": 13.0,
+    "note": "390x830 bezel located in render; inner 370x810 viewport at (10, 10)",
     "emulatorPx": {
       "width": 1080,
       "height": 2392
     },
+    "emulatorContentPx": {
+      "width": 1080,
+      "height": 2190
+    },
     "emulatorScaledToPx": {
       "width": 370,
-      "height": 819
+      "height": 750
     },
     "comparedAtPx": {
       "width": 370,
-      "height": 810
+      "height": 750
     }
   },
-  "comparedHeightPx": 810,
-  "referenceHeightPx": 810,
-  "emulatorScaledHeightPx": 819,
-  "uncomparedReferenceRows": 0,
+  "comparedHeightPx": 750,
+  "referenceHeightPx": 767,
+  "emulatorScaledHeightPx": 750,
+  "uncomparedReferenceRows": 17,
   "antialiasingTolerance": 12,
-  "differingPixelPercent": 45.5819,
-  "rawDifferingPixelPercent": 99.653,
-  "meanChannelDelta": 51.5063,
+  "differingPixelPercent": 45.7114,
+  "rawDifferingPixelPercent": 99.969,
+  "meanChannelDelta": 50.9463,
   "maxChannelDelta": 255,
-  "verdict": "FAIL",
-  "remainingDeviations": [
-    "Measured only — differing-pixel percentage recorded, individual deviations not yet enumerated.",
-    "Header lacks the circular back chevron and the yellow Help pill with WhatsApp glyph. (shared header component, observed on every reviewed Service frame.)"
+  "worstRows": [
+    {
+      "row": 101,
+      "percent": 89.73
+    },
+    {
+      "row": 102,
+      "percent": 89.73
+    },
+    {
+      "row": 219,
+      "percent": 89.73
+    },
+    {
+      "row": 220,
+      "percent": 89.73
+    },
+    {
+      "row": 221,
+      "percent": 89.73
+    },
+    {
+      "row": 222,
+      "percent": 89.73
+    },
+    {
+      "row": 223,
+      "percent": 89.73
+    },
+    {
+      "row": 224,
+      "percent": 89.73
+    }
   ],
-  "reviewDepth": "measured-only",
-  "blockedBy": "get_design_context is unavailable: the Figma Dev Mode allowed-directories list has no entry, and the local MCP server is additionally rate-limited. Exact geometry and the original photographic/illustration assets cannot be exported, so this screen is not rebuilt rather than approximated."
+  "displacementProbe": {
+    "bestVerticalOffsetPx": -3,
+    "percentAtBestOffset": 46.8441,
+    "note": "0 means the render is on its design row and the residual is rasterisation. A non-zero offset is a real layout error even when the headline percentage is low."
+  },
+  "verdict": "PENDING_REVIEW"
 }

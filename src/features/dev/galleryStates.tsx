@@ -1,6 +1,12 @@
 import { useState } from 'react';
 import { View } from 'react-native';
 
+import {
+  AbsentView,
+  DailyLogInView,
+  PresentView,
+  ShiftEndedView,
+} from '@features/attendance/AttendanceViews';
 import { BootView, OtpView, PhoneView } from '@features/login/LoginViews';
 
 import { otpLength } from '@core/domain/otp';
@@ -154,6 +160,16 @@ function otp(
   };
 }
 
+/** One of the four `log in flow` frames. All own their safe area, as `LoginViews` do. */
+function attendance(
+  id: string,
+  nodeId: string,
+  label: string,
+  render: () => React.ReactElement,
+): GalleryEntry {
+  return { id, section: 'log in flow', nodeId, label, ownsSafeArea: true, render };
+}
+
 function service(
   id: string,
   nodeId: string,
@@ -219,6 +235,24 @@ export const galleryEntries: readonly GalleryEntry[] = [
     ownsSafeArea: true,
     render: () => <BootView />,
   },
+  /*
+   * `log in flow` (`592:1068`). The four frames are four states of the attendance screen, and all
+   * four draw the same greeting from the same fixture: the design's own copy is `Namaste, Rekha!`
+   * with a `6 AM se 6 PM` shift pill, so the gallery states them literally rather than deriving
+   * them from a clock — two runs a day apart must produce identical pixels.
+   */
+  attendance('login-flow/daily', '575:2135', 'Daily log in', () => (
+    <DailyLogInView name="Rekha" shiftWindow="6 AM se 6 PM" markByTime="5:30 AM" />
+  )),
+  attendance('login-flow/present', '575:2137', 'Marked present', () => (
+    <PresentView name="Rekha" shiftWindow="6 AM se 6 PM" />
+  )),
+  attendance('login-flow/absent', '575:2138', 'Marked absent', () => (
+    <AbsentView name="Rekha" shiftWindow="6 AM se 6 PM" />
+  )),
+  attendance('login-flow/logout', '575:2136', 'Shift finished', () => (
+    <ShiftEndedView name="Rekha" shiftWindow="6 AM se 6 PM" />
+  )),
   service('service/travel-on-time', '462:3617', 'Travel — on time', serviceFixtures.travelOnTime),
   service(
     'service/travel-at-risk',

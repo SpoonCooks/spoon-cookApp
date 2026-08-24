@@ -44,6 +44,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from dataclasses import dataclass
 from pathlib import Path
 
 import numpy as np
@@ -60,12 +61,48 @@ SECTION_SLUGS = {
     "Service flow": "service-flow",
 }
 
-#: Height of the status-bar mock every V13 frame draws, in design units. Mirrors
+#: Height of the status-bar mock inside a **bezel** frame, in design units. Mirrors
 #: `STATUS_BAND_HEIGHT` in `src/ui/theme/viewport.ts`; `viewportProfile.test.ts` asserts they agree.
 STATUS_BAND_HEIGHT = 33.0
 
-#: Home-indicator strip height, in design units. Only the bezel frames draw one.
-HOME_INDICATOR_HEIGHT = {"Login flow": 10.0, "Service flow": 10.0}
+#: Height of the status-bar mock inside a **direct** frame, in design units. Mirrors
+#: `DIRECT_STATUS_BAND_HEIGHT` in `src/ui/theme/viewport.ts`.
+#:
+#: The two are NOT the same number, which is why they are typed separately rather than shared. In
+#: the direct sections the mock is `575:1743`, a 32-unit `Component 1` whose notch island is
+#: `top-0 bottom-1/4` -- 24 units, and every uncapped direct reference render puts that island on
+#: rows 0..23. Using the bezel's 33 here would silently drop one real design row from the top of
+#: every `leave`, `log in flow` and `performance` comparison, which is the same class of error as
+#: run 1's 25px bezel displacement, just smaller.
+DIRECT_STATUS_BAND_HEIGHT = 32.0
+
+
+@dataclass(frozen=True)
+class ComparisonProfile:
+    """How one section's reference render maps onto the application-owned region."""
+
+    #: Design units of status-bar mock to drop from the top of the reference.
+    status_band: float
+    #: Design units of home-indicator strip to drop from the bottom of the reference.
+    home_indicator: float
+
+    @property
+    def note(self) -> str:
+        return f"statusBand={self.status_band} homeIndicator={self.home_indicator}"
+
+
+BEZEL_PROFILE = ComparisonProfile(status_band=STATUS_BAND_HEIGHT, home_indicator=10.0)
+DIRECT_PROFILE = ComparisonProfile(status_band=DIRECT_STATUS_BAND_HEIGHT, home_indicator=0.0)
+
+#: Section -> comparison profile. Keyed by the same section names `viewport.py` branches on, so a
+#: section can never pick up the bezel crop and the direct status band, or any other mixture.
+COMPARISON_PROFILES = {
+    "Login flow": BEZEL_PROFILE,
+    "Service flow": BEZEL_PROFILE,
+    "leave": DIRECT_PROFILE,
+    "log in flow": DIRECT_PROFILE,
+    "performance": DIRECT_PROFILE,
+}
 
 #: Measured on the Ref393GA AVD with `dumpsys window displays`:
 #:   InsetsSource type=statusBars      frame=[0,0][1080,136]
@@ -97,9 +134,10 @@ def compare(
     crop = figma_viewport_crop(section, frame_w, frame_h, figma.width, figma.height, figma_array)
     viewport = figma.crop((crop.left, crop.top, crop.right, crop.bottom))
 
-    # Drop the design's own system-chrome bands.
-    status_rows = round(STATUS_BAND_HEIGHT * crop.scale)
-    indicator_rows = round(HOME_INDICATOR_HEIGHT.get(section, 0.0) * crop.scale)
+    # Drop the design's own system-chrome bands, per the section's typed profile.
+    profile = COMPARISON_PROFILES[section]
+    status_rows = round(profile.status_band * crop.scale)
+    indicator_rows = round(profile.home_indicator * crop.scale)
     reference = viewport.crop((0, status_rows, viewport.width, viewport.height - indicator_rows))
 
     emulator = load_rgb(emulator_path)
@@ -108,7 +146,14 @@ def compare(
         (0, emulator_status_px, emulator.width, emulator.height - emulator_nav_px)
     )
     target_h = round(emulator_content.height * reference.width / emulator_content.width)
-    scaled = emulator_content.resize((reference.width, target_h), Image.LANCZOS)
+    # BOX (area average), not LANCZOS. The emulator renders at 2.92x the reference's resolution, so
+    # every comparison is a downsample; LANCZOS is a sharpening kernel and rings around the hard
+    # edges this design is full of -- a 1-unit lime card border came back as a 47/255 error on the
+    # border row itself plus over/undershoot on the rows either side, none of which is a property
+    # of the app's render. Area averaging is what a display actually does when it integrates 2.92
+    # device pixels into one, so it introduces no detail of its own. It scores every already-closed
+    # `Login flow` screen the same or better, which is the check that it is not simply looser.
+    scaled = emulator_content.resize((reference.width, target_h), Image.BOX)
 
     # Compare over the overlapping height only, and report what was left out.
     height = min(reference.height, scaled.height)
@@ -175,6 +220,7 @@ def compare(
             "height": crop.height,
         },
         "systemChromeExcluded": {
+            "profile": profile.note,
             "designStatusBandPx": status_rows,
             "designHomeIndicatorPx": indicator_rows,
             "emulatorStatusBarPx": emulator_status_px,

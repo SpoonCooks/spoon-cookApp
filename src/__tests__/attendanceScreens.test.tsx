@@ -5,7 +5,7 @@ import SingleDayLeaveScreen from '@/app/leave/single';
 import RangeLeaveScreen from '@/app/leave/range';
 
 /**
- * Attendance-section render tests.
+ * Attendance-section render tests — V13 `log in flow` (`592:1068`) plus the leave pickers.
  *
  * The Android emulator could not boot in this environment (see the implementation report §11), so
  * these mount the real screens and assert the rendered projection instead. That is NOT a substitute
@@ -132,8 +132,8 @@ beforeEach(() => {
   };
 });
 
-describe('Page 11 — no attendance record yet (506:1986)', () => {
-  it('asks the question and offers Mark Present', () => {
+describe('575:2135 — 3a, daily log in', () => {
+  it('asks the question and offers PRESENT', () => {
     render(<AttendanceScreen />);
     expect(screen.getByTestId('attendance-headline')).toHaveTextContent(
       'aaj aap kaam pai aaye hai?',
@@ -141,23 +141,36 @@ describe('Page 11 — no attendance record yet (506:1986)', () => {
     expect(screen.getByTestId('attendance-mark-present')).toBeTruthy();
   });
 
-  it('does NOT print the 30-minute rule, which the backend does not enforce', () => {
-    // Figma reads "Shift se 30 mins pehle tak button dabaye". No approved opening window exists —
-    // `/cook/me` returns `checkInOpensAt: null` — so printing it would state a restriction the
-    // server has never applied and would send cooks away who are entitled to check in.
+  it('greets the cook with the server name and the server shift window', () => {
     render(<AttendanceScreen />);
-    expect(screen.queryByTestId('attendance-present-hint')).toBeNull();
-    expect(screen.queryByText(/30 mins/)).toBeNull();
+    expect(screen.getByTestId('attendance-name')).toHaveTextContent('Namaste, Rekha!');
+    // `09:00:00`/`18:00:00` from the shift fixture, in the pill's own `6 AM se 6 PM` shape.
+    expect(screen.getByTestId('attendance-shift-pill')).toHaveTextContent('9 AM se 6 PM');
   });
 
-  it('shows a window hint only once the backend publishes one', () => {
-    profile(null, true, { checkInOpensAt: '2026-08-21T03:00:00.000Z' });
+  it('hides the shift pill rather than inventing a window when there is no shift', () => {
+    profile(null, false);
     render(<AttendanceScreen />);
-    expect(screen.getByTestId('attendance-present-hint')).toBeTruthy();
+    expect(screen.queryByTestId('attendance-shift-pill')).toBeNull();
+  });
+
+  it('does NOT print a check-in deadline, which the backend does not enforce', () => {
+    // `540:402` reads "5:30 AM se pehle tak button dabaye". No approved opening window exists —
+    // `/cook/me` returns `checkInOpensAt: null` — so printing it would state a restriction the
+    // server has never applied and would send away cooks who are entitled to check in.
+    render(<AttendanceScreen />);
+    expect(screen.queryByTestId('attendance-window')).toBeNull();
+    expect(screen.queryByText(/se pehle tak button dabaye/)).toBeNull();
+  });
+
+  it('draws the window row only once the backend publishes an opening instant', () => {
+    profile(null, true, { checkInOpensAt: '2026-08-21T00:00:00.000Z' });
+    render(<AttendanceScreen />);
+    expect(screen.getByTestId('attendance-window')).toHaveTextContent(/se pehle tak button dabaye/);
   });
 
   it('withholds the button when the SERVER says the cook cannot check in', () => {
-    // Approved leave: the old local rule (`has shift && no record`) offered the button here and
+    // Approved leave: an earlier local rule (`has shift && no record`) offered the button here and
     // let the backend reject the tap with a 400.
     profile(null, true, { canCheckIn: false, reason: 'APPROVED_LEAVE' });
     render(<AttendanceScreen />);
@@ -183,7 +196,9 @@ describe('Page 11 — no attendance record yet (506:1986)', () => {
     profile(null, false);
     render(<AttendanceScreen />);
     expect(screen.queryByTestId('attendance-mark-present')).toBeNull();
-    expect(screen.getByTestId('attendance-no-shift')).toBeTruthy();
+    expect(screen.getByTestId('attendance-no-shift')).toHaveTextContent(
+      'Aaj aapki koi shift nahi hai.',
+    );
   });
 
   it('surfaces a failed check-in instead of pretending it worked', () => {
@@ -199,7 +214,7 @@ describe('Page 11 — no attendance record yet (506:1986)', () => {
   });
 });
 
-describe('Page 12a — present (526:292)', () => {
+describe('575:2137 — 3b, present', () => {
   beforeEach(() => {
     profile({ status: 'present', checkInAt: '2026-08-21T03:29:00.000Z', onTime: true });
   });
@@ -212,23 +227,14 @@ describe('Page 12a — present (526:292)', () => {
     expect(screen.getByTestId('attendance-verdict')).toHaveTextContent('Aaj ke liye PRESENT!');
   });
 
-  it('shows the break card with the server shift window', () => {
+  it('offers KAAM DEKHE and withdraws the check-in button', () => {
     render(<AttendanceScreen />);
-    // Regex matchers: the card concatenates several Text nodes, so an exact match would fail.
-    const card = screen.getByTestId('attendance-break-card');
-    expect(card).toHaveTextContent(/aaj ka break/);
-    expect(card).toHaveTextContent(/Duration: 2 hrs/);
-    expect(card).toHaveTextContent(/12:15 PM/);
-    expect(card).toHaveTextContent(/2:15 PM/);
-  });
-
-  it('withdraws the Mark Present button once checked in', () => {
-    render(<AttendanceScreen />);
+    expect(screen.getByTestId('attendance-see-work')).toBeTruthy();
     expect(screen.queryByTestId('attendance-mark-present')).toBeNull();
   });
 });
 
-describe('Page 12b — absent (525:132)', () => {
+describe('575:2138 — 3c, absent', () => {
   it('renders the ABSENT verdict with the negated headline', () => {
     profile({ status: 'absent', checkInAt: null, onTime: null });
     render(<AttendanceScreen />);
@@ -237,85 +243,45 @@ describe('Page 12b — absent (525:132)', () => {
     );
     expect(screen.getByTestId('attendance-verdict')).toHaveTextContent('Aaj ke liye ABSENT!');
     expect(screen.queryByTestId('attendance-mark-present')).toBeNull();
+    expect(screen.queryByTestId('attendance-see-work')).toBeNull();
+  });
+
+  it('shows the same ABSENT frame for an approved leave day', () => {
+    profile({ status: 'leave', checkInAt: null, onTime: null });
+    render(<AttendanceScreen />);
+    expect(screen.getByTestId('attendance-verdict')).toHaveTextContent('Aaj ke liye ABSENT!');
   });
 });
 
-describe('month tiles', () => {
-  it('shows server totals and the server on-time percentage', () => {
+describe('575:2136 — 3d, shift finished', () => {
+  it('shows the rest photograph once a PRESENT shift has ended', () => {
+    // `endLocalTime: 00:00:00` makes "has the shift ended?" true at every clock time, so this
+    // asserts the state selection rather than the runner's wall clock.
+    profile({ status: 'present', checkInAt: '2026-08-21T03:29:00.000Z', onTime: true }, true, {
+      shift: { ...shift(), endLocalTime: '00:00:00' },
+    });
     render(<AttendanceScreen />);
-    const tiles = screen.getByTestId('attendance-tiles');
-    expect(tiles).toHaveTextContent(/22/);
-    expect(tiles).toHaveTextContent(/98%/);
+    expect(screen.getByTestId('attendance-rest-photo')).toBeTruthy();
+    expect(screen.getByTestId('attendance-rest-caption')).toHaveTextContent(
+      'Aaj ka kaam khatam ho gaya, aaram kare!',
+    );
   });
 
-  it('renders a dash rather than 0% when the server has no percentage', () => {
-    mockAttendanceState = {
-      ...mockAttendanceState,
-      data: { ...(mockAttendanceState['data'] as object), onTimePercentage: null },
-    };
+  it('stays on the PRESENT frame while the shift is still running', () => {
+    profile({ status: 'present', checkInAt: '2026-08-21T03:29:00.000Z', onTime: true }, true, {
+      shift: { ...shift(), endLocalTime: '23:59:00' },
+    });
     render(<AttendanceScreen />);
-    expect(screen.getByTestId('attendance-tiles')).toHaveTextContent(/—/);
-  });
-
-  it('shows an error for the month without destroying the check-in surface', () => {
-    mockAttendanceState = {
-      isPending: false,
-      isError: true,
-      isFetching: false,
-      error: { name: 'ApiError' },
-      refetch: jest.fn(),
-      data: undefined,
-    };
-    render(<AttendanceScreen />);
-    expect(screen.getByTestId('attendance-month-error')).toBeTruthy();
-    expect(screen.getByTestId('attendance-present-card')).toBeTruthy();
+    expect(screen.queryByTestId('attendance-rest-photo')).toBeNull();
+    expect(screen.getByTestId('attendance-verdict')).toHaveTextContent('Aaj ke liye PRESENT!');
   });
 });
 
-describe('Chutti lagaye block', () => {
-  it('no longer blocks submission now that the endpoint is deployed', () => {
-    render(<AttendanceScreen />);
-    expect(screen.queryByTestId('attendance-leave-blocked')).toBeNull();
-  });
-
-  it('shows a pending request as undecided, never as granted', () => {
-    mockLeavesState = {
-      ...mockLeavesState,
-      data: {
-        leaves: [
-          {
-            leaveId: 'l1',
-            type: 'multi_day',
-            startDate: '2026-08-25',
-            endDate: '2026-08-27',
-            status: 'pending',
-            reason: null,
-            requestedAt: '2026-08-21T00:00:00.000Z',
-            decidedAt: null,
-          },
-        ],
-        fromDate: '2026-08-21',
-        toDate: '2026-08-31',
-        timezone: 'Asia/Kolkata',
-      },
-    };
-    render(<AttendanceScreen />);
-    const row = screen.getByTestId('attendance-leave-l1');
-    expect(row).toHaveTextContent(/25 Aug se 27 Aug tak/);
-    expect(row).toHaveTextContent(/Manager approve karenge/);
-    expect(screen.queryByText('Chutti lag gyi')).toBeNull();
-  });
-
-  it('still lets the cook open both pickers — navigation is not a mutation', () => {
-    render(<AttendanceScreen />);
-    expect(
-      screen.getByTestId('attendance-leave-single').props.accessibilityState?.disabled,
-    ).toBeFalsy();
-    expect(
-      screen.getByTestId('attendance-leave-range').props.accessibilityState?.disabled,
-    ).toBeFalsy();
-  });
-});
+/*
+ * The break card, the month tiles and the `Chutti lagaye` block are no longer part of this
+ * screen. V13 moves them to the `leave` section (`540:416`), whose own screen carries `AAJ KA
+ * BREAK` and the leave surfaces; their coverage lives with that screen.
+ */
 
 describe('Pages 14a/14b — 1 din ki chutti (528:483 / 529:1259)', () => {
   it('renders the confirmation copy', () => {
