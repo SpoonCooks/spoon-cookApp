@@ -1,0 +1,28 @@
+{
+  "assets": {
+    "edit-icon.svg": {
+      "bytes": 1435,
+      "constName": "editIcon",
+      "nodes": ["434:3116", "434:3224", "434:3174"],
+      "sha256": "aa101f7a46aede145f393872a7b1b769514216c62013d5840e17e496df1d93da"
+    },
+    "login-hero.png": {
+      "bytes": 1863746,
+      "constName": "loginHero",
+      "nodes": ["434:3280"],
+      "sha256": "a47cf07abd39e6bda8159f578cfca4157590abe7b8a2d2271e9f26e9de6482f3"
+    },
+    "spoon-brand-logo.png": {
+      "bytes": 493286,
+      "constName": "spoonBrandLogo",
+      "nodes": ["434:3330"],
+      "sha256": "c9be560db5f3466adea337f0b9c8c6f8ed0bc39c6ef045ecb27fb4f0e1048a67"
+    },
+    "spoon-logo.png": {
+      "bytes": 579329,
+      "constName": "spoonLogo",
+      "nodes": ["434:3116", "434:3280", "434:3224", "434:3174"],
+      "sha256": "bf470773080af0c4b6012bf0a27f8a6bb9c1e92b723915609782bf04b69520e0"
+    }
+  }
+}
