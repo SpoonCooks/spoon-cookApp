@@ -18,8 +18,8 @@
     "height": 810
   },
   "systemChromeExcluded": {
-    "profile": "statusBand=33.0 homeIndicator=10.0",
-    "designStatusBandPx": 33,
+    "profile": "statusBand=36.198 homeIndicator=10.0",
+    "designStatusBandPx": 36,
     "designHomeIndicatorPx": 10,
     "emulatorStatusBarPx": 136,
     "emulatorNavigationBarPx": 66,
@@ -48,51 +48,51 @@
   },
   "anchor": "top",
   "comparedHeightPx": 750,
-  "referenceHeightPx": 767,
+  "referenceHeightPx": 764,
   "emulatorScaledHeightPx": 750,
-  "uncomparedReferenceRows": 17,
+  "uncomparedReferenceRows": 14,
   "antialiasingTolerance": 12,
-  "differingPixelPercent": 44.6396,
-  "rawDifferingPixelPercent": 98.5341,
-  "meanChannelDelta": 52.0076,
+  "differingPixelPercent": 44.7899,
+  "rawDifferingPixelPercent": 98.4905,
+  "meanChannelDelta": 51.8312,
   "maxChannelDelta": 255,
   "worstRows": [
     {
-      "row": 257,
+      "row": 264,
       "percent": 89.73
     },
     {
-      "row": 258,
-      "percent": 89.73
-    },
-    {
-      "row": 259,
-      "percent": 89.73
-    },
-    {
-      "row": 260,
-      "percent": 89.73
-    },
-    {
-      "row": 261,
-      "percent": 89.73
-    },
-    {
-      "row": 262,
-      "percent": 89.73
-    },
-    {
-      "row": 263,
+      "row": 265,
       "percent": 89.73
     },
     {
       "row": 266,
       "percent": 89.73
+    },
+    {
+      "row": 267,
+      "percent": 89.73
+    },
+    {
+      "row": 268,
+      "percent": 89.73
+    },
+    {
+      "row": 269,
+      "percent": 89.73
+    },
+    {
+      "row": 271,
+      "percent": 89.73
+    },
+    {
+      "row": 272,
+      "percent": 89.73
     }
   ],
   "displacementProbe": {
-    "bestVerticalOffsetPx": -3,
-    "percentAtBestOffset": 45.8215,
+    "bestVerticalOffsetPx": -4,
+    "percentAtBestOffset": 45.8856,
     "note": "0 means the render is on its design row and the residual is rasterisation. A non-zero offset is a real layout error even when the headline percentage is low."
   },
   "verdict": "PENDING_REVIEW"

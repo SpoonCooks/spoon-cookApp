@@ -105,9 +105,15 @@ def reject_reason(png_bytes: bytes) -> str | None:
     # Flatness, not standard deviation. A screen that is entirely black except for the gesture
     # pill still has enough variance to clear a std threshold, which is how an unpainted frame
     # was written to disk as evidence; the fraction of pixels sitting on the mean catches it.
+    #
+    # Flatness alone is not enough either, in the other direction: `483:4741` is three lines of
+    # type on a cream field and is 98% one colour, so a bare flatness test called a correct render
+    # blank and no number of retries could ever have passed it. A screen with ink on it has been
+    # painted, whatever share of it is background -- so the two are required together.
     flat = float((np.abs(body - body.reshape(-1, 3).mean(axis=0)).max(axis=2) < 8).mean())
-    if flat > 0.97:
-        return f"blank render ({flat:.0%} of pixels one colour)"
+    ink = float((body.max(axis=2) < 128).mean())
+    if flat > 0.97 and ink < 0.002:
+        return f"blank render ({flat:.0%} of pixels one colour, {ink:.2%} ink)"
     if body.mean() < 20:
         return "black screen - nothing painted"
 

@@ -52,47 +52,47 @@
   "emulatorScaledHeightPx": 750,
   "uncomparedReferenceRows": 0,
   "antialiasingTolerance": 12,
-  "differingPixelPercent": 3.8614,
-  "rawDifferingPixelPercent": 34.1084,
-  "meanChannelDelta": 2.5545,
-  "maxChannelDelta": 255,
+  "differingPixelPercent": 3.6597,
+  "rawDifferingPixelPercent": 33.8962,
+  "meanChannelDelta": 1.9043,
+  "maxChannelDelta": 232,
   "worstRows": [
     {
       "row": 586,
       "percent": 78.11
     },
     {
+      "row": 602,
+      "percent": 45.68
+    },
+    {
       "row": 603,
-      "percent": 59.46
+      "percent": 48.38
     },
     {
       "row": 604,
-      "percent": 62.7
-    },
-    {
-      "row": 605,
-      "percent": 62.16
-    },
-    {
-      "row": 606,
-      "percent": 61.89
+      "percent": 48.38
     },
     {
       "row": 607,
-      "percent": 63.78
+      "percent": 40.27
     },
     {
       "row": 608,
-      "percent": 64.05
+      "percent": 48.92
     },
     {
       "row": 609,
-      "percent": 64.32
+      "percent": 50.81
+    },
+    {
+      "row": 610,
+      "percent": 40.81
     }
   ],
   "displacementProbe": {
     "bestVerticalOffsetPx": 0,
-    "percentAtBestOffset": 3.9357,
+    "percentAtBestOffset": 3.7283,
     "note": "0 means the render is on its design row and the residual is rasterisation. A non-zero offset is a real layout error even when the headline percentage is low."
   },
   "verdict": "PENDING_REVIEW"

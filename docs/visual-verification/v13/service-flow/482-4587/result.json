@@ -18,8 +18,8 @@
     "height": 810
   },
   "systemChromeExcluded": {
-    "profile": "statusBand=33.0 homeIndicator=10.0",
-    "designStatusBandPx": 33,
+    "profile": "statusBand=36.198 homeIndicator=10.0",
+    "designStatusBandPx": 36,
     "designHomeIndicatorPx": 10,
     "emulatorStatusBarPx": 136,
     "emulatorNavigationBarPx": 66,
@@ -48,37 +48,29 @@
   },
   "anchor": "top",
   "comparedHeightPx": 750,
-  "referenceHeightPx": 767,
+  "referenceHeightPx": 764,
   "emulatorScaledHeightPx": 750,
-  "uncomparedReferenceRows": 17,
+  "uncomparedReferenceRows": 14,
   "antialiasingTolerance": 12,
-  "differingPixelPercent": 40.7016,
-  "rawDifferingPixelPercent": 99.969,
-  "meanChannelDelta": 46.6333,
+  "differingPixelPercent": 40.4454,
+  "rawDifferingPixelPercent": 100.0,
+  "meanChannelDelta": 46.3041,
   "maxChannelDelta": 255,
   "worstRows": [
     {
-      "row": 212,
+      "row": 219,
       "percent": 89.73
     },
     {
-      "row": 213,
+      "row": 220,
       "percent": 89.73
     },
     {
-      "row": 214,
+      "row": 221,
       "percent": 89.73
     },
     {
-      "row": 215,
-      "percent": 89.73
-    },
-    {
-      "row": 217,
-      "percent": 89.73
-    },
-    {
-      "row": 218,
+      "row": 222,
       "percent": 89.73
     },
     {
@@ -88,11 +80,19 @@
     {
       "row": 224,
       "percent": 89.73
+    },
+    {
+      "row": 225,
+      "percent": 89.73
+    },
+    {
+      "row": 229,
+      "percent": 89.73
     }
   ],
   "displacementProbe": {
-    "bestVerticalOffsetPx": -10,
-    "percentAtBestOffset": 41.4676,
+    "bestVerticalOffsetPx": -4,
+    "percentAtBestOffset": 41.4635,
     "note": "0 means the render is on its design row and the residual is rasterisation. A non-zero offset is a real layout error even when the headline percentage is low."
   },
   "verdict": "PENDING_REVIEW"

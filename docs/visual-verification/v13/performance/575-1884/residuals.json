@@ -2,12 +2,12 @@
   "node": "575:1884",
   "section": "performance",
   "comparedPx": 453990,
-  "differingPx": 71158,
-  "differingPercent": 15.6739,
-  "edgePx": 45971,
-  "edgeShareOfDiffering": 64.6,
-  "areaPx": 25187,
-  "areaPercentOfScreen": 5.5479,
+  "differingPx": 70867,
+  "differingPercent": 15.6098,
+  "edgePx": 45975,
+  "edgeShareOfDiffering": 64.88,
+  "areaPx": 24892,
+  "areaPercentOfScreen": 5.4829,
   "areaBlobs": [
     {
       "pixels": 1348,

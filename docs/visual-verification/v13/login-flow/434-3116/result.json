@@ -31,68 +31,68 @@
     "note": "390x830 bezel located in render; inner 370x810 viewport at (10, 10)",
     "emulatorPx": {
       "width": 1080,
-      "height": 2392
+      "height": 3190
     },
     "emulatorContentPx": {
       "width": 1080,
-      "height": 2190
+      "height": 2988
     },
     "emulatorScaledToPx": {
       "width": 370,
-      "height": 750
+      "height": 1024
     },
     "comparedAtPx": {
       "width": 370,
-      "height": 750
+      "height": 767
     }
   },
   "anchor": "top",
-  "comparedHeightPx": 750,
+  "comparedHeightPx": 767,
   "referenceHeightPx": 767,
-  "emulatorScaledHeightPx": 750,
-  "uncomparedReferenceRows": 17,
+  "emulatorScaledHeightPx": 1024,
+  "uncomparedReferenceRows": 0,
   "antialiasingTolerance": 12,
-  "differingPixelPercent": 3.1683,
-  "rawDifferingPixelPercent": 4.0544,
-  "meanChannelDelta": 1.9074,
+  "differingPixelPercent": 2.3137,
+  "rawDifferingPixelPercent": 3.3722,
+  "meanChannelDelta": 1.1221,
   "maxChannelDelta": 255,
   "worstRows": [
     {
       "row": 162,
-      "percent": 53.78
+      "percent": 41.35
     },
     {
       "row": 163,
-      "percent": 59.19
+      "percent": 40.0
     },
     {
       "row": 164,
-      "percent": 55.41
-    },
-    {
-      "row": 165,
-      "percent": 48.38
+      "percent": 36.49
     },
     {
       "row": 166,
-      "percent": 50.0
+      "percent": 38.38
     },
     {
       "row": 167,
-      "percent": 57.57
-    },
-    {
-      "row": 168,
-      "percent": 54.59
+      "percent": 42.97
     },
     {
       "row": 169,
-      "percent": 41.89
+      "percent": 37.3
+    },
+    {
+      "row": 386,
+      "percent": 36.49
+    },
+    {
+      "row": 387,
+      "percent": 36.76
     }
   ],
   "displacementProbe": {
     "bestVerticalOffsetPx": 0,
-    "percentAtBestOffset": 3.2551,
+    "percentAtBestOffset": 2.3358,
     "note": "0 means the render is on its design row and the residual is rasterisation. A non-zero offset is a real layout error even when the headline percentage is low."
   },
   "verdict": "PENDING_REVIEW"

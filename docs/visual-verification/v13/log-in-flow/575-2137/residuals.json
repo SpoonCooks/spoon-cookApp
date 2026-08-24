@@ -2,12 +2,12 @@
   "node": "575:2137",
   "section": "log in flow",
   "comparedPx": 266770,
-  "differingPx": 12310,
-  "differingPercent": 4.6145,
-  "edgePx": 11255,
-  "edgeShareOfDiffering": 91.43,
-  "areaPx": 1055,
-  "areaPercentOfScreen": 0.3955,
+  "differingPx": 12440,
+  "differingPercent": 4.6632,
+  "edgePx": 11368,
+  "edgeShareOfDiffering": 91.38,
+  "areaPx": 1072,
+  "areaPercentOfScreen": 0.4018,
   "areaBlobs": [
     {
       "pixels": 302,

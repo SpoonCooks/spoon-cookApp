@@ -2,12 +2,12 @@
   "node": "483:4835",
   "section": "Service flow",
   "comparedPx": 277500,
-  "differingPx": 126530,
-  "differingPercent": 45.5964,
-  "edgePx": 32458,
-  "edgeShareOfDiffering": 25.65,
-  "areaPx": 94072,
-  "areaPercentOfScreen": 33.8998,
+  "differingPx": 127623,
+  "differingPercent": 45.9903,
+  "edgePx": 32558,
+  "edgeShareOfDiffering": 25.51,
+  "areaPx": 95065,
+  "areaPercentOfScreen": 34.2577,
   "areaBlobs": [
     {
       "pixels": 26306,
@@ -24,9 +24,9 @@
       "right": 340
     },
     {
-      "pixels": 16483,
-      "top": 158,
-      "bottom": 224,
+      "pixels": 17083,
+      "top": 163,
+      "bottom": 231,
       "left": 34,
       "right": 335
     },

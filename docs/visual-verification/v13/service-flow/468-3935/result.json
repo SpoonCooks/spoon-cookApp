@@ -18,8 +18,8 @@
     "height": 810
   },
   "systemChromeExcluded": {
-    "profile": "statusBand=33.0 homeIndicator=10.0",
-    "designStatusBandPx": 33,
+    "profile": "statusBand=36.198 homeIndicator=10.0",
+    "designStatusBandPx": 36,
     "designHomeIndicatorPx": 10,
     "emulatorStatusBarPx": 136,
     "emulatorNavigationBarPx": 66,
@@ -48,13 +48,13 @@
   },
   "anchor": "top",
   "comparedHeightPx": 750,
-  "referenceHeightPx": 767,
+  "referenceHeightPx": 764,
   "emulatorScaledHeightPx": 750,
-  "uncomparedReferenceRows": 17,
+  "uncomparedReferenceRows": 14,
   "antialiasingTolerance": 12,
-  "differingPixelPercent": 29.0955,
-  "rawDifferingPixelPercent": 81.5831,
-  "meanChannelDelta": 34.4387,
+  "differingPixelPercent": 29.3964,
+  "rawDifferingPixelPercent": 78.8357,
+  "meanChannelDelta": 34.0495,
   "maxChannelDelta": 255,
   "worstRows": [
     {
@@ -82,17 +82,17 @@
       "percent": 89.73
     },
     {
-      "row": 728,
+      "row": 724,
       "percent": 89.73
     },
     {
-      "row": 729,
+      "row": 725,
       "percent": 89.73
     }
   ],
   "displacementProbe": {
-    "bestVerticalOffsetPx": 0,
-    "percentAtBestOffset": 29.7771,
+    "bestVerticalOffsetPx": -10,
+    "percentAtBestOffset": 30.1333,
     "note": "0 means the render is on its design row and the residual is rasterisation. A non-zero offset is a real layout error even when the headline percentage is low."
   },
   "verdict": "PENDING_REVIEW"

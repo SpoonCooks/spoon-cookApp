@@ -4,12 +4,12 @@
   "targetContentPx": 3655,
   "scrolls": [
     {
-      "movedPx": 1137,
+      "movedPx": 1106,
       "matchCost": 0.0
     },
     {
-      "movedPx": 340,
-      "matchCost": 0.005
+      "movedPx": 371,
+      "matchCost": 0.01
     }
   ],
   "reachedTarget": true,

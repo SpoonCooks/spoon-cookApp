@@ -2,12 +2,12 @@
   "node": "483:4741",
   "section": "Service flow",
   "comparedPx": 277500,
-  "differingPx": 128878,
-  "differingPercent": 46.4425,
-  "edgePx": 46401,
-  "edgeShareOfDiffering": 36.0,
-  "areaPx": 82477,
-  "areaPercentOfScreen": 29.7214,
+  "differingPx": 129530,
+  "differingPercent": 46.6775,
+  "edgePx": 46544,
+  "edgeShareOfDiffering": 35.93,
+  "areaPx": 82986,
+  "areaPercentOfScreen": 29.9049,
   "areaBlobs": [
     {
       "pixels": 26306,

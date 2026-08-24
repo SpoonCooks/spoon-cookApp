@@ -2,12 +2,12 @@
   "node": "434:3280",
   "section": "Login flow",
   "comparedPx": 277500,
-  "differingPx": 13349,
-  "differingPercent": 4.8105,
-  "edgePx": 13292,
-  "edgeShareOfDiffering": 99.57,
-  "areaPx": 57,
-  "areaPercentOfScreen": 0.0205,
+  "differingPx": 13303,
+  "differingPercent": 4.7939,
+  "edgePx": 13248,
+  "edgeShareOfDiffering": 99.59,
+  "areaPx": 55,
+  "areaPercentOfScreen": 0.0198,
   "areaBlobs": [],
   "note": "`edge` pixels sit on a gradient in the reference and are rasterisation. `area` pixels sit in a flat region and are a real difference; the blobs locate them. Neither figure adjusts the headline percentage in result.json."
 }

@@ -5,48 +5,48 @@ an artefact on disk; nothing here is asserted by hand except the reviewed verdic
 
 | Node ID | Section | Screen | Context captured | Assets downloaded | Implemented | Emulator compared | diff % | Result |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `434:3116` | Login flow | Page 2c- OTP wrong | yes | 2 | `login/otp-wrong` | yes | 3.17 | PASS |
-| `434:3174` | Login flow | Page 2b- OTP resend | yes | 2 | `login/otp-resend` | yes | 2.79 | PASS |
-| `434:3224` | Login flow | Page 2a- Login OTP | yes | 2 | `login/otp-countdown` | yes | 2.41 | PASS |
-| `434:3280` | Login flow | Page 1- Login No. | yes | 2 | `login/phone` | yes | 4.81 | PASS |
+| `434:3116` | Login flow | Page 2c- OTP wrong | yes | 2 | `login/otp-wrong` | yes | 2.31 | PASS |
+| `434:3174` | Login flow | Page 2b- OTP resend | yes | 2 | `login/otp-resend` | yes | 1.95 | PASS |
+| `434:3224` | Login flow | Page 2a- Login OTP | yes | 2 | `login/otp-countdown` | yes | 2.16 | PASS |
+| `434:3280` | Login flow | Page 1- Login No. | yes | 2 | `login/phone` | yes | 4.79 | PASS |
 | `434:3330` | Login flow | Page 0- loading page | yes | 1 | `login/boot` | yes | 0.55 | PASS |
-| `575:2135` | log in flow | 3a- daily log in | yes | 6 | `login-flow/daily` | yes | 4.89 | PASS |
-| `575:2136` | log in flow | 3d- log out | yes | 4 | `login-flow/logout` | yes | 3.86 | PASS |
-| `575:2137` | log in flow | 3b- present | yes | 5 | `login-flow/present` | yes | 4.61 | PASS |
-| `575:2138` | log in flow | 3c- absent | yes | 4 | `login-flow/absent` | yes | 3.47 | PASS |
-| `592:1008` | leave | long leave confirm | yes | 4 | `leave/applied-and-booked` | yes | 11.85 | FAIL |
-| `592:488` | leave | Leave present | yes | 3 | `leave/present` | yes | 11.14 | FAIL |
-| `592:489` | leave | Leave absent | yes | 3 | `leave/absent` | yes | 10.13 | FAIL |
-| `592:563` | leave | long leave | yes | 4 | `leave/long-empty` | yes | 7.31 | FAIL |
-| `592:639` | leave | long leave selected | yes | 4 | `leave/long-selected` | yes | 11.65 | FAIL |
-| `592:832` | leave | long leave confirm | yes | 3 | `leave/long-booked` | yes | 10.42 | FAIL |
-| `592:888` | leave | short leave | yes | 2 | `leave/short-confirm` | yes | 5.56 | FAIL |
-| `575:1744` | performance | 12- money daily | yes | 6 | — | — | — | — |
-| `575:1884` | performance | 13- money weekly | — | — | — | — | — | — |
-| `575:1903` | performance | 14- day history | yes | 3 | — | — | — | — |
-| `575:1922` | performance | 15- past daily | — | — | — | — | — | — |
-| `575:2013` | performance | 16- money monthly | — | — | — | — | — | — |
-| `575:2032` | performance | 17- weekly history | yes | 3 | — | — | — | — |
-| `575:2098` | performance | 18- past weekly | — | — | — | — | — | — |
-| `462:3617` | Service flow | Page 4a- travel on time | — | — | carried-over (`service/travel-on-time`) | yes | 26.62 | — |
-| `463:3779` | Service flow | Page 4b- travel 5 mins buffer | — | — | carried-over (`service/travel-at-risk`) | yes | 26.49 | — |
-| `464:3864` | Service flow | Page 4b- travel 5 mins buffer | — | — | carried-over (`service/travel-late`) | yes | 26.36 | — |
-| `468:3935` | Service flow | Page 5a- arrival on time | — | — | carried-over (`service/arrival-on-time`) | yes | 29.10 | — |
-| `468:4040` | Service flow | Page 5b- arrival late | — | — | carried-over (`service/arrival-late`) | yes | 28.64 | — |
-| `482:4587` | Service flow | Page 6a- Start OTP on time | — | — | carried-over (`service/start-otp-on-time`) | yes | 40.70 | — |
-| `482:4656` | Service flow | Page 6b- Start OTP on time | — | — | carried-over (`service/start-otp-late`) | yes | 45.92 | — |
-| `483:4741` | Service flow | Page 7a- Cooking | — | — | carried-over (`service/cooking`) | yes | 46.55 | — |
-| `483:4795` | Service flow | Page 7b- Cooking (last 7 mins) | — | — | carried-over (`service/cooking-ending`) | yes | 45.71 | — |
-| `483:4835` | Service flow | Page 7c- Cooking extended | — | — | carried-over (`service/cooking-extended`) | yes | 45.71 | — |
-| `484:4875` | Service flow | Page 9- end OTP | — | — | carried-over (`service/end-otp`) | yes | 44.64 | — |
-| `485:4917` | Service flow | Page 10- job end | — | — | carried-over (`service/completed`) | yes | 28.35 | — |
+| `575:2135` | log in flow | 3a- daily log in | yes | 6 | `login-flow/daily` | yes | 5.03 | PASS |
+| `575:2136` | log in flow | 3d- log out | yes | 4 | `login-flow/logout` | yes | 3.66 | PASS |
+| `575:2137` | log in flow | 3b- present | yes | 5 | `login-flow/present` | yes | 4.66 | PASS |
+| `575:2138` | log in flow | 3c- absent | yes | 4 | `login-flow/absent` | yes | 3.48 | PASS |
+| `592:1008` | leave | long leave confirm | yes | 4 | `leave/applied-and-booked` | yes | 10.25 | FAIL |
+| `592:488` | leave | Leave present | yes | 3 | `leave/present` | yes | 10.70 | FAIL |
+| `592:489` | leave | Leave absent | yes | 3 | `leave/absent` | yes | 7.70 | FAIL |
+| `592:563` | leave | long leave | yes | 4 | `leave/long-empty` | yes | 7.06 | FAIL |
+| `592:639` | leave | long leave selected | yes | 4 | `leave/long-selected` | yes | 7.42 | FAIL |
+| `592:832` | leave | long leave confirm | yes | 3 | `leave/long-booked` | yes | 8.51 | FAIL |
+| `592:888` | leave | short leave | yes | 2 | `leave/short-confirm` | yes | 5.47 | FAIL |
+| `575:1744` | performance | 12- money daily | yes | 6 | `performance/money-daily` | yes | 7.90 | FAIL |
+| `575:1884` | performance | 13- money weekly | yes | 13 | `performance/money-weekly` | yes | 15.61 | FAIL |
+| `575:1903` | performance | 14- day history | yes | 3 | `performance/day-history` | yes | 8.82 | FAIL |
+| `575:1922` | performance | 15- past daily | yes | 7 | `performance/past-daily` | yes | 8.28 | FAIL |
+| `575:2013` | performance | 16- money monthly | yes | 7 | `performance/money-monthly` | yes | 14.56 | FAIL |
+| `575:2032` | performance | 17- weekly history | yes | 3 | `performance/weekly-history` | yes | 10.38 | FAIL |
+| `575:2098` | performance | 18- past weekly | yes | 14 | `performance/past-weekly` | yes | 14.57 | FAIL |
+| `462:3617` | Service flow | Page 4a- travel on time | — | 9 | carried-over (`service/travel-on-time`) | yes | 29.41 | FAIL |
+| `463:3779` | Service flow | Page 4b- travel 5 mins buffer | — | — | carried-over (`service/travel-at-risk`) | yes | 29.36 | FAIL |
+| `464:3864` | Service flow | Page 4b- travel 5 mins buffer | — | — | carried-over (`service/travel-late`) | yes | 29.32 | FAIL |
+| `468:3935` | Service flow | Page 5a- arrival on time | — | — | carried-over (`service/arrival-on-time`) | yes | 29.40 | FAIL |
+| `468:4040` | Service flow | Page 5b- arrival late | — | — | carried-over (`service/arrival-late`) | yes | 28.89 | FAIL |
+| `482:4587` | Service flow | Page 6a- Start OTP on time | — | — | carried-over (`service/start-otp-on-time`) | yes | 40.45 | FAIL |
+| `482:4656` | Service flow | Page 6b- Start OTP on time | — | — | carried-over (`service/start-otp-late`) | yes | 46.02 | FAIL |
+| `483:4741` | Service flow | Page 7a- Cooking | — | — | carried-over (`service/cooking`) | yes | 46.68 | FAIL |
+| `483:4795` | Service flow | Page 7b- Cooking (last 7 mins) | — | — | carried-over (`service/cooking-ending`) | yes | 45.99 | FAIL |
+| `483:4835` | Service flow | Page 7c- Cooking extended | — | — | carried-over (`service/cooking-extended`) | yes | 45.99 | FAIL |
+| `484:4875` | Service flow | Page 9- end OTP | — | — | carried-over (`service/end-otp`) | yes | 44.79 | FAIL |
+| `485:4917` | Service flow | Page 10- job end | — | — | carried-over (`service/completed`) | yes | 28.13 | FAIL |
 
 ## Totals
 
 - FINAL_SECTION_SCREEN_COUNT: 35
-- CONTEXT_CAPTURED: 19
-- SCREENS_IMPLEMENTED: 16
+- CONTEXT_CAPTURED: 23
+- SCREENS_IMPLEMENTED: 23
 - SCREENS_CARRIED_OVER_FROM_V12: 12
-- SCREENS_EMULATOR_RENDERED: 28
+- SCREENS_EMULATOR_RENDERED: 35
 - SCREENS_PIXEL_VERIFIED: 9
 - SCREENS_STILL_MISMATCHING: 26

@@ -18,8 +18,8 @@
     "height": 810
   },
   "systemChromeExcluded": {
-    "profile": "statusBand=33.0 homeIndicator=10.0",
-    "designStatusBandPx": 33,
+    "profile": "statusBand=36.198 homeIndicator=10.0",
+    "designStatusBandPx": 36,
     "designHomeIndicatorPx": 10,
     "emulatorStatusBarPx": 136,
     "emulatorNavigationBarPx": 66,
@@ -48,51 +48,51 @@
   },
   "anchor": "top",
   "comparedHeightPx": 750,
-  "referenceHeightPx": 767,
+  "referenceHeightPx": 764,
   "emulatorScaledHeightPx": 750,
-  "uncomparedReferenceRows": 17,
+  "uncomparedReferenceRows": 14,
   "antialiasingTolerance": 12,
-  "differingPixelPercent": 26.6202,
-  "rawDifferingPixelPercent": 87.7968,
-  "meanChannelDelta": 27.6171,
+  "differingPixelPercent": 29.405,
+  "rawDifferingPixelPercent": 88.1027,
+  "meanChannelDelta": 29.5825,
   "maxChannelDelta": 255,
   "worstRows": [
     {
-      "row": 301,
-      "percent": 91.08
-    },
-    {
-      "row": 364,
+      "row": 313,
       "percent": 90.81
-    },
-    {
-      "row": 365,
-      "percent": 91.35
-    },
-    {
-      "row": 366,
-      "percent": 91.35
-    },
-    {
-      "row": 367,
-      "percent": 91.35
     },
     {
       "row": 368,
-      "percent": 91.35
+      "percent": 90.81
     },
     {
       "row": 369,
-      "percent": 91.08
+      "percent": 90.81
+    },
+    {
+      "row": 370,
+      "percent": 90.81
+    },
+    {
+      "row": 371,
+      "percent": 90.54
+    },
+    {
+      "row": 372,
+      "percent": 90.27
     },
     {
       "row": 373,
-      "percent": 90.81
+      "percent": 90.27
+    },
+    {
+      "row": 375,
+      "percent": 89.73
     }
   ],
   "displacementProbe": {
-    "bestVerticalOffsetPx": 9,
-    "percentAtBestOffset": 26.9719,
+    "bestVerticalOffsetPx": 10,
+    "percentAtBestOffset": 29.5146,
     "note": "0 means the render is on its design row and the residual is rasterisation. A non-zero offset is a real layout error even when the headline percentage is low."
   },
   "verdict": "PENDING_REVIEW"

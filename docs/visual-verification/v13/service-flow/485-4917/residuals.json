@@ -2,12 +2,12 @@
   "node": "485:4917",
   "section": "Service flow",
   "comparedPx": 277500,
-  "differingPx": 78250,
-  "differingPercent": 28.1982,
-  "edgePx": 25587,
-  "edgeShareOfDiffering": 32.7,
-  "areaPx": 52663,
-  "areaPercentOfScreen": 18.9777,
+  "differingPx": 78073,
+  "differingPercent": 28.1344,
+  "edgePx": 25563,
+  "edgeShareOfDiffering": 32.74,
+  "areaPx": 52510,
+  "areaPercentOfScreen": 18.9225,
   "areaBlobs": [
     {
       "pixels": 17637,
@@ -31,9 +31,9 @@
       "right": 157
     },
     {
-      "pixels": 2562,
-      "top": 386,
-      "bottom": 431,
+      "pixels": 2525,
+      "top": 387,
+      "bottom": 433,
       "left": 228,
       "right": 350
     },
@@ -45,14 +45,14 @@
       "right": 156
     },
     {
-      "pixels": 2165,
-      "top": 386,
-      "bottom": 431,
+      "pixels": 2208,
+      "top": 387,
+      "bottom": 433,
       "left": 19,
       "right": 81
     },
     {
-      "pixels": 2157,
+      "pixels": 2158,
       "top": 386,
       "bottom": 450,
       "left": 153,

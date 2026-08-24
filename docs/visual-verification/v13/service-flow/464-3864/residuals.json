@@ -2,12 +2,12 @@
   "node": "464:3864",
   "section": "Service flow",
   "comparedPx": 277500,
-  "differingPx": 73117,
-  "differingPercent": 26.3485,
-  "edgePx": 21056,
-  "edgeShareOfDiffering": 28.8,
-  "areaPx": 52061,
-  "areaPercentOfScreen": 18.7607,
+  "differingPx": 81354,
+  "differingPercent": 29.3168,
+  "edgePx": 21183,
+  "edgeShareOfDiffering": 26.04,
+  "areaPx": 60171,
+  "areaPercentOfScreen": 21.6832,
   "areaBlobs": [
     {
       "pixels": 27450,
@@ -15,6 +15,20 @@
       "bottom": 386,
       "left": 21,
       "right": 348
+    },
+    {
+      "pixels": 3679,
+      "top": 389,
+      "bottom": 414,
+      "left": 190,
+      "right": 335
+    },
+    {
+      "pixels": 3264,
+      "top": 389,
+      "bottom": 415,
+      "left": 34,
+      "right": 179
     },
     {
       "pixels": 2886,
@@ -31,39 +45,25 @@
       "right": 179
     },
     {
-      "pixels": 1547,
-      "top": 389,
-      "bottom": 400,
+      "pixels": 1809,
+      "top": 418,
+      "bottom": 431,
       "left": 37,
       "right": 176
     },
     {
-      "pixels": 1535,
-      "top": 389,
-      "bottom": 400,
-      "left": 194,
-      "right": 332
+      "pixels": 1804,
+      "top": 418,
+      "bottom": 431,
+      "left": 193,
+      "right": 333
     },
     {
-      "pixels": 1375,
-      "top": 355,
-      "bottom": 366,
-      "left": 39,
-      "right": 160
-    },
-    {
-      "pixels": 1299,
-      "top": 192,
-      "bottom": 214,
-      "left": 275,
-      "right": 335
-    },
-    {
-      "pixels": 967,
-      "top": 537,
-      "bottom": 558,
-      "left": 277,
-      "right": 337
+      "pixels": 1604,
+      "top": 434,
+      "bottom": 450,
+      "left": 22,
+      "right": 349
     }
   ],
   "note": "`edge` pixels sit on a gradient in the reference and are rasterisation. `area` pixels sit in a flat region and are a real difference; the blobs locate them. Neither figure adjusts the headline percentage in result.json."

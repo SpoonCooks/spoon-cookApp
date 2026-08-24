@@ -1,28 +1,13 @@
 {
   "node": "434:3116",
   "section": "Login flow",
-  "comparedPx": 277500,
-  "differingPx": 8792,
-  "differingPercent": 3.1683,
-  "edgePx": 7634,
-  "edgeShareOfDiffering": 86.83,
-  "areaPx": 1158,
-  "areaPercentOfScreen": 0.4173,
-  "areaBlobs": [
-    {
-      "pixels": 854,
-      "top": 370,
-      "bottom": 387,
-      "left": 116,
-      "right": 254
-    },
-    {
-      "pixels": 138,
-      "top": 389,
-      "bottom": 389,
-      "left": 116,
-      "right": 253
-    }
-  ],
+  "comparedPx": 283790,
+  "differingPx": 6566,
+  "differingPercent": 2.3137,
+  "edgePx": 6480,
+  "edgeShareOfDiffering": 98.69,
+  "areaPx": 86,
+  "areaPercentOfScreen": 0.0303,
+  "areaBlobs": [],
   "note": "`edge` pixels sit on a gradient in the reference and are rasterisation. `area` pixels sit in a flat region and are a real difference; the blobs locate them. Neither figure adjusts the headline percentage in result.json."
 }

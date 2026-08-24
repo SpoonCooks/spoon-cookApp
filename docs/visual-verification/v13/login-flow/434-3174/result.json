@@ -31,68 +31,68 @@
     "note": "390x830 bezel located in render; inner 370x810 viewport at (10, 10)",
     "emulatorPx": {
       "width": 1080,
-      "height": 2392
+      "height": 3284
     },
     "emulatorContentPx": {
       "width": 1080,
-      "height": 2190
+      "height": 3082
     },
     "emulatorScaledToPx": {
       "width": 370,
-      "height": 750
+      "height": 1056
     },
     "comparedAtPx": {
       "width": 370,
-      "height": 750
+      "height": 767
     }
   },
   "anchor": "top",
-  "comparedHeightPx": 750,
+  "comparedHeightPx": 767,
   "referenceHeightPx": 767,
-  "emulatorScaledHeightPx": 750,
-  "uncomparedReferenceRows": 17,
+  "emulatorScaledHeightPx": 1056,
+  "uncomparedReferenceRows": 0,
   "antialiasingTolerance": 12,
-  "differingPixelPercent": 2.7859,
-  "rawDifferingPixelPercent": 3.5049,
-  "meanChannelDelta": 1.6552,
+  "differingPixelPercent": 1.9507,
+  "rawDifferingPixelPercent": 2.8056,
+  "meanChannelDelta": 0.828,
   "maxChannelDelta": 255,
   "worstRows": [
     {
       "row": 162,
-      "percent": 53.78
+      "percent": 41.35
     },
     {
       "row": 163,
-      "percent": 59.19
-    },
-    {
-      "row": 164,
-      "percent": 55.41
-    },
-    {
-      "row": 165,
-      "percent": 48.38
+      "percent": 40.0
     },
     {
       "row": 166,
-      "percent": 50.0
+      "percent": 38.38
     },
     {
       "row": 167,
-      "percent": 57.57
-    },
-    {
-      "row": 168,
-      "percent": 54.59
+      "percent": 42.97
     },
     {
       "row": 169,
-      "percent": 41.89
+      "percent": 37.3
+    },
+    {
+      "row": 291,
+      "percent": 48.92
+    },
+    {
+      "row": 326,
+      "percent": 45.41
+    },
+    {
+      "row": 355,
+      "percent": 36.49
     }
   ],
   "displacementProbe": {
     "bestVerticalOffsetPx": 0,
-    "percentAtBestOffset": 2.8623,
+    "percentAtBestOffset": 1.9632,
     "note": "0 means the render is on its design row and the residual is rasterisation. A non-zero offset is a real layout error even when the headline percentage is low."
   },
   "verdict": "PENDING_REVIEW"
