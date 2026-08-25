@@ -250,10 +250,20 @@ function JobTile({ job, scale }: { job: JobCardModel; scale: DesignScale }): Rea
     <View
       style={[
         styles.card,
+        /*
+         * `inside`, not the default `center`.
+         *
+         * `572:819` and `572:1076` lay out as `2W + 2P + C` — a card pitch of 122.2 units on the
+         * reference, measured — which is Yoga's own model with no correction at all. Taking the
+         * centre correction out of the padding and the margin made every card 1.9 units short,
+         * and six of them stacked put the bottom of the list nine units up the screen. The `leave`
+         * cards genuinely are centre-aligned; this is why the choice is per call site.
+         */
         figmaStroke(scale, {
           width: CARD.borderWidth,
           paddingH: CARD.paddingH,
           paddingV: CARD.paddingV,
+          align: 'inside',
         }),
         { borderRadius: s(CARD.radius), borderColor: color.yellow600 },
       ]}
@@ -307,6 +317,7 @@ function LeadJobCard({
           width: CARD.borderWidth,
           paddingH: CARD.paddingH,
           paddingV: CARD.paddingV,
+          align: 'inside',
         }),
         { borderRadius: s(CARD.radius), borderColor: tier.border },
       ]}

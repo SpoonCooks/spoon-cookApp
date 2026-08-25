@@ -69,6 +69,7 @@ SCROLL_RESET_SWIPES = 4
 
 
 from stitch import scroll_capture  # noqa: E402
+from viewport import CONTENT_WIDTH_DP  # noqa: E402
 
 
 def adb(adb_path: str, *args: str, binary: bool = False):
@@ -383,10 +384,14 @@ def capture_full_height(args, row: dict, first_png: bytes) -> tuple[bytes, dict 
 
     shot = Image.open(BytesIO(first_png))
 
-    # The design frame, expressed in the device pixels it will be compared at. `compare.py` scales
-    # the emulator down to the reference width, so one design unit is `shot.width / frame_width`
-    # device pixels; the section's status band is design chrome the app never draws.
-    per_unit = shot.width / float(row["w"])
+    # A design unit in DEVICE pixels — the app's own transform, not the frame's.
+    #
+    # The screenshot is the app's render, and the app lays a design unit out as
+    # `screenWidth / 370` dp. Dividing the screenshot's width by the FRAME's width instead reads
+    # the design's coordinate system off a picture drawn in the app's, which on a 371-unit frame
+    # is 0.27% short — about two device pixels of scroll target on a tall screen. It never mattered
+    # enough to truncate a capture, and it is still the wrong quantity to compute here.
+    per_unit = shot.width / CONTENT_WIDTH_DP
     # Per FRAME, not per section: `Info` mixes two status mocks inside one section.
     band = float(row.get("statusBand", 0.0))
 

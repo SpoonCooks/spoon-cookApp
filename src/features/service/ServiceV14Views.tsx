@@ -220,6 +220,12 @@ const art = {
   endOtp: require('@/assets/images/figma-v14/end-otp-art.png') as ImageSourcePropType,
   completed: require('@/assets/images/figma-v14/end-art.png') as ImageSourcePropType,
   cooking: require('@/assets/images/figma-v14/cook-photo.png') as ImageSourcePropType,
+  /**
+   * `622:1125` draws a DIFFERENT photograph from the other three cooking frames — the cook wiping
+   * a hob, not stirring a pan. One `art.cooking` for all four put the wrong picture on the frame
+   * a cook sees in her last seven minutes, and it is 314x276 of the screen.
+   */
+  cookingEnding: require('@/assets/images/figma-v14/cooking-ending.png') as ImageSourcePropType,
   extensionClock: require('@/assets/images/figma-v14/extension-clock.png') as ImageSourcePropType,
   done: require('@/assets/images/figma-v14/done-icon.png') as ImageSourcePropType,
   arrow: require('@/assets/images/figma-v14/arrow-right.png') as ImageSourcePropType,
@@ -1084,7 +1090,7 @@ export function CookingView({
         )}
       </View>
       <PromoBlock
-        source={art.cooking}
+        source={isEndingSoon ? art.cookingEnding : art.cooking}
         caption="5+ rating ki koshish kare"
         height={276}
         captionFirst
