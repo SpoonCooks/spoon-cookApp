@@ -55,12 +55,16 @@ describe('gallery entries', () => {
     expect(galleryEntryFor('jobs/nope')).toBeNull();
   });
 
-  it('builds no Service flow entry until the section is rebuilt', () => {
-    // V14 deleted every V13 service node, so the twelve entries that used to live here pointed at
-    // frames that no longer exist. They are removed, not repointed: an entry aimed at a deleted
-    // frame compares a render against nothing. `pendingScreens` tracks the thirteen replacements.
+  it('covers all thirteen Service flow frames', () => {
+    // V14 deleted every V13 service node, so none of the twelve old entries survives here — these
+    // are thirteen new ones built against the rebuilt section.
     const service = galleryEntries.filter((entry) => entry.section === 'Service flow');
-    expect(service).toHaveLength(0);
+    expect(service).toHaveLength(13);
+    for (const entry of service) expect(entry.nodeId).toMatch(/^(614|622|628):/);
+  });
+
+  it('covers all six Info frames', () => {
+    expect(galleryEntries.filter((entry) => entry.section === 'Info')).toHaveLength(6);
   });
 
   it('covers all five Login flow frames', () => {
@@ -127,9 +131,9 @@ describe('gallery entries', () => {
 
   it('accounts for all 47 finalized screens, built plus pending', () => {
     expect(figmaScreens).toHaveLength(47);
-    expect(builtScreens()).toHaveLength(28);
-    expect(pendingScreens).toHaveLength(19);
-    expect(galleryEntries).toHaveLength(28);
+    expect(builtScreens()).toHaveLength(47);
+    expect(pendingScreens).toHaveLength(0);
+    expect(galleryEntries).toHaveLength(47);
 
     // Every pending id is a real screen, so the ledger cannot name a frame that does not exist.
     const inventory = new Set(figmaScreens.map((screen) => screen.nodeId));

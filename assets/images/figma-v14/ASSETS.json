@@ -1,5 +1,17 @@
 {
   "assets": {
+    "arrival-art.png": {
+      "bytes": 1271543,
+      "constName": "arrivalArt",
+      "nodes": ["622:664"],
+      "sha256": "c59f51b88e1f60b1de3e388f4db769fc96ac12b3dad057c7737a5d2ec695207b"
+    },
+    "arrow-right.png": {
+      "bytes": 644,
+      "constName": "arrowRight",
+      "nodes": ["628:1293"],
+      "sha256": "dde156a6612ff4630b33a6be672c4ef5882ffc7d7f00f90a8da13c03a29da7ff"
+    },
     "back.svg": {
       "bytes": 1317,
       "constName": "back",
@@ -24,6 +36,12 @@
       "nodes": ["614:453"],
       "sha256": "35d798fa1f80ad89a709bb1592c125298940ffcf049a7e566a916e5688b2c1c6"
     },
+    "cancel-art.png": {
+      "bytes": 34314,
+      "constName": "cancelArt",
+      "nodes": ["622:913"],
+      "sha256": "a141009ef4ddbbc1de4faaa19e9fa03bca8a0d472af1d96323bcc0eca2d10f62"
+    },
     "city-buildings.png": {
       "bytes": 445,
       "constName": "cityBuildings",
@@ -33,7 +51,7 @@
     "clock.png": {
       "bytes": 1352,
       "constName": "clock",
-      "nodes": ["575:1744"],
+      "nodes": ["575:1744", "605:2094"],
       "sha256": "2cf9db01fb668061ec9295130e702e5e3374413f893fca68ad35d3096b4cefe4"
     },
     "cook-photo.png": {
@@ -48,6 +66,24 @@
       "nodes": ["614:453"],
       "sha256": "8304e6da25fd036a7f23543b5fcbc5866e7cc6324dc7e5a96c4805d3ab845b5f"
     },
+    "done-icon.png": {
+      "bytes": 442,
+      "constName": "doneIcon",
+      "nodes": ["622:664"],
+      "sha256": "069b4c8324a59a85f2ff596289c2ff2509b1ed68c6b7001086f028b9b314fb2a"
+    },
+    "end-art.png": {
+      "bytes": 1521288,
+      "constName": "endArt",
+      "nodes": ["628:1293"],
+      "sha256": "256117f88a9b6ca885e46bb9c9a6fce196f398c4c6728b66e1219351a937bf06"
+    },
+    "end-otp-art.png": {
+      "bytes": 1677022,
+      "constName": "endOtpArt",
+      "nodes": ["628:1249"],
+      "sha256": "5fae879b221ca6e681faf1f410c623a329d98529e627e050d76235084c8810fd"
+    },
     "extension-clock.png": {
       "bytes": 173006,
       "constName": "extensionClock",
@@ -59,6 +95,12 @@
       "constName": "homePage",
       "nodes": ["614:453"],
       "sha256": "55d03316c3ab7d38ee27104d6ab7c782da06f465211aae802aac2db4a3bf4f52"
+    },
+    "info-back.svg": {
+      "bytes": 1318,
+      "constName": "infoBack",
+      "nodes": ["597:1221"],
+      "sha256": "80956d9023e9b9329d15a5500f55ba386afdb8457a25cbef34575fcb78245676"
     },
     "map-pin.svg": {
       "bytes": 501,
@@ -75,7 +117,7 @@
     "multiply.png": {
       "bytes": 828,
       "constName": "multiply",
-      "nodes": ["575:1744"],
+      "nodes": ["575:1744", "603:1865"],
       "sha256": "68de709cdfd5c7a4bab26e8fe7cf689c39527b4dba1487ba577f076c49a2e5de"
     },
     "nav-chutti.png": {
@@ -123,8 +165,14 @@
     "star.png": {
       "bytes": 1410,
       "constName": "star",
-      "nodes": ["575:1744"],
+      "nodes": ["575:1744", "597:1221", "605:2027"],
       "sha256": "0ea4de52d8ad498d6a038acf068345c2d37464f0e18570f3d9ee6b1b2b5fdea5"
+    },
+    "start-otp-art.png": {
+      "bytes": 1459216,
+      "constName": "startOtpArt",
+      "nodes": ["622:801"],
+      "sha256": "69295e322b5722b66838a996297a6d92b2dba5208b3f866ae9f63f642c689d8f"
     },
     "timer-2.png": {
       "bytes": 1638,
@@ -135,13 +183,19 @@
     "timer.png": {
       "bytes": 1944,
       "constName": "timer",
-      "nodes": ["575:1744"],
+      "nodes": ["575:1744", "603:1924"],
       "sha256": "47a65003ccedf30cc1fc130fe14ae02384e925ab2982ba1942bb5224bd06f65e"
+    },
+    "travel-late.png": {
+      "bytes": 1430737,
+      "constName": "travelLate",
+      "nodes": ["622:530", "622:597"],
+      "sha256": "a6c89c44e495131c1fb2891b955bd97309264267240b0afb10f85cd1c498b0b2"
     },
     "whats-app.png": {
       "bytes": 1419,
       "constName": "whatsApp",
-      "nodes": ["622:1163", "583:401", "592:488"],
+      "nodes": ["622:1163", "583:401", "592:488", "597:1221"],
       "sha256": "1e57d94e42dba593935930cda903f7bbb0ad051b82bc7bbe8956ab80a0332d65"
     }
   }

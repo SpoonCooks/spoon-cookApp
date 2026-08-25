@@ -148,6 +148,146 @@ export const textStyle = {
     letterSpacing: -0.6,
     color: color.textPrimary,
   },
+  /**
+   * `597:1148` / `614:432` — a V14 screen title. Livvic Black 24 on a 30 line, no tracking.
+   *
+   * The V14 sections split here: `leave` still titles at 20/28 (`headingLg`), while `Service
+   * flow`, `job flow` and `Info` title at 24/30. Four units of type and two of leading over a
+   * word like `Jaankari` is a visible difference, so the two are separate variants.
+   */
+  screenTitle: {
+    fontFamily: fontFamily.black,
+    fontSize: fontSize.display,
+    lineHeight: lineHeight.displayTight,
+    color: color.textPrimary,
+  },
+  /** `598:1360` — a rating-matrix cell. Livvic SemiBold 16 on a **16** line. */
+  ruleCell: {
+    fontFamily: fontFamily.semibold,
+    fontSize: fontSize.xl,
+    lineHeight: lineHeight.s,
+    color: color.textPrimary,
+  },
+  /** `603:1902` — a policy-table cell. Livvic SemiBold **20** on a 16 line. */
+  policyCell: {
+    fontFamily: fontFamily.semibold,
+    fontSize: fontSize.xxxl,
+    lineHeight: lineHeight.s,
+    color: color.textPrimary,
+  },
+  /**
+   * `603:1918` — the footnote under a policy table. Livvic SemiBold 18 on a **27** line with
+   * 0.18 tracking, with Bold spans for the emphasised figures.
+   */
+  ruleFootnote: {
+    fontFamily: fontFamily.semibold,
+    fontSize: fontSize.xxl,
+    lineHeight: 27,
+    letterSpacing: 0.18,
+    color: color.textPrimary,
+  },
+  ruleFootnoteStrong: {
+    fontFamily: fontFamily.bold,
+    fontSize: fontSize.xxl,
+    lineHeight: 27,
+    letterSpacing: 0.18,
+    color: color.textPrimary,
+  },
+  /** `462:3729` — an address line on the customer card. Livvic Black 18 on a **20** line. */
+  addressLine: {
+    fontFamily: fontFamily.black,
+    fontSize: fontSize.xxl,
+    lineHeight: lineHeight.l,
+    color: color.textPrimary,
+  },
+  /** `463:3759` — the `1.5 hrs` chip beside the customer name. Livvic Bold 16 on a 16 line. */
+  durationChip: {
+    fontFamily: fontFamily.bold,
+    fontSize: fontSize.xl,
+    lineHeight: lineHeight.s,
+    color: color.textPrimary,
+  },
+  /** `462:3602` / `614:408` — `Map dekhe` / `Call kare`. Livvic Bold 18 on a **16** line. */
+  actionChip: {
+    fontFamily: fontFamily.bold,
+    fontSize: fontSize.xxl,
+    lineHeight: lineHeight.s,
+    color: color.textPrimary,
+  },
+  /**
+   * `468:3942` / `622:1024` / `473:4196` — a full-width service headline or promo caption.
+   * Livvic Bold 20 on a 28 line.
+   */
+  travelHeadline: {
+    fontFamily: fontFamily.bold,
+    fontSize: fontSize.xxxl,
+    lineHeight: lineHeight.xxl,
+    color: color.textPrimary,
+  },
+  /**
+   * `617:454` — the headline card above a travel countdown. Livvic Bold 20 on a **16** line.
+   *
+   * Same size as `travelHeadline` on a line twelve units shorter: the card is only 47 units tall
+   * and the taller line box pushes the countdown out of the 150-unit column.
+   */
+  travelPill: {
+    fontFamily: fontFamily.bold,
+    fontSize: fontSize.xxxl,
+    lineHeight: lineHeight.s,
+    color: color.textPrimary,
+  },
+  /** `463:3777` — the travel countdown. Livvic Black **32** on a 25 line, 0.32 tracking. */
+  travelCountdown: {
+    fontFamily: fontFamily.black,
+    fontSize: 32,
+    lineHeight: lineHeight.chip,
+    letterSpacing: 0.32,
+    color: color.textPrimary,
+  },
+  /** `476:4236` — `Start OTP` / `End OTP`. Livvic Black 24 on a 30 line, 0.96 tracking. */
+  otpLabel: {
+    fontFamily: fontFamily.black,
+    fontSize: fontSize.display,
+    lineHeight: lineHeight.displayTight,
+    letterSpacing: 0.96,
+    color: color.textPrimary,
+  },
+  /** `476:4250` — the `Start` / `End` pill. Livvic Bold **25** on a 28 line. */
+  otpAction: {
+    fontFamily: fontFamily.bold,
+    fontSize: 25,
+    lineHeight: lineHeight.xxl,
+    color: color.textPrimary,
+  },
+  /** `622:1211` — the cooking timer. Livvic Black **35** on a **40** line. */
+  timerValue: {
+    fontFamily: fontFamily.black,
+    fontSize: 35,
+    lineHeight: lineHeight.displayXl,
+    color: color.textPrimary,
+  },
+  /** `628:1230` — the `Extension` chip. Livvic Bold 24 on a **16** line. */
+  extensionLabel: {
+    fontFamily: fontFamily.bold,
+    fontSize: fontSize.display,
+    lineHeight: lineHeight.s,
+    color: color.textPrimary,
+  },
+  /** `628:1232` — the granted minutes. Livvic Black **28** on a 25 line, 0.28 tracking. */
+  extensionValue: {
+    fontFamily: fontFamily.black,
+    fontSize: 28,
+    lineHeight: lineHeight.chip,
+    letterSpacing: 0.28,
+    color: color.textPrimary,
+  },
+  /** `485:4932` — the completed headline. Livvic Bold 30 on a 36 line. */
+  completedHeadline: {
+    fontFamily: fontFamily.bold,
+    fontSize: fontSize.displayLg,
+    lineHeight: lineHeight.displayLg,
+    color: color.textPrimary,
+  },
   /** `528:475` — the break window times. Livvic Bold 18 on a 28 line, wider than `heading`. */
   timeStrong: {
     fontFamily: fontFamily.bold,

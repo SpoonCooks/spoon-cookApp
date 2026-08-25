@@ -1,0 +1,753 @@
+import {
+  Image,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  View,
+  type ImageSourcePropType,
+} from 'react-native';
+
+import { chipLabels, niyamIndexChips, type RuleIcon, type RuleKey, type RuleSheet } from './rules';
+import {
+  color,
+  figmaStroke,
+  HelpPill,
+  Text,
+  TopNavBar,
+  useDesignScale,
+  type DesignScale,
+} from '@ui';
+
+/**
+ * The V14 `Info` section (`611:398`) — the Niyam tab and its five rule sheets.
+ *
+ * ## Two shapes, not six
+ *
+ * `597:1131` is a full screen: status bar, a `Jaankari` top nav with a Help pill, two bordered
+ * cards of chips, and the bottom nav. It is the Niyam destination.
+ *
+ * The other five (`597:1221`, `603:1865`, `603:1924`, `605:2027`, `605:2094`) are **bottom
+ * sheets**: each frame is 371x882 with the status mock at y=0 and the sheet at **y=239**, 643
+ * tall with a 20-unit top radius. The 203 units above it are scrim. That is why they carry no
+ * bottom nav — they sit over the Niyam screen rather than replacing it — and it is the same
+ * pattern `leave` already uses for its two pickers.
+ *
+ * ## The title is `Jaankari`, not `Serving at`
+ *
+ * `597:1148` is *named* `Serving at` in the layer tree and *reads* `Jaankari`. Several V14 nodes
+ * are stale this way, so every string here comes from `get_design_context` rather than metadata.
+ */
+
+/** `597:1235` — the sheet surface. */
+const SHEET = {
+  top: 239,
+  height: 643,
+  radius: 20,
+  padding: 16,
+  gap: 16,
+  blockPaddingH: 4,
+  blockPaddingV: 6,
+  ctaBottom: 24,
+  ctaWidth: 338,
+} as const;
+
+/** `597:1239` — the sheet header: back arrow, title, compact Help pill. */
+const HEADER = { height: 38, glyph: 32, titleLeft: 44, titleWidth: 130 } as const;
+
+/** `597:1248` — the icon-and-line summary under the header. */
+const BLURB = { icon: 30, gap: 12, radius: 24 } as const;
+
+/** `597:1342` — the rating matrix. */
+const MATRIX = {
+  radius: 24,
+  paddingH: 12,
+  paddingV: 16,
+  borderWidth: 1,
+  columnGap: 10,
+  rowGap: 12,
+  firstColumn: 106,
+  headerHeight: 24,
+  rowHeight: 41,
+  blockedHeight: 25,
+  cellRadius: 5,
+  headerRadius: 15,
+} as const;
+
+/** `603:1897` — the policy card. */
+const POLICY = {
+  radius: 15,
+  borderWidth: 1,
+  paddingH: 12,
+  paddingV: 16,
+  gap: 10,
+  pillWidth: 281,
+  pillRadius: 15,
+  pillPaddingH: 12,
+  pillPaddingV: 4,
+  tableRadius: 24,
+  tablePaddingH: 12,
+  tablePaddingV: 8,
+  tableColumnGap: 10,
+  tableRowGap: 12,
+  tableFirstColumn: 175,
+  cellHeight: 35,
+  cellRadius: 5,
+  footRadius: 5,
+  footPaddingH: 12,
+  footPaddingV: 8,
+} as const;
+
+/** `597:1337` — the cook's own standing. */
+const STANDING = { radius: 15, paddingH: 12, paddingV: 8, valueWidth: 58 } as const;
+
+/** `597:1237` — `Samajh gyi`. */
+const CTA = { radius: 15, paddingH: 12, paddingV: 8 } as const;
+
+/** `597:1153` — the Niyam index blocks. */
+const INDEX = {
+  padding: 16,
+  gap: 16,
+  cardWidth: 330,
+  cardRadius: 16,
+  cardPadding: 16,
+  cardGap: 16,
+  borderWidth: 1,
+  chipRadius: 15,
+  chipPaddingH: 12,
+  chipPaddingV: 8,
+  chipGap: 10,
+  headingGap: 12,
+} as const;
+
+const backGlyph = require('@/assets/images/figma-v14/info-back.svg') as ImageSourcePropType;
+
+const RULE_ICONS: Readonly<Record<RuleIcon, ImageSourcePropType>> = {
+  star: require('@/assets/images/figma-v14/star.png') as ImageSourcePropType,
+  multiply: require('@/assets/images/figma-v14/multiply.png') as ImageSourcePropType,
+  timer: require('@/assets/images/figma-v14/timer.png') as ImageSourcePropType,
+  clock: require('@/assets/images/figma-v14/clock.png') as ImageSourcePropType,
+};
+
+/* ------------------------------------------------------------------ index --- */
+
+export interface NiyamIndexViewProps {
+  readonly onOpenRule?: ((rule: RuleKey) => void) | undefined;
+  readonly onHelp?: (() => void) | undefined;
+}
+
+/** `597:1131` — the Niyam destination. */
+export function NiyamIndexView({ onOpenRule, onHelp }: NiyamIndexViewProps): React.ReactElement {
+  const scale = useDesignScale();
+  const { s } = scale;
+
+  return (
+    <View style={styles.screen}>
+      <TopNavBar title="Jaankari" titleVariant="screenTitle" onHelp={onHelp} testID="niyam-nav" />
+      <ScrollView
+        contentContainerStyle={[styles.indexBody, { padding: s(INDEX.padding), gap: s(INDEX.gap) }]}
+        testID="niyam-scroll"
+      >
+        <View
+          style={[
+            styles.block,
+            { paddingHorizontal: s(SHEET.blockPaddingH), paddingVertical: s(SHEET.blockPaddingV) },
+          ]}
+        >
+          <View style={[styles.stretch, { gap: s(INDEX.headingGap) }]}>
+            <Text variant="overlineXl" color={color.black} style={styles.upper}>
+              Kamai aur nuksaan
+            </Text>
+            <Text variant="bodyMuted" color={color.black}>
+              Yaha pe aapko apne kamai aur apne nuksaan ke baare me jaankari mil jaegi.
+            </Text>
+          </View>
+        </View>
+
+        <IndexCard
+          heading="kamai"
+          caption="Aap jitna zyada aur jitna accha kaam kare, kamai utni zyada hogi"
+          borderColor={color.yellow600}
+          chipFill={color.lime600}
+          rules={niyamIndexChips.kamai}
+          scale={scale}
+          onOpenRule={onOpenRule}
+        />
+        <IndexCard
+          heading="nuksaan"
+          caption="Agar aap kaam pe late jaate hai, ya kaam pe nahi jaate, toh paise ki katauti ho sakti hai"
+          borderColor={color.danger}
+          chipFill={color.dangerTint}
+          rules={niyamIndexChips.nuksaan}
+          scale={scale}
+          onOpenRule={onOpenRule}
+        />
+      </ScrollView>
+    </View>
+  );
+}
+
+/**
+ * `609:356` / `609:382` — one bordered card of rule chips.
+ *
+ * The `kamai` card leads with a full-width `Rating` chip and then a two-up row; `nuksaan` is a
+ * two-up row alone. That falls out of the rule count rather than needing a flag: the first chip
+ * spans when there are three.
+ */
+function IndexCard({
+  heading,
+  caption,
+  borderColor,
+  chipFill,
+  rules,
+  scale,
+  onOpenRule,
+}: {
+  heading: string;
+  caption: string;
+  borderColor: string;
+  chipFill: string;
+  rules: readonly RuleKey[];
+  scale: DesignScale;
+  onOpenRule?: ((rule: RuleKey) => void) | undefined;
+}): React.ReactElement {
+  const { s } = scale;
+  const [lead, ...rest] = rules.length === 3 ? rules : [];
+  const paired = rules.length === 3 ? rest : rules;
+
+  return (
+    <View
+      style={[
+        styles.block,
+        { paddingHorizontal: s(SHEET.blockPaddingH), paddingVertical: s(SHEET.blockPaddingV) },
+      ]}
+    >
+      <View
+        style={[
+          styles.indexCard,
+          figmaStroke(scale, { width: INDEX.borderWidth, padding: INDEX.cardPadding }),
+          {
+            width: s(INDEX.cardWidth),
+            borderRadius: s(INDEX.cardRadius),
+            gap: s(INDEX.cardGap),
+            borderColor,
+          },
+        ]}
+        testID={`niyam-card-${heading}`}
+      >
+        <View style={[styles.stretch, { gap: s(INDEX.headingGap) }]}>
+          <Text variant="overlineXl" color={color.black} style={styles.upper}>
+            {heading}
+          </Text>
+          <Text variant="bodyMuted" color={color.black}>
+            {caption}
+          </Text>
+        </View>
+
+        {lead !== undefined && (
+          <RuleChip rule={lead} fill={chipFill} scale={scale} onPress={onOpenRule} />
+        )}
+        <View style={[styles.chipRow, { gap: s(INDEX.chipGap) }]}>
+          {paired.map((rule) => (
+            <RuleChip
+              key={rule}
+              rule={rule}
+              fill={chipFill}
+              scale={scale}
+              onPress={onOpenRule}
+              flex
+            />
+          ))}
+        </View>
+      </View>
+    </View>
+  );
+}
+
+function RuleChip({
+  rule,
+  fill,
+  scale,
+  onPress,
+  flex,
+}: {
+  rule: RuleKey;
+  fill: string;
+  scale: DesignScale;
+  onPress?: ((rule: RuleKey) => void) | undefined;
+  flex?: boolean;
+}): React.ReactElement {
+  const { s } = scale;
+  return (
+    <Pressable
+      accessibilityRole="button"
+      onPress={onPress ? () => onPress(rule) : undefined}
+      style={[
+        styles.chip,
+        flex === true ? styles.flexOne : styles.stretch,
+        {
+          backgroundColor: fill,
+          borderRadius: s(INDEX.chipRadius),
+          paddingHorizontal: s(INDEX.chipPaddingH),
+          paddingVertical: s(INDEX.chipPaddingV),
+        },
+      ]}
+      testID={`niyam-chip-${rule}`}
+    >
+      <Text variant="headingLg" color={color.black} align="center" style={styles.flexOne}>
+        {chipLabels[rule]}
+      </Text>
+    </Pressable>
+  );
+}
+
+/* ------------------------------------------------------------------ sheet --- */
+
+export interface RuleSheetViewProps {
+  readonly sheet: RuleSheet;
+  /**
+   * The cook's own standing, e.g. `4.6` or `6`.
+   *
+   * Supplied by the caller from the performance projection, never taken from {@link RuleSheet} —
+   * the tariff table is policy every cook shares, this number is theirs alone.
+   */
+  readonly standingValue: string;
+  readonly onAcknowledge?: (() => void) | undefined;
+  readonly onBack?: (() => void) | undefined;
+  readonly onHelp?: (() => void) | undefined;
+}
+
+/** `597:1235` and its four siblings — a rule sheet presented over the Niyam screen. */
+export function RuleSheetView({
+  sheet,
+  standingValue,
+  onAcknowledge,
+  onBack,
+  onHelp,
+}: RuleSheetViewProps): React.ReactElement {
+  const scale = useDesignScale();
+  const { s } = scale;
+
+  return (
+    <View style={styles.scrim} testID={`rule-sheet-${sheet.key}`}>
+      <View
+        style={[
+          styles.sheet,
+          {
+            height: s(SHEET.height),
+            borderTopLeftRadius: s(SHEET.radius),
+            borderTopRightRadius: s(SHEET.radius),
+            padding: s(SHEET.padding),
+            gap: s(SHEET.gap),
+          },
+        ]}
+      >
+        <View
+          style={[
+            styles.header,
+            {
+              height: s(HEADER.height),
+              paddingHorizontal: s(SHEET.blockPaddingH),
+              paddingVertical: s(SHEET.blockPaddingV),
+            },
+          ]}
+        >
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Back"
+            onPress={onBack}
+            style={styles.headerLeft}
+            testID={`rule-back-${sheet.key}`}
+          >
+            <Image
+              source={backGlyph}
+              style={{ width: s(HEADER.glyph), height: s(HEADER.glyph) }}
+              resizeMode="contain"
+              accessibilityIgnoresInvertColors
+            />
+            <Text
+              variant="screenTitle"
+              color={color.black}
+              style={{
+                marginLeft: s(HEADER.titleLeft - HEADER.glyph),
+                width: s(HEADER.titleWidth),
+              }}
+            >
+              {sheet.title}
+            </Text>
+          </Pressable>
+          <HelpPill size="compact" onPress={onHelp} testID={`rule-help-${sheet.key}`} />
+        </View>
+
+        <View style={[styles.block, { paddingHorizontal: s(SHEET.blockPaddingH) }]}>
+          <View style={[styles.blurb, { gap: s(BLURB.gap), borderRadius: s(BLURB.radius) }]}>
+            <Image
+              source={RULE_ICONS[sheet.icon]}
+              style={{ width: s(BLURB.icon), height: s(BLURB.icon) }}
+              resizeMode="contain"
+              accessibilityIgnoresInvertColors
+            />
+            <Text variant="timeStrong" color={color.black} align="center">
+              {sheet.blurb}
+            </Text>
+          </View>
+        </View>
+
+        <View
+          style={[
+            styles.block,
+            { paddingHorizontal: s(SHEET.blockPaddingH), paddingVertical: s(SHEET.blockPaddingV) },
+          ]}
+        >
+          {sheet.body.kind === 'matrix' ? (
+            <MatrixBody body={sheet.body} scale={scale} />
+          ) : (
+            <PolicyBody body={sheet.body} scale={scale} />
+          )}
+        </View>
+
+        <View
+          style={[
+            styles.block,
+            { paddingHorizontal: s(SHEET.blockPaddingH), paddingVertical: s(SHEET.blockPaddingV) },
+          ]}
+        >
+          <View
+            style={[
+              styles.standing,
+              {
+                borderRadius: s(STANDING.radius),
+                paddingHorizontal: s(STANDING.paddingH),
+                paddingVertical: s(STANDING.paddingV),
+              },
+            ]}
+          >
+            <Text variant="title" color={color.danger} style={styles.flexOne}>
+              {sheet.standingLabel}
+            </Text>
+            <Text
+              variant="chipLabel"
+              color={color.black}
+              align="center"
+              style={{ width: s(STANDING.valueWidth) }}
+              testID={`rule-standing-${sheet.key}`}
+            >
+              {standingValue}
+            </Text>
+          </View>
+        </View>
+
+        <View
+          style={[
+            styles.cta,
+            {
+              bottom: s(SHEET.ctaBottom),
+              width: s(SHEET.ctaWidth),
+              paddingHorizontal: s(SHEET.blockPaddingH),
+              paddingVertical: s(SHEET.blockPaddingV),
+            },
+          ]}
+        >
+          <Pressable
+            accessibilityRole="button"
+            onPress={onAcknowledge}
+            style={[
+              styles.ctaButton,
+              {
+                borderRadius: s(CTA.radius),
+                paddingHorizontal: s(CTA.paddingH),
+                paddingVertical: s(CTA.paddingV),
+              },
+            ]}
+            testID={`rule-ack-${sheet.key}`}
+          >
+            <Text variant="screenTitle" color={color.black} align="center">
+              Samajh gyi
+            </Text>
+          </Pressable>
+        </View>
+      </View>
+    </View>
+  );
+}
+
+/** `597:1342` — header row plus five tinted tiers. */
+function MatrixBody({
+  body,
+  scale,
+}: {
+  body: Extract<RuleSheet['body'], { kind: 'matrix' }>;
+  scale: DesignScale;
+}): React.ReactElement {
+  const { s } = scale;
+  return (
+    <View
+      style={[
+        styles.matrix,
+        figmaStroke(scale, {
+          width: MATRIX.borderWidth,
+          paddingH: MATRIX.paddingH,
+          paddingV: MATRIX.paddingV,
+        }),
+        { borderRadius: s(MATRIX.radius), rowGap: s(MATRIX.rowGap) },
+      ]}
+    >
+      <View
+        style={[styles.row, { columnGap: s(MATRIX.columnGap), height: s(MATRIX.headerHeight) }]}
+      >
+        {body.header.map((label, index) => (
+          <View
+            key={label}
+            style={[
+              styles.cell,
+              index === 0 ? { width: s(MATRIX.firstColumn) } : styles.flexOne,
+              { backgroundColor: color.yellow600, borderRadius: s(MATRIX.headerRadius) },
+            ]}
+          >
+            <Text variant="title" color={color.black} align="center">
+              {label}
+            </Text>
+          </View>
+        ))}
+      </View>
+
+      {body.rows.map((row) => (
+        <View
+          key={row.cells[0]}
+          style={[
+            styles.row,
+            {
+              columnGap: s(MATRIX.columnGap),
+              height: s(row.fill === '#f5f5f5' ? MATRIX.blockedHeight : MATRIX.rowHeight),
+            },
+          ]}
+        >
+          {row.cells.map((cellText, index) => (
+            <View
+              key={`${row.cells[0]}-${index}`}
+              style={[
+                styles.cell,
+                index === 0 ? { width: s(MATRIX.firstColumn) } : styles.flexOne,
+                { backgroundColor: row.fill, borderRadius: s(MATRIX.cellRadius) },
+              ]}
+            >
+              <Text variant="ruleCell" color={color.black} align="center">
+                {cellText}
+              </Text>
+            </View>
+          ))}
+        </View>
+      ))}
+    </View>
+  );
+}
+
+/** `603:1897` — a titled pill, a table, then a mixed-weight footnote. */
+function PolicyBody({
+  body,
+  scale,
+}: {
+  body: Extract<RuleSheet['body'], { kind: 'policy' }>;
+  scale: DesignScale;
+}): React.ReactElement {
+  const { s } = scale;
+  return (
+    <View
+      style={[
+        styles.policy,
+        figmaStroke(scale, {
+          width: POLICY.borderWidth,
+          paddingH: POLICY.paddingH,
+          paddingV: POLICY.paddingV,
+        }),
+        { borderRadius: s(POLICY.radius), gap: s(POLICY.gap) },
+      ]}
+    >
+      <View
+        style={[
+          styles.policyPill,
+          {
+            width: s(POLICY.pillWidth),
+            borderRadius: s(POLICY.pillRadius),
+            paddingHorizontal: s(POLICY.pillPaddingH),
+            paddingVertical: s(POLICY.pillPaddingV),
+          },
+        ]}
+      >
+        <Text variant="timeStrong" color={color.black} align="center">
+          {body.title}
+        </Text>
+      </View>
+
+      <View
+        style={[
+          styles.policyTable,
+          {
+            borderRadius: s(POLICY.tableRadius),
+            paddingHorizontal: s(POLICY.tablePaddingH),
+            paddingVertical: s(POLICY.tablePaddingV),
+            rowGap: s(POLICY.tableRowGap),
+          },
+        ]}
+      >
+        {body.columns !== null && (
+          <View
+            style={[
+              styles.row,
+              { columnGap: s(POLICY.tableColumnGap), height: s(POLICY.cellHeight) },
+            ]}
+          >
+            {body.columns.map((label, index) => (
+              <View
+                key={label}
+                style={[
+                  styles.cell,
+                  index === 0 && body.columns!.length === 2
+                    ? { width: s(POLICY.tableFirstColumn) }
+                    : styles.flexOne,
+                  { backgroundColor: color.yellow600, borderRadius: s(POLICY.cellRadius) },
+                ]}
+              >
+                <Text variant="title" color={color.black} align="center">
+                  {label}
+                </Text>
+              </View>
+            ))}
+          </View>
+        )}
+
+        {body.rows.map((row) => (
+          <View
+            key={row[0]}
+            style={[
+              styles.row,
+              { columnGap: s(POLICY.tableColumnGap), height: s(POLICY.cellHeight) },
+            ]}
+          >
+            {row.map((cellText, index) => (
+              <View
+                key={`${row[0]}-${index}`}
+                style={[
+                  styles.cell,
+                  index === 0 && row.length === 2
+                    ? { width: s(POLICY.tableFirstColumn) }
+                    : styles.flexOne,
+                  { backgroundColor: body.rowFill, borderRadius: s(POLICY.cellRadius) },
+                ]}
+              >
+                <Text variant="policyCell" color={color.black} align="center">
+                  {cellText}
+                </Text>
+              </View>
+            ))}
+          </View>
+        ))}
+      </View>
+
+      <View
+        style={[
+          styles.policyFoot,
+          {
+            width: s(POLICY.pillWidth),
+            borderRadius: s(POLICY.footRadius),
+            paddingHorizontal: s(POLICY.footPaddingH),
+            paddingVertical: s(POLICY.footPaddingV),
+          },
+        ]}
+      >
+        <Text variant="ruleFootnote" color={color.black} align="center" style={styles.flexOne}>
+          {body.footnote.map((segment, index) =>
+            segment.strong === true ? (
+              <Text key={index} variant="ruleFootnoteStrong" color={color.black}>
+                {segment.text}
+              </Text>
+            ) : (
+              segment.text
+            ),
+          )}
+        </Text>
+      </View>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  screen: { flex: 1, backgroundColor: color.white },
+  indexBody: { alignItems: 'center', backgroundColor: color.white },
+  block: { alignSelf: 'stretch', alignItems: 'flex-start' },
+  stretch: { alignSelf: 'stretch', alignItems: 'flex-start' },
+  flexOne: { flex: 1 },
+  upper: { textTransform: 'uppercase' },
+
+  indexCard: { alignItems: 'flex-start', backgroundColor: color.white },
+  chipRow: { alignSelf: 'stretch', flexDirection: 'row' },
+  chip: { alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+
+  /**
+   * The 203 design units above the sheet.
+   *
+   * `leave` presents its two pickers over the same scrim, so the value is the one already agreed
+   * there rather than a second opinion about how dark a sheet backdrop should be.
+   */
+  scrim: { flex: 1, justifyContent: 'flex-end', backgroundColor: color.scrim },
+  sheet: {
+    alignSelf: 'stretch',
+    alignItems: 'flex-start',
+    backgroundColor: color.white,
+    overflow: 'hidden',
+  },
+  header: {
+    alignSelf: 'stretch',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    overflow: 'hidden',
+  },
+  headerLeft: { flexDirection: 'row', alignItems: 'center' },
+  blurb: {
+    alignSelf: 'stretch',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  matrix: { alignSelf: 'stretch', backgroundColor: color.white, borderColor: color.yellow600 },
+  row: { alignSelf: 'stretch', flexDirection: 'row' },
+  cell: { alignItems: 'center', justifyContent: 'center', alignSelf: 'stretch' },
+
+  policy: {
+    alignSelf: 'stretch',
+    alignItems: 'center',
+    borderColor: color.yellow600,
+    overflow: 'hidden',
+  },
+  policyPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: color.yellow600,
+  },
+  policyTable: { alignSelf: 'stretch', backgroundColor: color.white },
+  policyFoot: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: color.lime300,
+  },
+
+  standing: {
+    alignSelf: 'stretch',
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: color.lime300,
+    overflow: 'hidden',
+  },
+
+  cta: { position: 'absolute', alignItems: 'center', justifyContent: 'center' },
+  ctaButton: {
+    alignSelf: 'stretch',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: color.yellow600,
+  },
+});

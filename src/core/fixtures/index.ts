@@ -214,6 +214,26 @@ export const jobFixtures = {
     }),
 };
 
+/**
+ * The V14 `Service flow` job, reproducing the address block every service frame draws.
+ *
+ * The strings are the Figma's own placeholders (`Building name`, `Anjali Sharma`, `1.5 hrs`), so a
+ * gallery render and the reference frame compare like for like.
+ */
+export const serviceV14Fixtures = {
+  job: () =>
+    devOnly({
+      bookingId: 'v14-service',
+      assignmentVersion: 1,
+      societyOrBuilding: 'Building/ Society',
+      serviceDurationMinutes: 90,
+      scheduledStartIso: '2026-11-07T08:30:00+05:30',
+      reachByIso: '2026-11-07T08:25:00+05:30',
+      address,
+      gate,
+    }),
+} as const;
+
 const baseSnapshot: ServiceSnapshot = {
   status: 'assigned',
   job: {

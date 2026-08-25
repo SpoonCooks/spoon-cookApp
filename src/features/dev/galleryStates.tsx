@@ -11,7 +11,18 @@ import {
   type LongLeaveCard,
   type SingleDayLeaveOption,
 } from '@features/leave/LeaveViews';
+import { NiyamIndexView, RuleSheetView } from '@features/info/InfoViews';
+import { ruleSheets, type RuleKey } from '@features/info/rules';
 import { JobsView } from '@features/jobs/JobViews';
+import {
+  ArrivalView,
+  CompletedView,
+  CookingView,
+  EndOtpView,
+  StartOtpView,
+  TravelCancelledView,
+  TravelView,
+} from '@features/service/ServiceV14Views';
 import { BootView, OtpView, PhoneView } from '@features/login/LoginViews';
 import {
   CycleHistoryView,
@@ -21,9 +32,11 @@ import {
   PastDayView,
 } from '@features/performance/PerformanceViews';
 
+import { useState } from 'react';
+
 import { earningsPeriodLabels, earningsPeriods } from '@core/domain/money';
 import { otpLength } from '@core/domain/otp';
-import { jobsV14Fixtures, performanceFixtures } from '@core/fixtures';
+import { jobsV14Fixtures, performanceFixtures, serviceV14Fixtures } from '@core/fixtures';
 
 /**
  * Development-only visual gallery.
@@ -69,6 +82,24 @@ export interface GalleryEntry {
 
 function noop(): void {
   /* The gallery never advances a booking. */
+}
+
+/** Start/End OTP with local input state, so the boxes can be typed into during review. */
+function ServiceOtpFixture({ kind }: { kind: 'start' | 'end' }): React.ReactElement {
+  const [code, setCode] = useState('111');
+  const props = {
+    code,
+    onChange: (next: string) => setCode(next.slice(0, otpLength[kind])),
+    onSubmit: noop,
+    error: null,
+    isSubmitting: false,
+    length: otpLength[kind],
+  };
+  return kind === 'start' ? (
+    <StartOtpView job={serviceV14Fixtures.job()} {...props} />
+  ) : (
+    <EndOtpView {...props} />
+  );
 }
 
 /** One of the three OTP frames, which differ only in code, countdown and error. */
@@ -190,6 +221,38 @@ const PERIOD_TABS = earningsPeriods.map((key) => ({
   title: earningsPeriodLabels[key].title,
   subtitle: earningsPeriodLabels[key].subtitle,
 }));
+
+/**
+ * One of the thirteen V14 `Service flow` frames.
+ *
+ * These own their safe area: `ServiceShell` draws its own top nav directly under the status bar,
+ * the same shape the attendance, leave and jobs screens use.
+ */
+function service(
+  id: string,
+  nodeId: string,
+  label: string,
+  render: () => React.ReactElement,
+): GalleryEntry {
+  return { id, section: 'Service flow', nodeId, label, ownsSafeArea: true, render };
+}
+
+/** One of the six `Info` frames. The five rule sheets draw their own scrim. */
+function info(
+  id: string,
+  nodeId: string,
+  label: string,
+  render: () => React.ReactElement,
+): GalleryEntry {
+  return { id, section: 'Info', nodeId, label, ownsSafeArea: true, render };
+}
+
+/** A rule sheet at a fixed standing, so two runs a day apart produce identical pixels. */
+function ruleSheet(rule: RuleKey, standing: string): () => React.ReactElement {
+  return function renderRuleSheet(): React.ReactElement {
+    return <RuleSheetView sheet={ruleSheets[rule]} standingValue={standing} />;
+  };
+}
 
 /**
  * Every finalized V14 state that is reachable today.
@@ -429,6 +492,73 @@ export const galleryEntries: readonly GalleryEntry[] = [
   jobs('jobs/next-5', '583:479', 'Jobs - next in 15 mins', () => (
     <JobsView dateLabel="7 November" {...jobsV14Fixtures.countdown(15, 'critical')} />
   )),
+
+  /* ---- Service flow (485:4971) — 13 ---- */
+  service('service/travel-on-time', '614:453', 'Travel - on time', () => (
+    <TravelView job={serviceV14Fixtures.job()} timing="on_time" minutesToDeadline={16} />
+  )),
+  service('service/travel-edge', '622:597', 'Travel - late ho raha hai', () => (
+    <TravelView job={serviceV14Fixtures.job()} timing="at_risk" minutesToDeadline={16} />
+  )),
+  service('service/travel-late', '622:530', 'Travel - late (negative)', () => (
+    // The negative value is the whole point of `622:538`; clamping it to zero would erase the
+    // state the frame exists to show.
+    <TravelView job={serviceV14Fixtures.job()} timing="late" minutesToDeadline={-6} />
+  )),
+  service('service/travel-cancel', '622:913', 'Travel - booking cancelled', () => (
+    <TravelCancelledView job={serviceV14Fixtures.job()} />
+  )),
+  service('service/arrival-on-time', '622:664', 'Arrival - on time', () => (
+    <ArrivalView job={serviceV14Fixtures.job()} timing="on_time" />
+  )),
+  service('service/arrival-late', '622:733', 'Arrival - late', () => (
+    <ArrivalView job={serviceV14Fixtures.job()} timing="late" />
+  )),
+  service('service/start-otp', '622:801', 'Start OTP', () => <ServiceOtpFixture kind="start" />),
+  service('service/timer-hours', '622:1036', 'Cooking - hours and minutes', () => (
+    <CookingView
+      hoursRemaining={2}
+      minutesRemaining={20}
+      isEndingSoon={false}
+      extensionMinutes={null}
+    />
+  )),
+  service('service/timer-minutes', '622:1085', 'Cooking - minutes', () => (
+    <CookingView
+      hoursRemaining={null}
+      minutesRemaining={59}
+      isEndingSoon={false}
+      extensionMinutes={null}
+    />
+  )),
+  service('service/timer-ending', '622:1125', 'Cooking - last 7 mins', () => (
+    <CookingView hoursRemaining={null} minutesRemaining={7} isEndingSoon extensionMinutes={null} />
+  )),
+  service('service/timer-extension', '622:1163', 'Cooking - extension window open', () => (
+    // The banner is shown because the window is open, never because a button was pressed. Here it
+    // is open by construction; in the app it comes from two server timestamps.
+    <CookingView
+      hoursRemaining={null}
+      minutesRemaining={28}
+      isEndingSoon={false}
+      extensionMinutes={20}
+    />
+  )),
+  service('service/end-otp', '628:1249', 'End OTP', () => <ServiceOtpFixture kind="end" />),
+  service('service/completed', '628:1293', 'Job end', () => <CompletedView />),
+
+  /* ---- Info (611:398) — 6 ---- */
+  info('info/leave-rules', '597:1131', 'Niyam - Jaankari', () => <NiyamIndexView />),
+  info('info/rating-tiers', '597:1221', 'Niyam - rating tiers', ruleSheet('rating-tiers', '4.6')),
+  info('info/no-show', '603:1865', 'Niyam - No Show', ruleSheet('no-show', '6')),
+  info(
+    'info/bonus-over-7',
+    '603:1924',
+    'Niyam - extra hours',
+    ruleSheet('bonus-over-7', '4 hrs 5 mins'),
+  ),
+  info('info/bonus-5-plus', '605:2027', 'Niyam - 5+ rating', ruleSheet('bonus-5-plus', '5')),
+  info('info/late', '605:2094', 'Niyam - Late', ruleSheet('late', '1 hr 34 mins')),
 ];
 
 export function galleryEntryFor(id: string): GalleryEntry | null {

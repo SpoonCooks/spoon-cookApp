@@ -1,26 +1,28 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { AppState, ScrollView, StyleSheet, View } from 'react-native';
+import { AppState, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { toServiceSnapshot } from '@core/api/adapters';
 import { newIdempotencyKey } from '@core/api/cook';
 import { apiErrorMessage, isSessionExpired } from '@core/api/errors';
 import { useJob, useMarkArrived, useVerifyEndOtp, useVerifyStartOtp } from '@core/api/queries';
+import { isNavigableGate, openGateNavigation } from '@core/location/navigation';
 import { locationTracker } from '@core/location/tracker';
 import { otpLength } from '@core/domain/otp';
 import { projectServiceState, type ServiceState } from '@core/domain/serviceState';
 import { useSession } from '@core/session/store';
-import { ErrorState, LoadingState, spacing } from '@ui';
+import { BottomNav, ErrorState, LoadingState } from '@ui';
+import { InterruptedView } from '@features/service/ServiceViews';
 import {
   ArrivalView,
   CompletedView,
   CookingView,
   EndOtpView,
-  InterruptedView,
   StartOtpView,
+  TravelCancelledView,
   TravelView,
-} from '@features/service/ServiceViews';
+} from '@features/service/ServiceV14Views';
 
 /**
  * The dynamic service flow — one route for every state between GO and completion.
@@ -96,6 +98,53 @@ export default function ServiceScreen(): React.ReactElement {
     const snapshot = toServiceSnapshot(job.data, receivedAtMs);
     return snapshot === null ? null : projectServiceState(snapshot);
   }, [job.data, receivedAtMs]);
+
+  /* ------------------------------------------------------ gate navigation --- */
+
+  /**
+   * `462:3597` — `Map dekhe`.
+   *
+   * Routes to the **GATE**, never the flat: `openGateNavigation` takes a `GateTarget` and has no
+   * way to accept an address, so the product rule is enforced by the signature rather than by
+   * remembering it here. A booking whose gate the backend has not published simply does nothing —
+   * an unnavigable gate must not open a maps app pointed at a guess.
+   */
+  const gate = state !== null && 'job' in state ? (state.job?.gate ?? null) : null;
+  const openGate = useCallback((): void => {
+    if (gate === null || !isNavigableGate(gate)) return;
+    void openGateNavigation(gate);
+  }, [gate]);
+
+  /* -------------------------------------------------- extension countdown --- */
+
+  /**
+   * Close the `622:1163` banner on time without waiting for the next poll.
+   *
+   * `extensionBannerMsRemaining` is correct as of the instant the server produced the snapshot, so
+   * with a 20s poll the banner would otherwise linger up to 20s past its five minutes. The timer
+   * below fires once, at exactly the remaining duration, and re-reads the projection.
+   *
+   * It is driven by `setTimeout`, which the JS runtime schedules off system uptime rather than
+   * wall time — so moving the device clock cannot make it fire early or late. It also only ever
+   * *ends* the window: the duration comes from the server pair, and a re-render recomputes it from
+   * a fresh snapshot rather than from anything this effect kept.
+   */
+  const bannerMsRemaining = state?.kind === 'cooking' ? state.extensionBannerMsRemaining : 0;
+
+  /*
+   * The expiry is recorded AGAINST the snapshot it was computed from, rather than as a bare
+   * boolean. A boolean would have to be reset whenever a new snapshot arrived, which means writing
+   * state during the effect body; keying it to `dataUpdatedAt` makes the reset fall out of the
+   * comparison instead, and a fresh snapshot is automatically un-expired.
+   */
+  const [expiredFor, setExpiredFor] = useState<number | null>(null);
+  const bannerExpired = expiredFor === receivedAtMs;
+
+  useEffect(() => {
+    if (bannerMsRemaining <= 0) return;
+    const handle = setTimeout(() => setExpiredFor(receivedAtMs), bannerMsRemaining);
+    return () => clearTimeout(handle);
+  }, [bannerMsRemaining, receivedAtMs]);
 
   /* ----------------------------------------------------- foreground sync --- */
 
@@ -251,6 +300,7 @@ export default function ServiceScreen(): React.ReactElement {
             job={state.job}
             timing={state.timing}
             minutesToDeadline={state.minutesToDeadline}
+            onMap={openGate}
           />
         );
 
@@ -259,7 +309,8 @@ export default function ServiceScreen(): React.ReactElement {
           <ArrivalView
             job={state.job}
             timing={state.timing}
-            onConfirmArrival={confirmArrival}
+            onArrived={confirmArrival}
+            onMap={openGate}
             isSubmitting={markArrived.isPending}
           />
         );
@@ -267,7 +318,9 @@ export default function ServiceScreen(): React.ReactElement {
       case 'awaiting_start_otp':
         return (
           <StartOtpView
-            timing={state.timing}
+            job={state.job}
+            length={otpLength.start}
+            onMap={openGate}
             code={startCode}
             onChange={(next) => {
               setStartCode(next.slice(0, otpLength.start));
@@ -282,16 +335,25 @@ export default function ServiceScreen(): React.ReactElement {
       case 'cooking':
         return (
           <CookingView
-            minutesRemaining={state.minutesRemaining}
+            hoursRemaining={
+              state.minutesRemaining >= 60 ? Math.floor(state.minutesRemaining / 60) : null
+            }
+            minutesRemaining={
+              state.minutesRemaining >= 60 ? state.minutesRemaining % 60 : state.minutesRemaining
+            }
             isEndingSoon={state.isEndingSoon}
-            isExtended={state.extension.isExtended}
-            newExpectedEndIso={state.extension.newExpectedEndIso}
+            extensionMinutes={
+              !bannerExpired && state.extensionBannerMsRemaining > 0
+                ? state.extension.extendedByMinutes
+                : null
+            }
           />
         );
 
       case 'awaiting_end_otp':
         return (
           <EndOtpView
+            length={otpLength.end}
             code={endCode}
             onChange={(next) => {
               setEndCode(next.slice(0, otpLength.end));
@@ -304,23 +366,54 @@ export default function ServiceScreen(): React.ReactElement {
         );
 
       case 'completed':
-        return <CompletedView onDone={goToJobs} />;
+        return <CompletedView onSeeJobs={goToJobs} />;
 
       case 'interrupted':
-        return <InterruptedView reason={state.reason} onDone={goToJobs} />;
+        /*
+         * `622:913` is the cancellation V14 actually draws, and it needs the booking to render —
+         * it keeps the address card so the cook knows which job ended. When the projection has no
+         * job (a reassignment observed with nothing attached) there is no such frame, so the
+         * V13 text view still covers that case rather than a blank screen.
+         */
+        return state.job !== null ? (
+          <TravelCancelledView job={state.job} onSeeJobs={goToJobs} onMap={openGate} />
+        ) : (
+          <InterruptedView reason={state.reason} onDone={goToJobs} />
+        );
     }
   })();
 
+  /*
+   * The V14 service frames all draw the five-tab bottom nav, but this route is pushed OVER the tab
+   * navigator so it has none of its own. The bar is therefore rendered here, with `Kaam` active —
+   * which is where a booking belongs — and selecting any tab dismisses the service screen back to
+   * that destination rather than stacking a second navigator inside this one.
+   */
   return (
     <View style={[styles.flex, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
-      <ScrollView contentContainerStyle={styles.scroll} testID={`service-${id}`}>
+      <View style={styles.flex} testID={`service-${id}`}>
         {body}
-      </ScrollView>
+      </View>
+      <BottomNav
+        active="kaam"
+        onSelect={(tab) => {
+          router.replace(tab === 'kaam' ? '/(tabs)/jobs' : `/(tabs)/${TAB_ROUTE[tab]}`);
+        }}
+        testID="service-bottom-nav"
+      />
     </View>
   );
 }
 
+/** Nav destination → route segment, mirroring `(tabs)/_layout.tsx`. */
+const TAB_ROUTE: Readonly<Record<string, string>> = {
+  hazri: 'attendance',
+  kaam: 'jobs',
+  chutti: 'chutti',
+  kamai: 'money',
+  niyam: 'niyam',
+};
+
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  scroll: { flexGrow: 1, paddingBottom: spacing.xl },
 });

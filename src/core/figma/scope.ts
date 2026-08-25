@@ -728,53 +728,16 @@ export const duplicateFrameNames: readonly string[] = ['long leave confirm'];
 export const bottomNavTabs = ['Hazri', 'Kaam', 'Chutti', 'Kamai', 'Niyam'] as const;
 
 /**
- * Screens whose V14 design context has been read and whose route is named above, but whose view
- * has **not yet been rebuilt** against V14.
+ * Screens whose view has not yet been rebuilt against V14.
  *
- * ## Why this list exists rather than a passing test
+ * **Empty.** All 47 finalized screens now have a V14 view and a `/dev` state.
  *
- * `gallery.test.tsx` asserts an exact set: every finalized screen must have a `/dev` state, and a
- * state that is not built is a visible gap. That assertion is what stops the gallery implying
- * coverage it does not have, so it must not be relaxed — but it also cannot pass while nineteen
- * screens are outstanding.
- *
- * Enumerating them here keeps the guard exact in **both** directions: the gallery must build
- * every screen that is not on this list, and it must build none that is. Removing a node id from
- * this list without building its state fails the suite, and building a state without removing its
- * id from the list fails it too. The list is therefore a ledger the compiler and the test agree
- * on, not a suppression.
- *
- * `Service flow` is outstanding because V14 rebuilt all thirteen frames on a new authoring
- * convention (371-wide `direct` rather than V13's 390x830 bezel), so the existing views describe
- * frames that no longer exist. `Info` is outstanding because it is a new section behind a new
- * tab.
- *
- * The five-minute extension window (`622:1163`) is the exception worth noting: its *behaviour* is
- * implemented and tested (`extensionWindow.test.ts`), and only its **view** is pending.
+ * The list is kept rather than deleted because `gallery.test.tsx` pins both directions against it:
+ * a screen NOT on the ledger must have a gallery state, and a screen ON it must not. With the list
+ * empty, the first half of that assertion is simply "every screen is built" — and adding a new
+ * finalized frame to the inventory without building it fails the suite rather than passing quietly.
  */
-export const pendingScreens: readonly string[] = [
-  // Service flow (485:4971) — 13, rebuilt from scratch in V14.
-  '614:453',
-  '622:530',
-  '622:597',
-  '622:664',
-  '622:733',
-  '622:801',
-  '622:913',
-  '622:1036',
-  '622:1085',
-  '622:1125',
-  '622:1163',
-  '628:1249',
-  '628:1293',
-  // Info (611:398) — 6, a new section behind the new Niyam tab.
-  '597:1131',
-  '597:1221',
-  '603:1865',
-  '603:1924',
-  '605:2027',
-  '605:2094',
-];
+export const pendingScreens: readonly string[] = [];
 
 /** Screens whose V14 view is built and reachable in the development gallery. */
 export function builtScreens(): readonly FigmaScreen[] {

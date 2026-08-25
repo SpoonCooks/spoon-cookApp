@@ -123,13 +123,21 @@ export function HelpPill({ size = 'full', onPress, testID }: HelpPillProps): Rea
   );
 }
 
-/** `592:480` — the full-width top nav: a Livvic Black title on the left, the help pill right. */
+/**
+ * `592:480` / `597:1145` — the full-width top nav: a Livvic Black title left, the help pill right.
+ *
+ * `titleVariant` exists because V14 splits the title size by section: `leave` keeps 20/28
+ * (`headingLg`) while `Service flow`, `job flow` and `Info` set 24/30 (`screenTitle`). The bar
+ * itself is identical in both, so the size is a prop rather than a second component.
+ */
 export function TopNavBar({
   title,
+  titleVariant = 'headingLg',
   onHelp,
   testID,
 }: {
   title: string;
+  titleVariant?: 'headingLg' | 'screenTitle' | undefined;
   onHelp?: (() => void) | undefined;
   testID?: string | undefined;
 }): React.ReactElement {
@@ -140,7 +148,7 @@ export function TopNavBar({
       testID={testID}
     >
       <View style={{ width: s(179) }}>
-        <Text variant="headingLg" testID="leave-nav-title">
+        <Text variant={titleVariant} testID="leave-nav-title">
           {title}
         </Text>
       </View>

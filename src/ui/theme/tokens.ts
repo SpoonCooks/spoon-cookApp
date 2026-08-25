@@ -101,6 +101,14 @@ export const semantic = {
    * substitutes for the other.
    */
   dangerSoft: '#fdd2d2',
+  /**
+   * `609:390` / `609:392` — the pale red behind the `No Show` and `Late` chips on the Niyam index.
+   *
+   * Three levels lighter than `dangerSoft` (`#fdd2d2`), which the job card uses. They never share
+   * a screen, but the two are separate design decisions and collapsing them would silently repaint
+   * one of the pair.
+   */
+  dangerTint: '#ffd7d7',
 } as const;
 
 export const color = {

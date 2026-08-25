@@ -11,10 +11,16 @@ import { Text } from '../primitives/Text';
  * `tiles` is the Login flow's own: `434:3255` draws six flat 35x35 `#ffef99` squares with a 10dp
  * gap and a 5dp radius, and no stroke at all. `bordered` is the entry field used elsewhere.
  *
- * These are separate variants rather than one "generic" box because V12 genuinely draws them
- * differently — flattening them into a single component would make one of the two screens wrong.
+ * `service` is V14's, drawn inside `476:4238`: three `#cfff04` boxes on a 148x74 grid with a
+ * 15-unit column gap and 8 units of vertical padding, so each box is 39.33 x 58 with a 5-unit
+ * radius and Livvic Black 30/36 digits. It is neither of the other two — the Login tiles are
+ * 35x35 `#ffef99` and the bordered box is outlined — so it is a third variant rather than a
+ * recolour of either.
+ *
+ * These are separate variants rather than one "generic" box because the design genuinely draws
+ * them differently — flattening them would make one of the three screens wrong.
  */
-export type OtpInputVariant = 'bordered' | 'tiles';
+export type OtpInputVariant = 'bordered' | 'tiles' | 'service';
 
 export interface OtpInputProps {
   /** Number of digit boxes. Comes from `otpLength[kind]` — never hardcoded by a screen. */
@@ -71,10 +77,17 @@ export function OtpInput({
   const focus = useCallback(() => inputRef.current?.focus(), []);
 
   const isTiles = variant === 'tiles';
+  const isService = variant === 'service';
   // V12 `434:3256`: 35x35 at a 10dp gap, radius 5, flat fill, no stroke.
   const tileStyle = isTiles
     ? { width: s(TILE.size), height: s(TILE.size), borderRadius: s(TILE.radius) }
-    : null;
+    : isService
+      ? {
+          width: s(SERVICE_TILE.width),
+          height: s(SERVICE_TILE.height),
+          borderRadius: s(SERVICE_TILE.radius),
+        }
+      : null;
 
   return (
     <Pressable
@@ -83,7 +96,14 @@ export function OtpInput({
       testID={testID}
       style={styles.wrapper}
     >
-      <View style={[styles.row, isTiles && { gap: s(TILE.gap) }]} pointerEvents="none">
+      <View
+        style={[
+          styles.row,
+          isTiles && { gap: s(TILE.gap) },
+          isService && { gap: s(SERVICE_TILE.gap), justifyContent: 'flex-start' },
+        ]}
+        pointerEvents="none"
+      >
         {boxes.map((index) => {
           const char = value[index] ?? '';
           const isCursor = focused && index === Math.min(value.length, length - 1);
@@ -92,16 +112,24 @@ export function OtpInput({
               key={index}
               testID={`${testID ?? 'otp'}-box-${index}`}
               style={[
-                isTiles ? styles.tile : styles.box,
+                isService ? styles.serviceTile : isTiles ? styles.tile : styles.box,
                 tileStyle,
-                !isTiles && char !== '' && styles.boxFilled,
-                !isTiles && isCursor && styles.boxFocused,
+                !isTiles && !isService && char !== '' && styles.boxFilled,
+                !isTiles && !isService && isCursor && styles.boxFocused,
                 isTiles && isCursor && styles.tileFocused,
-                hasError && (isTiles ? styles.tileError : styles.boxError),
+                isService && isCursor && styles.serviceTileFocused,
+                hasError &&
+                  (isService
+                    ? styles.serviceTileError
+                    : isTiles
+                      ? styles.tileError
+                      : styles.boxError),
                 disabled && styles.boxDisabled,
               ]}
             >
-              <Text variant={isTiles ? 'headingLgBold' : 'headingLg'}>{char}</Text>
+              <Text variant={isService ? 'cardCountdown' : isTiles ? 'headingLgBold' : 'headingLg'}>
+                {char}
+              </Text>
             </View>
           );
         })}
@@ -134,6 +162,14 @@ export function OtpInput({
 /** V12 `434:3256` tile metrics, in design space. */
 const TILE = { size: 35, gap: 10, radius: 5 } as const;
 
+/**
+ * V14 `476:4239` metrics, in design space.
+ *
+ * Derived from the grid rather than stated on the box: `476:4238` is 148 wide with a 15-unit
+ * column gap over three columns, so each box is `(148 - 2*15) / 3`, and 74 tall with `py-8`.
+ */
+const SERVICE_TILE = { width: (148 - 2 * 15) / 3, height: 74 - 16, gap: 15, radius: 5 } as const;
+
 const styles = StyleSheet.create({
   wrapper: { alignSelf: 'stretch' },
   row: { flexDirection: 'row', justifyContent: 'center', gap: spacing.m },
@@ -155,6 +191,16 @@ const styles = StyleSheet.create({
   // V12 draws no focus or filled state for the tiles; these stay subtle so the resting frame
   // still matches the design exactly while entry remains legible.
   tileFocused: { backgroundColor: color.yellow400 },
+  serviceTile: {
+    backgroundColor: color.lime600,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  // The design draws one resting state; focus and error stay inside the same family so the
+  // resting frame still matches it exactly while entry remains legible.
+  serviceTileFocused: { backgroundColor: color.lime400 },
+  serviceTileError: { backgroundColor: color.lime300, borderWidth: 1, borderColor: color.danger },
   tileError: { backgroundColor: color.yellow200, borderWidth: 1, borderColor: color.danger },
   boxFilled: { borderColor: color.black },
   boxFocused: { borderColor: color.yellow600 },

@@ -145,7 +145,7 @@ describe('the projection decides the screen', () => {
   it('renders the Start OTP screen only when the SERVER says it is eligible', () => {
     setJob({ status: 'cook_arrived', otpEligibility: { start: true, end: false } });
     render(<ServiceScreen />);
-    expect(screen.getByTestId('service-start-otp-on_time')).toBeTruthy();
+    expect(screen.getByTestId('service-start-otp')).toBeTruthy();
   });
 
   it('renders interrupted for a cancelled booking rather than a live service screen', () => {
@@ -174,8 +174,8 @@ describe('commands do not advance state locally', () => {
     setJob({ status: 'cook_arrived', otpEligibility: { start: true, end: false } });
     render(<ServiceScreen />);
     // The submit stays disabled until three digits are present, so type the code first.
-    fireEvent.changeText(screen.getByTestId('start-otp-field'), '482');
-    fireEvent.press(screen.getByTestId('service-start-submit'));
+    fireEvent.changeText(screen.getByTestId('start-otp-input-field'), '482');
+    fireEvent.press(screen.getByTestId('start-otp-submit'));
     expect(mockStartOtp).toHaveBeenCalledTimes(1);
     expect(mockStartOtp.mock.calls[0]?.[0]).toMatchObject({
       bookingId: 'b1',
@@ -187,9 +187,9 @@ describe('commands do not advance state locally', () => {
   it('stays on the Start OTP screen after submitting — only a re-read may move it', () => {
     setJob({ status: 'cook_arrived', otpEligibility: { start: true, end: false } });
     render(<ServiceScreen />);
-    fireEvent.changeText(screen.getByTestId('start-otp-field'), '482');
-    fireEvent.press(screen.getByTestId('service-start-submit'));
-    expect(screen.getByTestId('service-start-otp-on_time')).toBeTruthy();
+    fireEvent.changeText(screen.getByTestId('start-otp-input-field'), '482');
+    fireEvent.press(screen.getByTestId('start-otp-submit'));
+    expect(screen.getByTestId('service-start-otp')).toBeTruthy();
   });
 
   it('reuses ONE idempotency key across End-OTP retries', () => {
@@ -204,9 +204,9 @@ describe('commands do not advance state locally', () => {
       },
     });
     render(<ServiceScreen />);
-    fireEvent.changeText(screen.getByTestId('end-otp-field'), '731');
-    fireEvent.press(screen.getByTestId('service-end-submit'));
-    fireEvent.press(screen.getByTestId('service-end-submit'));
+    fireEvent.changeText(screen.getByTestId('end-otp-input-field'), '731');
+    fireEvent.press(screen.getByTestId('end-otp-submit'));
+    fireEvent.press(screen.getByTestId('end-otp-submit'));
     const keys = mockEndOtp.mock.calls.map(
       (call) => (call[0] as Record<string, string>)['idempotencyKey'],
     );
@@ -223,7 +223,7 @@ describe('commands do not advance state locally', () => {
   it('sends the manual arrive command only when the cook presses it', () => {
     setJob({ status: 'cook_arrived' });
     render(<ServiceScreen />);
-    fireEvent.press(screen.getByTestId('service-confirm-arrival'));
+    fireEvent.press(screen.getByTestId('service-arrived'));
     expect(mockArrive).toHaveBeenCalledTimes(1);
   });
 });
