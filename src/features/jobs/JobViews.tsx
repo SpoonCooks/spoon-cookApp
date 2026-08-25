@@ -74,8 +74,10 @@ const LEAD = {
   ctaGap: 8,
 } as const;
 
-/** `573:1205` — the jobs `aaj ka break` window. */
+/** `573:1204` / `573:1205` — the jobs `aaj ka break` window and the block that holds it. */
 const BREAK = {
+  blockPaddingH: 4,
+  blockPaddingV: 6,
   gap: 16,
   radius: 16,
   cellGap: 2,
@@ -421,31 +423,53 @@ function JobsBreakCard({
   const { s } = scale;
   return (
     <View
-      style={[styles.breakCard, { gap: s(BREAK.gap), borderRadius: s(BREAK.radius) }]}
-      testID="jobs-break-card"
+      style={[
+        styles.breakBlock,
+        {
+          paddingHorizontal: s(BREAK.blockPaddingH),
+          paddingVertical: s(BREAK.blockPaddingV),
+        },
+      ]}
     >
-      <Text variant="overlineLg" color={color.danger} style={styles.upper}>
-        aaj ka break
-      </Text>
-      <View style={[styles.breakGrid, { columnGap: s(BREAK.cellGap) }]}>
-        <BreakCell
-          label={window.fromLabel}
-          border={color.yellow600}
-          scale={scale}
-          testID="jobs-break-from"
-        />
-        <View style={[styles.breakCell, { padding: s(BREAK.cellPadding) }]}>
-          <Text variant="headingLgBold" align="center">
-            TO
+      <View
+        style={[styles.breakCard, { gap: s(BREAK.gap), borderRadius: s(BREAK.radius) }]}
+        testID="jobs-break-card"
+      >
+        {/*
+         * `573:1208` — the headline sits in a FULL-WIDTH box, and that is load-bearing.
+         *
+         * As a direct child of a `flex-start` column the label is sized to what Android measures
+         * the string to be, and Android under-measures a run carrying `letterSpacing` by about
+         * the trailing character's worth. `AAJ KA BREAK` then draws wider than the box it was
+         * given and loses its last word at the word boundary — silently, with no ellipsis and no
+         * wrap. The leave screen never showed it because `528:465` already wraps this label in a
+         * stretched row; the jobs card did not.
+         */}
+        <View style={styles.stretch}>
+          <Text variant="overlineLg" color={color.danger} style={styles.upper}>
+            aaj ka break
           </Text>
         </View>
-        <BreakCell
-          label={window.toLabel}
-          border={color.lime600}
-          filled
-          scale={scale}
-          testID="jobs-break-to"
-        />
+        <View style={[styles.breakGrid, { columnGap: s(BREAK.cellGap) }]}>
+          <BreakCell
+            label={window.fromLabel}
+            border={color.yellow600}
+            scale={scale}
+            testID="jobs-break-from"
+          />
+          <View style={[styles.breakCell, { padding: s(BREAK.cellPadding) }]}>
+            <Text variant="headingLgBold" align="center">
+              TO
+            </Text>
+          </View>
+          <BreakCell
+            label={window.toLabel}
+            border={color.lime600}
+            filled
+            scale={scale}
+            testID="jobs-break-to"
+          />
+        </View>
       </View>
     </View>
   );
@@ -535,7 +559,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  breakBlock: { alignSelf: 'stretch', alignItems: 'flex-start' },
   breakCard: { alignSelf: 'stretch', alignItems: 'flex-start' },
+  stretch: { alignSelf: 'stretch', alignItems: 'flex-start' },
   breakGrid: { alignSelf: 'stretch', flexDirection: 'row' },
   breakCell: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   upper: { textTransform: 'uppercase' },
