@@ -53,7 +53,13 @@ import numpy as np
 CONTENT_WIDTH_DP = 370.0
 
 #: Sections whose frames wrap the viewport in a decorative 10pt phone bezel.
-BEZEL_SECTIONS = frozenset({"Login flow", "Service flow"})
+#:
+#: V14 leaves only `Login flow` here. V13 also listed `Service flow`, but V14 re-authored that
+#: section as 371-wide `direct` frames, and keeping it would displace all thirteen Service
+#: comparisons by the bezel's 10-unit origin before a single element was examined. The convention
+#: is now carried per frame in `inventory.json`, and this set is only the fallback for callers that
+#: pass a section name instead.
+BEZEL_SECTIONS = frozenset({"Login flow"})
 
 #: Inner viewport of a 390x830 bezel frame, in frame coordinates: the 370-wide content column
 #: that every child is laid out against, starting one unit inside the 9px border.
@@ -118,6 +124,7 @@ def figma_viewport_crop(
     img_w: int,
     img_h: int,
     img: "np.ndarray | None" = None,
+    convention: "str | None" = None,
 ) -> Crop:
     """
     Map a Figma render onto the application viewport it contains.
@@ -127,7 +134,7 @@ def figma_viewport_crop(
     frame arithmetic (see the module docstring). The solved-margin path is kept only as a fallback
     for callers that have no image, and it records that it was used.
     """
-    if section in BEZEL_SECTIONS:
+    if convention == "bezel" if convention is not None else section in BEZEL_SECTIONS:
         located = _locate_bezel(img, frame_w, frame_h) if img is not None else None
         if located is not None:
             origin_x, origin_y, scale = located

@@ -2,7 +2,7 @@
 Generate pixel-verification evidence for one V13 screen.
 
 Writes `overlay.png`, `diff.png` and `result.json` next to an existing `figma.png` /
-`emulator.png` pair, under `docs/visual-verification/v13/<section>/<node-id>/`.
+`emulator.png` pair, under `docs/visual-verification/v14/<section>/<node-id>/`.
 
 ## How the two images are made comparable
 
@@ -55,10 +55,12 @@ from viewport import figma_viewport_crop  # noqa: E402
 
 SECTION_SLUGS = {
     "Login flow": "login-flow",
-    "leave": "leave",
     "log in flow": "log-in-flow",
+    "leave": "leave",
     "performance": "performance",
+    "job flow": "job-flow",
     "Service flow": "service-flow",
+    "Info": "info",
 }
 
 #: Height of the status-bar mock inside a **bezel** frame, in design units. Mirrors
@@ -119,6 +121,15 @@ class ComparisonProfile:
         return f"statusBand={self.status_band} homeIndicator={self.home_indicator}"
 
 
+def profile_for(row: dict) -> "ComparisonProfile":
+    """The comparison profile for one inventory row."""
+    return ComparisonProfile(
+        status_band=float(row["statusBand"]),
+        # Only a bezel frame draws the home-indicator strip; a direct frame ends at its last row.
+        home_indicator=10.0 if row["convention"] == "bezel" else 0.0,
+    )
+
+
 BEZEL_PROFILE = ComparisonProfile(status_band=STATUS_BAND_HEIGHT, home_indicator=10.0)
 SERVICE_PROFILE = ComparisonProfile(status_band=SERVICE_STATUS_BAND_HEIGHT, home_indicator=10.0)
 DIRECT_PROFILE = ComparisonProfile(status_band=DIRECT_STATUS_BAND_HEIGHT, home_indicator=0.0)
@@ -155,17 +166,25 @@ def compare(
     frame_w: float,
     frame_h: float,
     route: str,
+    #: The inventory row, which carries this frame's own convention and status band.
+    row: dict,
     tolerance: int = 12,
     emulator_status_px: int = DEFAULT_EMULATOR_STATUS_PX,
     emulator_nav_px: int = DEFAULT_EMULATOR_NAV_PX,
 ) -> dict:
     figma = load_rgb(figma_path)
     figma_array = np.asarray(figma).astype(int)
-    crop = figma_viewport_crop(section, frame_w, frame_h, figma.width, figma.height, figma_array)
+    crop = figma_viewport_crop(
+        section, frame_w, frame_h, figma.width, figma.height, figma_array, row["convention"]
+    )
     viewport = figma.crop((crop.left, crop.top, crop.right, crop.bottom))
 
-    # Drop the design's own system-chrome bands, per the section's typed profile.
-    profile = COMPARISON_PROFILES[section]
+    # Drop the design's own system-chrome bands, per the frame's OWN profile.
+    #
+    # V14 makes the band a frame-level fact rather than a section-level one: `Info` mixes the
+    # 32-unit `phone bar` and the 36.198-unit hairline row inside one section, so a section table
+    # would mis-align `597:1131` by four design rows. The row carries what `inventory.py` derived.
+    profile = profile_for(row)
     status_rows = round(profile.status_band * crop.scale)
     indicator_rows = round(profile.home_indicator * crop.scale)
     reference = viewport.crop((0, status_rows, viewport.width, viewport.height - indicator_rows))
@@ -306,7 +325,7 @@ def compare(
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--inventory", required=True, help="V13 inventory JSON")
-    parser.add_argument("--root", default="docs/visual-verification/v13")
+    parser.add_argument("--root", default="docs/visual-verification/v14")
     parser.add_argument("--tolerance", type=int, default=12)
     parser.add_argument("--node", default=None, help="Only this node id")
     parser.add_argument("--emulator-status-px", type=int, default=DEFAULT_EMULATOR_STATUS_PX)
@@ -338,6 +357,7 @@ def main() -> int:
             row["w"],
             row["h"],
             row.get("route", row.get("galleryState", "")),
+            row,
             args.tolerance,
             args.emulator_status_px,
             args.emulator_nav_px,

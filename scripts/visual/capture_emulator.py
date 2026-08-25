@@ -2,7 +2,7 @@
 Capture an emulator screenshot for every reachable V13 gallery state.
 
 Deep-links into `spooncook://dev/<state>`, waits for the render to settle, and writes
-`emulator.png` into `docs/visual-verification/v13/<section>/<node-id>/`.
+`emulator.png` into `docs/visual-verification/v14/<section>/<node-id>/`.
 
 Requires: the debug APK installed, Metro serving, `adb reverse tcp:8081 tcp:8081` in place.
 
@@ -35,10 +35,12 @@ from pathlib import Path
 
 SECTION_SLUGS = {
     "Login flow": "login-flow",
-    "leave": "leave",
     "log in flow": "log-in-flow",
+    "leave": "leave",
     "performance": "performance",
+    "job flow": "job-flow",
     "Service flow": "service-flow",
+    "Info": "info",
 }
 
 PACKAGE = "com.spoonhelp.cookapp.dev"
@@ -325,7 +327,8 @@ def capture_full_height(args, row: dict, first_png: bytes) -> tuple[bytes, dict 
     # the emulator down to the reference width, so one design unit is `shot.width / frame_width`
     # device pixels; the section's status band is design chrome the app never draws.
     per_unit = shot.width / float(row["w"])
-    band = COMPARISON_STATUS_BAND.get(row["section"], 0.0)
+    # Per FRAME, not per section: `Info` mixes two status mocks inside one section.
+    band = float(row.get("statusBand", 0.0))
     target_px = int(round((float(row["h"]) - band) * per_unit))
     if target_px <= viewport_px + 8:
         return first_png, None
@@ -361,7 +364,7 @@ def main() -> int:
     parser.add_argument("--adb", required=True)
     parser.add_argument("--inventory", required=True)
     parser.add_argument("--states", required=True, help="JSON map of galleryState -> nodeId")
-    parser.add_argument("--root", default="docs/visual-verification/v13")
+    parser.add_argument("--root", default="docs/visual-verification/v14")
     parser.add_argument("--settle", type=float, default=5.0)
     parser.add_argument("--retries", type=int, default=3)
     parser.add_argument("--emulator-status-px", type=int, default=136)

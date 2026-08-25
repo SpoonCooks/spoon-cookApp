@@ -46,12 +46,15 @@ describe('viewport profiles', () => {
     expect(pythonConstant('SERVICE_STATUS_BAND_HEIGHT')).toBe(SERVICE_STATUS_BAND_HEIGHT);
   });
 
-  it('gives Service flow the leave status band, not the Login flow one', () => {
-    // `462:3660` and `526:348` are the same 36.198 component; `434:3336` is not. The two bezel
-    // sections therefore do NOT share a status band, which is the whole reason this is asserted.
-    expect(viewportProfile('485:4971').statusBandHeight).toBe(SERVICE_STATUS_BAND_HEIGHT);
-    expect(viewportProfile('485:4971').statusBandHeight).not.toBe(STATUS_BAND_HEIGHT);
-    expect(viewportProfile('485:4971').convention).toBe('bezel');
+  it('makes Service flow a DIRECT section in V14, not a bezel one', () => {
+    // V13 authored this section as 390x830 phone-mockup frames drawing the 36.198 `leave` mock.
+    // V14 re-authored all thirteen as 371-wide direct frames on the 32-unit `phone bar`. Applying
+    // the V13 profile would offset every Service comparison by the bezel origin AND drop four
+    // design rows too many from the top, so the change is asserted rather than assumed.
+    expect(viewportProfile('485:4971').convention).toBe('direct');
+    expect(viewportProfile('485:4971').statusBandHeight).toBe(DIRECT_STATUS_BAND_HEIGHT);
+    expect(viewportProfile('485:4971').statusBandHeight).not.toBe(SERVICE_STATUS_BAND_HEIGHT);
+    expect(viewportProfile('485:4971').homeIndicatorHeight).toBe(0);
   });
 
   it('states the same leave status band as the comparison harness', () => {
@@ -65,22 +68,21 @@ describe('viewport profiles', () => {
 
   it('gives every finalized section a profile', () => {
     expect(Object.keys(viewportProfileBySection).sort()).toEqual(
-      ['434:3115', '485:4971', '540:416', '575:1741', '592:1068'].sort(),
+      ['434:3115', '485:4971', '540:416', '575:1741', '592:1068', '592:1070', '611:398'].sort(),
     );
   });
 
-  it('applies the bezel convention only to the two phone-mockup sections', () => {
+  it('applies the bezel convention only to Login flow, the last phone-mockup section', () => {
     const bezel = Object.entries(viewportProfileBySection)
       .filter(([, profile]) => profile.convention === 'bezel')
       .map(([section]) => section)
       .sort();
-    expect(bezel).toEqual(['434:3115', '485:4971']);
+    expect(bezel).toEqual(['434:3115']);
   });
 
-  it('draws a home indicator only in the bezel sections', () => {
+  it('draws a home indicator only in the bezel section', () => {
     expect(viewportProfile('434:3115').homeIndicatorHeight).toBe(HOME_INDICATOR_HEIGHT);
-    expect(viewportProfile('485:4971').homeIndicatorHeight).toBe(HOME_INDICATOR_HEIGHT);
-    for (const section of ['540:416', '592:1068', '575:1741']) {
+    for (const section of ['540:416', '592:1068', '575:1741', '592:1070', '611:398', '485:4971']) {
       expect(viewportProfile(section).homeIndicatorHeight).toBe(0);
     }
   });

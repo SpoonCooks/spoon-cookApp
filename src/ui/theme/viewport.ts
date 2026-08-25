@@ -112,16 +112,6 @@ const BEZEL_PROFILE: ViewportProfile = {
   homeIndicatorHeight: HOME_INDICATOR_HEIGHT,
 };
 
-/**
- * `Service flow` is a bezel section like `Login flow`, but draws the `leave` status mock. Every
- * other measurement is the bezel's; only the band differs, so the profile is derived rather than
- * restated and the two cannot drift apart.
- */
-const SERVICE_PROFILE: ViewportProfile = {
-  ...BEZEL_PROFILE,
-  statusBandHeight: SERVICE_STATUS_BAND_HEIGHT,
-};
-
 const DIRECT_PROFILE: ViewportProfile = {
   convention: 'direct',
   origin: { x: 0, y: 0 },
@@ -131,6 +121,18 @@ const DIRECT_PROFILE: ViewportProfile = {
   // A direct frame ends at its own last content row; only the phone mockups draw an indicator.
   homeIndicatorHeight: 0,
 };
+
+/**
+ * `Service flow` was a bezel section in V13 and is NOT one in V14.
+ *
+ * V14 deleted all twelve V13 service frames and re-authored the section as 371-wide `direct`
+ * frames carrying the 32-unit `phone bar` — the same mock `log in flow` and `performance` use.
+ * Keeping the old profile would apply a 10-unit bezel origin and a 36.198-unit band to frames that
+ * have neither, displacing every Service comparison before a single element was examined.
+ *
+ * {@link SERVICE_STATUS_BAND_HEIGHT} is retained only so the V13 evidence stays readable.
+ */
+const SERVICE_PROFILE: ViewportProfile = DIRECT_PROFILE;
 
 const LEAVE_PROFILE: ViewportProfile = {
   convention: 'direct',
@@ -143,11 +145,19 @@ const LEAVE_PROFILE: ViewportProfile = {
 
 /** Section node id -> viewport profile. Keyed by node id because two sections share a name stem. */
 export const viewportProfileBySection: Readonly<Record<string, ViewportProfile>> = {
-  '434:3115': BEZEL_PROFILE, // Login flow
-  '485:4971': SERVICE_PROFILE, // Service flow
+  '434:3115': BEZEL_PROFILE, // Login flow — the only bezel section left in V14
+  '485:4971': SERVICE_PROFILE, // Service flow — direct in V14, bezel in V13
   '540:416': LEAVE_PROFILE, // leave
   '592:1068': DIRECT_PROFILE, // log in flow
   '575:1741': DIRECT_PROFILE, // performance
+  '592:1070': DIRECT_PROFILE, // job flow — new in V14
+  /*
+   * `Info` is listed for completeness, but it is the one section whose band is NOT uniform:
+   * `597:1131` draws the 32-unit `phone bar` and the five rule sheets draw the 36.198 hairline
+   * row. The harness reads the band per frame from `inventory.json`; this entry is the section
+   * default only.
+   */
+  '611:398': DIRECT_PROFILE, // Info — new in V14, mixed band (see above)
 };
 
 export function viewportProfile(sectionNodeId: string): ViewportProfile {
