@@ -572,7 +572,17 @@ export const performanceFixtures = {
       { label: 'Sun', state: 'none' },
     ]),
 
-  /** `537:490` — the seven rows of `575:1903` `14- day history`. */
+  /**
+   * `537:490` — the TEN rows of `575:1903` `14- day history`.
+   *
+   * V14 added three: `634:1798`, `634:1782` and `634:1790`, all in the `634:*` range the
+   * revision allocated. That is most of this frame's `+238` height change (the bottom nav is
+   * the other 68), so a seven-row fixture renders a visibly shorter screen than the reference.
+   *
+   * The design repeats `24 Jul` six times and `18 Jul` four times. The labels are transcribed
+   * rather than derived from `dateIso`, because the frame's own dates do not count down — only
+   * the distinct `dateIso` keys do, so each row stays separately tappable.
+   */
   dayHistory: (): readonly { dateIso: string; label: string }[] =>
     devOnly([
       { dateIso: '2026-07-24', label: '24 Jul' },
@@ -582,15 +592,26 @@ export const performanceFixtures = {
       { dateIso: '2026-07-20', label: '24 Jul' },
       { dateIso: '2026-07-19', label: '24 Jul' },
       { dateIso: '2026-07-18', label: '18 Jul' },
+      { dateIso: '2026-07-17', label: '18 Jul' },
+      { dateIso: '2026-07-16', label: '18 Jul' },
+      { dateIso: '2026-07-15', label: '18 Jul' },
     ]),
 
-  /** `502:535` — the four rows of `575:2032` `17- weekly history`. */
+  /**
+   * `502:535` — the SIX rows of `575:2032` `17- weekly history`.
+   *
+   * V14 added two, `634:1852` and `634:1866`, which is most of this frame's `+219` height
+   * change. Every row carries the same `18 Jul - 21 Jul` / `₹7,839` in the design; only the
+   * `cycleId` distinguishes them, so each stays separately tappable.
+   */
   cycleHistory: (): readonly { cycleId: string; label: string; earnings: string }[] =>
     devOnly([
       { cycleId: 'c1', label: '18 Jul - 21 Jul', earnings: '₹7,839' },
       { cycleId: 'c2', label: '18 Jul - 21 Jul', earnings: '₹7,839' },
       { cycleId: 'c3', label: '18 Jul - 21 Jul', earnings: '₹7,839' },
       { cycleId: 'c4', label: '18 Jul - 21 Jul', earnings: '₹7,839' },
+      { cycleId: 'c5', label: '18 Jul - 21 Jul', earnings: '₹7,839' },
+      { cycleId: 'c6', label: '18 Jul - 21 Jul', earnings: '₹7,839' },
     ]),
 
   /** `502:307` — `SPOON SE AAJ TAK KI KAMAI`, `₹2,93,894`. */

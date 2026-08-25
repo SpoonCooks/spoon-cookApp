@@ -1,8 +1,10 @@
 import { render, screen } from '@testing-library/react-native';
+import { Image, StyleSheet } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { builtScreens, figmaScreens, pendingScreens } from '@core/figma/scope';
-import { galleryEntries, galleryEntryFor } from '@features/dev/galleryStates';
+import { bottomNavTabFor, galleryEntries, galleryEntryFor } from '@features/dev/galleryStates';
+import { BottomNav } from '@ui';
 
 /**
  * Development gallery contract.
@@ -174,5 +176,82 @@ describe('gallery rendering', () => {
     // label is what a screenshot can actually distinguish the three frames by.
     render(withSafeArea(galleryEntryFor('jobs/next-5')!.render()));
     expect(screen.getByText('CHALO!!')).toBeTruthy();
+  });
+});
+
+/**
+ * Bottom-nav coverage in the gallery.
+ *
+ * V14 draws the five-tab bar on 33 of the 47 frames, and no feature view renders one — in the
+ * running app it is the navigator's chrome. The gallery renders views directly, so its HOST must
+ * supply the bar. When it did not, all 33 nav-bearing screens captured without it and each scored
+ * a 68-unit band of pure difference along the bottom edge, which reads in a report as an
+ * implementation defect rather than the harness gap it was.
+ */
+describe('gallery bottom nav', () => {
+  const byNode = new Map(figmaScreens.map((screen) => [screen.nodeId, screen]));
+
+  it('claims a bar for exactly the frames scope marks bottomNav', () => {
+    for (const entry of galleryEntries) {
+      expect({ id: entry.id, hasBar: bottomNavTabFor(entry) !== null }).toEqual({
+        id: entry.id,
+        hasBar: byNode.get(entry.nodeId)?.bottomNav === true,
+      });
+    }
+  });
+
+  it('covers all 33 nav-bearing frames and no others', () => {
+    const withBar = galleryEntries.filter((entry) => bottomNavTabFor(entry) !== null);
+    expect(withBar).toHaveLength(33);
+    expect(galleryEntries).toHaveLength(47);
+  });
+
+  it('highlights the destination measured from each section reference render', () => {
+    const expected: Record<string, string> = {
+      'log in flow': 'hazri',
+      'job flow': 'kaam',
+      'Service flow': 'kaam',
+      leave: 'chutti',
+      performance: 'kamai',
+      Info: 'niyam',
+    };
+    for (const entry of galleryEntries) {
+      const tab = bottomNavTabFor(entry);
+      if (tab === null) continue;
+      expect({ id: entry.id, tab }).toEqual({ id: entry.id, tab: expected[entry.section] });
+    }
+  });
+
+  it('never draws a bar on a Login flow frame', () => {
+    // Pre-auth: none of the five frames has one, and drawing it would put a signed-in navigator
+    // on a screen reached before sign-in.
+    for (const entry of galleryEntries.filter((e) => e.section === 'Login flow')) {
+      expect(bottomNavTabFor(entry)).toBeNull();
+    }
+  });
+
+  /**
+   * The glyphs must carry a definite pixel size.
+   *
+   * `alignSelf: 'stretch'` plus `StyleSheet.absoluteFill` — the literal reading of the design's
+   * `absolute inset-0 size-full` — collapsed the icon box to zero width on device and rendered all
+   * five glyphs BLANK, while the labels and the `#ffef99` pill drew perfectly. The bar looked
+   * finished in review and only a pixel diff caught it. A percentage or absolute fill creeping
+   * back would reintroduce exactly that, and nothing else here would notice.
+   */
+  it('gives every nav glyph a numeric width and height', () => {
+    const view = render(<BottomNav active="chutti" />);
+    const images = view.UNSAFE_getAllByType(Image);
+    expect(images).toHaveLength(5);
+    for (const image of images) {
+      const style = StyleSheet.flatten(image.props.style) as {
+        width?: unknown;
+        height?: unknown;
+      };
+      expect(typeof style.width).toBe('number');
+      expect(typeof style.height).toBe('number');
+      expect(style.width as number).toBeGreaterThan(0);
+      expect(style.height as number).toBeGreaterThan(0);
+    }
   });
 });

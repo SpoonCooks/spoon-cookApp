@@ -35,8 +35,10 @@ import {
 import { useState } from 'react';
 
 import { earningsPeriodLabels, earningsPeriods } from '@core/domain/money';
+import { screenFor } from '@core/figma/scope';
 import { otpLength } from '@core/domain/otp';
 import { jobsV14Fixtures, performanceFixtures, serviceV14Fixtures } from '@core/fixtures';
+import type { BottomNavTab } from '@ui';
 
 /**
  * Development-only visual gallery.
@@ -225,8 +227,15 @@ const PERIOD_TABS = earningsPeriods.map((key) => ({
 /**
  * One of the thirteen V14 `Service flow` frames.
  *
- * These own their safe area: `ServiceShell` draws its own top nav directly under the status bar,
- * the same shape the attendance, leave and jobs screens use.
+ * These do NOT own their safe area, and the distinction is not cosmetic. `ServiceV14Views` never
+ * calls `useSafeAreaInsets` — the real route does it for them, in `service/[bookingId].tsx`:
+ *
+ *     <View style={[styles.flex, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
+ *
+ * Claiming `ownsSafeArea` here told the gallery host to skip that padding, and nothing else
+ * supplied it, so every Service frame rendered one status-bar height too high — its top nav drawn
+ * over the system clock. The comparison then read a ~49dp displacement on all thirteen as if the
+ * layout were wrong, when only the gallery's host was.
  */
 function service(
   id: string,
@@ -234,7 +243,7 @@ function service(
   label: string,
   render: () => React.ReactElement,
 ): GalleryEntry {
-  return { id, section: 'Service flow', nodeId, label, ownsSafeArea: true, render };
+  return { id, section: 'Service flow', nodeId, label, render };
 }
 
 /** One of the six `Info` frames. The five rule sheets draw their own scrim. */
@@ -563,4 +572,38 @@ export const galleryEntries: readonly GalleryEntry[] = [
 
 export function galleryEntryFor(id: string): GalleryEntry | null {
   return galleryEntries.find((entry) => entry.id === id) ?? null;
+}
+
+/**
+ * Which bottom-nav destination each section highlights.
+ *
+ * Not inferred from the section name — **measured**. `scripts/visual/activeTab.py` samples the
+ * five tab centres in every committed reference render and reports which one carries the
+ * `#ffef99` active pill; all 33 nav-bearing frames agree with their section, and the Service
+ * frames resolve to `kaam`, which is what `service/[bookingId].tsx` already hard-codes.
+ *
+ * `Login flow` is absent because it is pre-auth: none of its five frames draws a bar.
+ */
+const TAB_FOR_SECTION: Readonly<Record<string, BottomNavTab>> = {
+  'log in flow': 'hazri',
+  'job flow': 'kaam',
+  'Service flow': 'kaam',
+  leave: 'chutti',
+  performance: 'kamai',
+  Info: 'niyam',
+};
+
+/**
+ * The destination the gallery host must highlight for one entry, or `null` when its frame draws
+ * no bar at all.
+ *
+ * Lives here rather than in the route so it can be asserted against the scope contract directly.
+ * V14 draws the bar on 33 of 47 frames and no feature view renders one — in the running app it is
+ * the navigator's chrome — so if this returns the wrong answer, or `null` where a bar belongs, the
+ * affected screens capture without it and score a 68-unit band of difference that reads as an
+ * implementation defect rather than a harness one.
+ */
+export function bottomNavTabFor(entry: GalleryEntry): BottomNavTab | null {
+  if (screenFor(entry.nodeId)?.bottomNav !== true) return null;
+  return TAB_FOR_SECTION[entry.section] ?? null;
 }

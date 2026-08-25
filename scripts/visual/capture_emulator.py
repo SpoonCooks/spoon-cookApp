@@ -45,6 +45,10 @@ SECTION_SLUGS = {
 
 PACKAGE = "com.spoonhelp.cookapp.dev"
 
+#: Height of the V14 five-tab bottom nav in design units (`634:2478`): a 52-unit row inside 8
+#: units of vertical padding. Mirrors `BOTTOM_NAV_HEIGHT` in `src/ui/components/BottomNav.tsx`.
+BOTTOM_NAV_UNITS = 68
+
 #: Minimum settle after a cold start before the app is polled for readiness.
 WARM_FLOOR_SECONDS = 20.0
 
@@ -321,7 +325,6 @@ def capture_full_height(args, row: dict, first_png: bytes) -> tuple[bytes, dict 
         return first_png, None
 
     shot = Image.open(BytesIO(first_png))
-    viewport_px = shot.height - args.emulator_status_px - args.emulator_nav_px
 
     # The design frame, expressed in the device pixels it will be compared at. `compare.py` scales
     # the emulator down to the reference width, so one design unit is `shot.width / frame_width`
@@ -329,7 +332,27 @@ def capture_full_height(args, row: dict, first_png: bytes) -> tuple[bytes, dict 
     per_unit = shot.width / float(row["w"])
     # Per FRAME, not per section: `Info` mixes two status mocks inside one section.
     band = float(row.get("statusBand", 0.0))
-    target_px = int(round((float(row["h"]) - band) * per_unit))
+
+    # The V14 bottom nav is a FIXED FOOTER, and stitching has to be told so.
+    #
+    # `stitch.scroll_capture` locates the next segment by searching for a band lifted off the
+    # bottom of what it has assembled. On a frame carrying the nav that band is mostly the nav
+    # itself, which does not move when the content scrolls: the template matches at offset ~0,
+    # `measure_scroll` reports no movement, and the run stops after one screenful believing it
+    # has reached the bottom. Every tall nav-bearing frame would then be scored on its first
+    # viewport alone.
+    #
+    # Passing the bar's height as part of `nav_px` makes the stitcher treat it exactly as it
+    # already treats the device's own navigation bar: excluded from the scrolling region, and
+    # re-attached once beneath the assembled content. The returned image keeps the shape of a
+    # single screenshot, so `compare.py` still needs no special case.
+    footer_units = float(BOTTOM_NAV_UNITS) if row.get("bottomNav") else 0.0
+    footer_px = int(round(footer_units * per_unit))
+    viewport_px = shot.height - args.emulator_status_px - args.emulator_nav_px - footer_px
+
+    # The scrolling region's target excludes the footer, which is captured whole rather than
+    # scrolled past.
+    target_px = int(round((float(row["h"]) - band - footer_units) * per_unit))
     if target_px <= viewport_px + 8:
         return first_png, None
 
@@ -350,10 +373,17 @@ def capture_full_height(args, row: dict, first_png: bytes) -> tuple[bytes, dict 
         screenshot,
         swipe,
         args.emulator_status_px,
-        args.emulator_nav_px,
+        args.emulator_nav_px + footer_px,
         target_px,
         settle=2.2,
     )
+    if footer_px:
+        report["fixedFooterPx"] = footer_px
+        report["fixedFooterNote"] = (
+            "The V14 bottom nav is chrome that does not scroll. It was excluded from the "
+            "scrolled region and re-attached once below the assembled content, so the stitch "
+            "template could not lock onto it."
+        )
     buffer = BytesIO()
     image.save(buffer, format="PNG")
     return buffer.getvalue(), report
