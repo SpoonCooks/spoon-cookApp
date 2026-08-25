@@ -24,10 +24,14 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from pathlib import Path
 
 import numpy as np
 from PIL import Image
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from viewport import figma_viewport_crop  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[2]
 EVIDENCE = ROOT / "docs" / "visual-verification" / "v14"
@@ -76,10 +80,24 @@ def measure(row: dict) -> dict | None:
 
     ref = Image.open(reference).convert("RGB")
     emu = Image.open(render).convert("RGB")
-    ref_scale = ref.width / float(row["w"])
+
+    # The frame is LOCATED in its render, exactly as `compare.py` locates it. Dividing the render's
+    # width by the frame's instead treats the effect margin as part of the frame, which is worth
+    # about half a design unit here — and half a unit is the whole size of the number this
+    # measures, so the two must not derive it separately.
+    crop = figma_viewport_crop(
+        row["section"],
+        float(row["w"]),
+        float(row["h"]),
+        ref.width,
+        ref.height,
+        np.asarray(ref).astype(int),
+        row["convention"],
+    )
+    ref_scale = crop.scale
     emu_scale = emu.width / float(row["w"])
 
-    band = row["statusBand"] * ref_scale
+    band = crop.top + row["statusBand"] * ref_scale
     ref_y = first_ink_row(ref, int(band))
     emu_y = first_ink_row(emu, EMULATOR_STATUS_PX)
     if ref_y is None or emu_y is None:

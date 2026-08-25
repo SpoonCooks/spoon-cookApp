@@ -36,14 +36,31 @@ in the image**: it is a 9px near-black rounded rectangle enclosing the whole fra
 box gives the frame origin and the render scale directly. Measured on every bezel frame in the
 inventory the box is rows 13..842, cols 38..427 -- 390x830 at scale 1.0, origin (38, 13).
 
-Frames without an effect render at their own origin with m = 0. Tall `performance` frames are
-additionally downscaled because the screenshot service caps the longer edge; that cap is measured
-per image rather than assumed, and it is reported in each `result.json` so a low effective
-resolution is never mistaken for a clean pass.
+## Direct frames have effect bounds too, and they are NOT at the origin
+
+The same trap, one order of magnitude smaller and therefore much harder to see. A `direct` frame
+has no bezel, but it does have drop shadows — the bottom nav's `0 0 1`, `leave`'s `0 -1 1`, the
+Help pill's `0 0 2` — so a 371-unit frame comes back **374 or 375 pixels wide** with the frame
+sitting at scale 1 inside a centred margin of one to two pixels. Reading such a render from (0, 0)
+and solving the scale from its height, which is what this module used to do, starts the crop about
+two pixels left of the frame and then calls a short width the whole 371-unit column.
+
+That is invisible on a splash and fatal on a tariff table: every element lands about two units off
+its design column and every text baseline about one row high, which reddens every glyph edge in
+the frame. It also produced the +0.2 to +0.8 unit top-alignment deltas the V14 run measured on
+every direct frame and could not account for — those were half the vertical margin, not the app.
+
+The margin is therefore `(render − frame) / 2` on both axes, checked rather than assumed: it
+predicts the left edge of the bottom nav's active cell to within a pixel on `575:2137`,
+`575:1744`, `583:375`, `614:453`, `592:488` and `597:1131`. Tall frames may additionally be
+downscaled because the screenshot service caps the longer edge; that cap is detected per image (a
+render SMALLER than its frame) rather than assumed, and the resulting scale is reported in each
+`result.json` so a low effective resolution is never mistaken for a clean pass.
 """
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 
 import numpy as np
@@ -70,6 +87,16 @@ BEZEL_RENDER_MARGIN = 38.0
 
 #: The bezel shadow's downward offset, which makes the top margin 13px and the bottom margin 63px.
 BEZEL_SHADOW_Y_OFFSET = 25.0
+
+
+def _nearest(value: float) -> int:
+    """
+    Round half UP.
+
+    `round()` rounds half to even, which turns a 1.5px margin into 2 and a 2.5px one into 2 — an
+    inconsistency nobody would look for inside a crop that is already only a pixel wide.
+    """
+    return math.floor(value + 0.5)
 
 
 @dataclass(frozen=True)
@@ -159,17 +186,49 @@ def figma_viewport_crop(
             note=note,
         )
 
-    # `direct` frames render at their own origin. Solve the scale from the longer edge, which is
-    # the one the renderer's size cap acts on, so a capped tall frame is not mis-scaled.
-    scale = img_h / frame_h if frame_h >= frame_w else img_w / frame_w
+    # A `direct` frame does NOT render at its own origin either.
+    #
+    # `get_screenshot` returns EFFECT bounds, and a direct frame has effects: the bottom nav
+    # carries `drop-shadow 0 0 1` (`0 -1 1` on `leave`) and the Help pill carries
+    # `drop-shadow 0 0 2`. Those push the rendered bounds a pixel or two past the frame on every
+    # side, so a 371-unit frame comes back 374 or 375 pixels wide -- at scale 1, centred.
+    #
+    # Assuming an origin of (0, 0) and solving the scale from the height, which is what this did,
+    # is wrong twice over: it starts the crop 1.5 to 2 pixels left of the frame, and it then
+    # treats a width that is short by the same amount as the whole 371-unit column. Every element
+    # on every direct frame was compared about two units off its design column, and every text
+    # baseline about one row high. On a sparse screen that is a soft edge; on a tariff table or a
+    # six-card job list it reddens every glyph in the frame, and it is most of what the V14 run
+    # was still scoring on the twenty-five screens it could not close.
+    #
+    # The margin is MEASURED from the arithmetic that actually holds rather than assumed:
+    # `(render - frame) / 2` predicts the left edge of the bottom nav's active cell to within a
+    # pixel on `575:2137`, `575:1744`, `583:375`, `614:453`, `592:488` and `597:1131` -- six
+    # frames across five sections, three different render widths -- and the vertical half of it
+    # reproduces the +0.2 to +0.8 unit top-alignment deltas the run measured and could not
+    # explain.
+    margin_x = (img_w - frame_w) / 2.0
+    margin_y = (img_h - frame_h) / 2.0
+    scale = 1.0
+    note = "frame located in render; effect bounds are centred at scale 1"
+    if margin_x < -0.5 or margin_y < -0.5:
+        # The renderer caps the longer edge on a very tall frame. Then the frame IS scaled, and
+        # the margin has to be solved against that scale rather than read off the difference.
+        scale = min(img_w / frame_w, img_h / frame_h)
+        margin_x = (img_w - frame_w * scale) / 2.0
+        margin_y = (img_h - frame_h * scale) / 2.0
+        note = f"render capped to {scale:.4f}; margin solved against the capped scale"
+
+    left = _nearest(margin_x)
+    top = _nearest(margin_y)
     return Crop(
-        left=0,
-        top=0,
-        right=min(img_w, round(frame_w * scale)),
-        bottom=min(img_h, round(frame_h * scale)),
+        left=left,
+        top=top,
+        right=min(img_w, left + _nearest(frame_w * scale)),
+        bottom=min(img_h, top + _nearest(frame_h * scale)),
         scale=scale,
-        margin=0.0,
-        note="frame is the viewport; no bezel",
+        margin=margin_y,
+        note=note,
     )
 
 

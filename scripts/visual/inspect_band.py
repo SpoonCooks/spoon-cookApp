@@ -13,56 +13,56 @@ import argparse
 import sys
 from pathlib import Path
 
+import json
+
 import numpy as np
 from PIL import Image
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from compare import (  # noqa: E402
-    COMPARISON_PROFILES,
-    DEFAULT_EMULATOR_NAV_PX,
-    DEFAULT_EMULATOR_STATUS_PX,
-    load_rgb,
-)
-from viewport import figma_viewport_crop  # noqa: E402
+from compare import SECTION_SLUGS, aligned_views  # noqa: E402
 
 
-def aligned_pair(
-    figma_path: Path, emulator_path: Path, section: str, frame_w: float, frame_h: float
-) -> tuple[Image.Image, Image.Image]:
-    figma = load_rgb(figma_path)
-    figma_array = np.asarray(figma).astype(int)
-    crop = figma_viewport_crop(section, frame_w, frame_h, figma.width, figma.height, figma_array)
-    viewport = figma.crop((crop.left, crop.top, crop.right, crop.bottom))
-    profile = COMPARISON_PROFILES[section]
-    status_rows = round(profile.status_band * crop.scale)
-    indicator_rows = round(profile.home_indicator * crop.scale)
-    reference = viewport.crop((0, status_rows, viewport.width, viewport.height - indicator_rows))
+def inventory_row(inventory: Path, node_id: str) -> dict:
+    """The one inventory row for a node, which carries its convention, band and nav flag."""
+    rows = json.loads(inventory.read_text(encoding="utf-8"))
+    for row in rows:
+        if row["nodeId"] == node_id:
+            return row
+    raise SystemExit(f"{node_id} is not in {inventory}")
 
-    emulator = load_rgb(emulator_path)
-    content = emulator.crop(
-        (0, DEFAULT_EMULATOR_STATUS_PX, emulator.width, emulator.height - DEFAULT_EMULATOR_NAV_PX)
+
+def evidence_dir(root: Path, row: dict) -> Path:
+    return root / SECTION_SLUGS[row["section"]] / row["nodeId"].replace(":", "-")
+
+
+def aligned_pair(inventory: Path, root: Path, node_id: str) -> tuple[Image.Image, Image.Image]:
+    """Exactly the pair `compare.py` scores, for the same node."""
+    row = inventory_row(inventory, node_id)
+    d = evidence_dir(root, row)
+    pair = aligned_views(
+        d / "figma.png",
+        d / "emulator.png",
+        row,
+        row["section"],
+        row["nodeId"],
+        float(row["w"]),
+        float(row["h"]),
     )
-    target_h = round(content.height * reference.width / content.width)
-    scaled = content.resize((reference.width, target_h), Image.BOX)
-    return reference, scaled
+    return pair.reference, pair.render
 
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--dir", required=True, help="evidence directory holding the PNG pair")
-    parser.add_argument("--section", required=True)
-    parser.add_argument("--frame-w", type=float, required=True)
-    parser.add_argument("--frame-h", type=float, required=True)
+    parser.add_argument("--inventory", required=True)
+    parser.add_argument("--root", default="docs/visual-verification/v14")
+    parser.add_argument("--node", required=True)
     parser.add_argument("--top", type=int, required=True, help="first row of the band")
     parser.add_argument("--height", type=int, default=60)
     parser.add_argument("--zoom", type=int, default=3)
     parser.add_argument("--out", required=True)
     args = parser.parse_args()
 
-    d = Path(args.dir)
-    reference, scaled = aligned_pair(
-        d / "figma.png", d / "emulator.png", args.section, args.frame_w, args.frame_h
-    )
+    reference, scaled = aligned_pair(Path(args.inventory), Path(args.root), args.node)
     bottom = args.top + args.height
     ref_band = reference.crop((0, args.top, reference.width, min(bottom, reference.height)))
     emu_band = scaled.crop((0, args.top, scaled.width, min(bottom, scaled.height)))

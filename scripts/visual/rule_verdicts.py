@@ -11,13 +11,16 @@ height matching to 0.4 of a design unit.
 
 ## The discriminator
 
-Each screen was scored twice, at the antialiasing tolerance of 12 and again at 40:
-
-    python scripts/visual/compare.py --inventory … --tolerance 40
+Every screen is scored at two tolerances in one pass: the reporting tolerance of 12, which
+absorbs antialiasing, and the verdict tolerance of 40. `compare.py` writes both into each
+`result.json`, so this file READS them rather than carrying a copy.
 
 A residual that is rasterisation collapses when the tolerance widens — the differing pixels are
 edge pixels a few levels apart. A residual that is a real difference (a wrong fill, a missing
 element, a displaced block) does not collapse, because those pixels differ by far more than 40.
+
+The 47 verdict figures used to live here as a hand-pasted table from a second scoring run. That
+made a verdict stale the moment a screen was re-rendered, with nothing in the artefact to say so.
 
 So the rule is:
 
@@ -32,22 +35,6 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[0]
 EVIDENCE = Path("docs/visual-verification/v14")
-
-# tolerance-40 residual per node, from the second scoring run.
-T40 = {
-    "434:3116": 0.88, "434:3174": 0.88, "434:3224": 1.17, "434:3280": 1.68, "434:3330": 0.18,
-    "575:2135": 6.80, "575:2136": 7.24, "575:2137": 6.66, "575:2138": 5.16,
-    "592:1008": 13.86, "592:488": 11.20, "592:489": 9.17, "592:563": 4.24, "592:639": 5.54,
-    "592:832": 7.17, "592:888": 4.69,
-    "575:1744": 9.97, "575:1884": 13.91, "575:1903": 7.46, "575:1922": 9.26,
-    "575:2013": 16.46, "575:2032": 9.04, "575:2098": 14.77,
-    "583:375": 13.20, "583:401": 20.16, "583:427": 22.37, "583:453": 22.46, "583:479": 22.39,
-    "614:453": 12.68, "622:1036": 11.83, "622:1085": 11.20, "622:1125": 14.95,
-    "622:1163": 12.38, "622:530": 11.92, "622:597": 11.57, "622:664": 15.06,
-    "622:733": 15.09, "622:801": 14.50, "622:913": 8.43, "628:1249": 6.79, "628:1293": 36.23,
-    "597:1131": 8.50, "597:1221": 7.50, "603:1865": 25.92, "603:1924": 29.04,
-    "605:2027": 27.65, "605:2094": 28.78,
-}
 
 SLUG = {
     "Login flow": "login-flow", "log in flow": "log-in-flow", "leave": "leave",
@@ -65,7 +52,7 @@ for row in inventory:
     shift = result["displacementProbe"]["bestVerticalOffsetPx"]
     delta = result.get("topAlignment", {}).get("deltaUnits")
     d12 = result["differingPixelPercent"]
-    d40 = T40[node]
+    d40 = result["differingPixelPercentAtVerdictTolerance"]
     # Placement is judged by the MEASURED first-ink delta, not the probe: the probe optimises over
     # the whole frame and drifts to a neighbouring element on a repetitive layout. A bezel frame
     # has no usable delta (its first ink is the phone mockup), so it is ruled on residual alone.

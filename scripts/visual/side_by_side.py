@@ -21,20 +21,16 @@ from inspect_band import aligned_pair  # noqa: E402
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--dir", required=True)
-    parser.add_argument("--section", required=True)
-    parser.add_argument("--frame-w", type=float, required=True)
-    parser.add_argument("--frame-h", type=float, required=True)
+    parser.add_argument("--inventory", required=True)
+    parser.add_argument("--root", default="docs/visual-verification/v14")
+    parser.add_argument("--node", required=True)
     parser.add_argument("--out", required=True)
     parser.add_argument("--scale", type=float, default=1.0)
     parser.add_argument("--top", type=int, default=0)
     parser.add_argument("--height", type=int, default=0, help="0 = to the end of the overlap")
     args = parser.parse_args()
 
-    d = Path(args.dir)
-    ref, emu = aligned_pair(
-        d / "figma.png", d / "emulator.png", args.section, args.frame_w, args.frame_h
-    )
+    ref, emu = aligned_pair(Path(args.inventory), Path(args.root), args.node)
     h = min(ref.height, emu.height)
     top = args.top
     bottom = h if args.height == 0 else min(h, top + args.height)

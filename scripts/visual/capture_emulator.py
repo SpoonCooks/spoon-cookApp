@@ -71,18 +71,6 @@ SCROLL_RESET_SWIPES = 4
 from stitch import scroll_capture  # noqa: E402
 
 
-#: Design units of status-bar mock each section draws, mirroring `COMPARISON_PROFILES` in
-#: `compare.py`. Subtracted from the frame height so a screen is not scrolled looking for rows the
-#: app is forbidden to draw. `viewportProfile.test.ts` asserts the two files agree.
-COMPARISON_STATUS_BAND = {
-    "Login flow": 33.0,
-    "Service flow": 36.198,
-    "leave": 36.198,
-    "log in flow": 32.0,
-    "performance": 32.0,
-}
-
-
 def adb(adb_path: str, *args: str, binary: bool = False):
     result = subprocess.run([adb_path, *args], capture_output=True, timeout=120, check=False)
     return result.stdout if binary else result.stdout.decode("utf-8", "replace")
@@ -292,15 +280,44 @@ def warm_up(adb_path: str, budget: float, launches: int = WARM_LAUNCH_ATTEMPTS) 
         stable = 0
         while time.monotonic() < deadline:
             png = adb(adb_path, "exec-out", "screencap", "-p", binary=True)
-            if len(png) >= 5000 and reject_reason(png) is None:
+            reason = reject_reason(png) if len(png) >= 5000 else "screencap returned nothing"
+            if reason is None and app_is_focused(adb_path):
                 stable += 1
                 # Two consecutive clean polls, so a frame caught mid-transition cannot pass.
                 if stable >= 2:
                     return True
             else:
                 stable = 0
+                # A dimmed frame is USUALLY an ANR dialog, and the poll cannot tell the difference
+                # between "still starting" and "a dialog has been sitting over this for a minute".
+                # Clearing it every failed poll is free when there is nothing to clear, and it is
+                # the whole difference between a run and four wasted relaunches: on a software
+                # renderer this AVD raises "System UI isn't responding" often enough that a
+                # warm-up which never dismisses it simply exhausts its attempts.
+                dismiss_system_dialogs(adb_path)
+                if not app_is_focused(adb_path):
+                    # BACK out of a dialog can land on the launcher. Bring the app back rather
+                    # than polling a home screen until the budget runs out.
+                    adb(adb_path, "shell", "monkey", "-p", PACKAGE,
+                        "-c", "android.intent.category.LAUNCHER", "1")
+                    time.sleep(3.0)
             time.sleep(4.0)
         print(f"   warm-up attempt {attempt}/{launches} did not paint; relaunching")
+    return False
+
+
+def app_is_focused(adb_path: str) -> bool:
+    """
+    True when the app owns the focused window.
+
+    Without this the warm-up poll accepts any screen that is not blank and not dimmed, which
+    includes the launcher — and a run that starts from the launcher deep-links into a cold process
+    and produces exactly the corrupted navigation state the force-stop exists to avoid.
+    """
+    focus = adb(adb_path, "shell", "dumpsys", "window")
+    for line in focus.splitlines():
+        if "mCurrentFocus" in line:
+            return PACKAGE in line
     return False
 
 
@@ -469,6 +486,15 @@ def main() -> int:
         default=45.0,
         help="Seconds per launch attempt to allow the app to restart and paint.",
     )
+    parser.add_argument(
+        "--only",
+        default=None,
+        help=(
+            "Comma-separated node ids to capture, instead of the whole gallery. Re-rendering all "
+            "47 costs about half an hour, and a fix aimed at one component needs the four screens "
+            "it touches, not the forty-three it does not. The FINAL run is always unfiltered."
+        ),
+    )
     args = parser.parse_args()
 
     inventory = json.loads(Path(args.inventory).read_text(encoding="utf-8"))
@@ -488,6 +514,15 @@ def main() -> int:
     if not warm_up(args.adb, args.warmup):
         print("!! app did not reach a usable screen during warm-up")
         return 1
+
+    if args.only is not None:
+        wanted = {n.strip() for n in args.only.split(",") if n.strip()}
+        unknown = wanted - set(states.values())
+        if unknown:
+            print(f"!! --only names nodes with no gallery state: {sorted(unknown)}")
+            return 1
+        states = {k: v for k, v in states.items() if v in wanted}
+        print(f"-- capturing {len(states)} of the gallery, filtered by --only")
 
     ok = failed = 0
     for state_id, node_id in states.items():

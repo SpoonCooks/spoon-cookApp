@@ -186,27 +186,63 @@ COMPARISON_PROFILES = {
 DEFAULT_EMULATOR_STATUS_PX = 136
 DEFAULT_EMULATOR_NAV_PX = 66
 
+#: The tolerance a VERDICT is taken at, as opposed to the reporting tolerance of 12.
+#:
+#: A rasterisation residual collapses when the tolerance widens -- those pixels are edge pixels a
+#: few levels apart. A real difference does not, because a wrong fill, a missing element or a
+#: displaced block differs by far more than 40 levels. Every `result.json` carries the figure at
+#: both tolerances so a ruling can be re-derived from the artefact rather than trusted.
+VERDICT_TOLERANCE = 40
+
 
 def load_rgb(path: Path) -> Image.Image:
     return Image.open(path).convert("RGB")
 
 
-def compare(
+@dataclass(frozen=True)
+class AlignedPair:
+    """The two views a screen is actually scored on, plus how they were derived."""
+
+    reference: "Image.Image"
+    render: "Image.Image"
+    crop: object
+    profile: "ComparisonProfile"
+    status_rows: int
+    indicator_rows: int
+    anchor: str
+    bands: dict
+    uncompared: int
+    #: The reference rows the device could not show, cropped out for inspection.
+    unseen: "Image.Image"
+    height: int
+    #: The full application-owned reference before the overlap crop, for row arithmetic.
+    reference_full: "Image.Image"
+    #: The emulator content scaled to the reference width, before the overlap crop.
+    render_full: "Image.Image"
+    figma_size: tuple
+    emulator_size: tuple
+    emulator_content_size: tuple
+
+
+def aligned_views(
     figma_path: Path,
     emulator_path: Path,
-    out_dir: Path,
+    row: dict,
     section: str,
     node_id: str,
-    name: str,
     frame_w: float,
     frame_h: float,
-    route: str,
-    #: The inventory row, which carries this frame's own convention and status band.
-    row: dict,
-    tolerance: int = 12,
     emulator_status_px: int = DEFAULT_EMULATOR_STATUS_PX,
     emulator_nav_px: int = DEFAULT_EMULATOR_NAV_PX,
-) -> dict:
+) -> AlignedPair:
+    """
+    Build the reference/render pair a verdict is computed from.
+
+    Every consumer -- the scorer, the band inspector, the side-by-side sheet -- goes through this
+    one function, so a reading aid can never show a different alignment from the one that was
+    scored. It used to be duplicated in `inspect_band.py` against a section-keyed profile table,
+    which had no entry for `Info` or `job flow` and ignored bottom anchoring entirely.
+    """
     figma = load_rgb(figma_path)
     figma_array = np.asarray(figma).astype(int)
     crop = figma_viewport_crop(
@@ -214,51 +250,19 @@ def compare(
     )
     viewport = figma.crop((crop.left, crop.top, crop.right, crop.bottom))
 
-    # Drop the design's own system-chrome bands, per the frame's OWN profile.
-    #
-    # V14 makes the band a frame-level fact rather than a section-level one: `Info` mixes the
-    # 32-unit `phone bar` and the 36.198-unit hairline row inside one section, so a section table
-    # would mis-align `597:1131` by four design rows. The row carries what `inventory.py` derived.
     profile = profile_for(row)
     status_rows = round(profile.status_band * crop.scale)
     indicator_rows = round(profile.home_indicator * crop.scale)
     reference = viewport.crop((0, status_rows, viewport.width, viewport.height - indicator_rows))
 
     emulator = load_rgb(emulator_path)
-    # Drop the emulator's system bars, then scale what remains to the reference width.
     emulator_content = emulator.crop(
         (0, emulator_status_px, emulator.width, emulator.height - emulator_nav_px)
     )
     target_h = round(emulator_content.height * reference.width / emulator_content.width)
-    # BOX (area average), not LANCZOS. The emulator renders at 2.92x the reference's resolution, so
-    # every comparison is a downsample; LANCZOS is a sharpening kernel and rings around the hard
-    # edges this design is full of -- a 1-unit lime card border came back as a 47/255 error on the
-    # border row itself plus over/undershoot on the rows either side, none of which is a property
-    # of the app's render. Area averaging is what a display actually does when it integrates 2.92
-    # device pixels into one, so it introduces no detail of its own. It scores every already-closed
-    # `Login flow` screen the same or better, which is the check that it is not simply looser.
     scaled = emulator_content.resize((reference.width, target_h), Image.BOX)
 
-    # Compare over the overlapping height only, and report what was left out. Which END is
-    # dropped depends on where the frame's content is anchored (see BOTTOM_ANCHORED_NODES).
-    #
-    # ## A frame with a bottom nav is compared in TWO bands, not one
-    #
-    # The emulator gives 750 design units between its system bars, and most V14 frames want more
-    # -- `575:2137` is 789 units of content. The app's answer is the correct one: chrome keeps its
-    # size, the body flexes, and the nav stays on the bottom edge. But a single top-anchored
-    # comparison then lines the render's nav up against the reference's BODY, roughly 32 rows
-    # early, and scores a correct bar as a solid block of difference on all 33 nav-bearing frames
-    # -- while the reference's own nav rows fall past the overlap and go unscored entirely.
-    #
-    # So the two bands are compared the way the app actually anchors them: the body from the top,
-    # the nav from the bottom. Neither band is stretched to meet the other; the body rows that the
-    # device could not show are counted in `uncomparedReferenceRows` exactly as before, and the
-    # per-band numbers are written into `result.json` so the split is auditable rather than a
-    # quiet re-scoring.
     nav_rows = round(BOTTOM_NAV_UNITS * crop.scale) if row.get("bottomNav") else 0
-    # Guard the arithmetic rather than trust it: a frame shorter than its own nav would silently
-    # invert these crops.
     if nav_rows and (reference.height <= nav_rows or scaled.height <= nav_rows):
         nav_rows = 0
 
@@ -274,11 +278,13 @@ def compare(
             (0, reference.height - nav_rows, reference.width, reference.height)
         )
         emu_nav = scaled.crop((0, scaled.height - nav_rows, reference.width, scaled.height))
-        # Stack body over nav so the overlay and diff images stay one picture of one screen.
         ref_view = _stack(ref_view, ref_nav)
         emu_view = _stack(emu_view, emu_nav)
         height = body_h + nav_rows
         uncompared = max(0, ref_body.height - body_h)
+        # The rows the device could not show sit BETWEEN the compared body and the fixed nav,
+        # not at the end of the frame.
+        unseen = ref_body.crop((0, body_h, reference.width, ref_body.height))
         bands = {
             "mode": "body top-anchored, nav bottom-anchored",
             "navBandPx": nav_rows,
@@ -303,7 +309,92 @@ def compare(
         ref_view = reference.crop(ref_box)
         emu_view = scaled.crop(emu_box)
         uncompared = max(0, reference.height - height)
+        unseen = (
+            reference.crop((0, 0, reference.width, uncompared))
+            if anchor == "bottom"
+            else reference.crop((0, height, reference.width, reference.height))
+        )
         bands = {"mode": "single band", "navBandPx": 0}
+
+    return AlignedPair(
+        reference=ref_view,
+        render=emu_view,
+        crop=crop,
+        profile=profile,
+        status_rows=status_rows,
+        indicator_rows=indicator_rows,
+        anchor=anchor,
+        bands=bands,
+        uncompared=uncompared,
+        unseen=unseen,
+        height=height,
+        reference_full=reference,
+        render_full=scaled,
+        figma_size=(figma.width, figma.height),
+        emulator_size=(emulator.width, emulator.height),
+        emulator_content_size=(emulator_content.width, emulator_content.height),
+    )
+
+
+def _inked_rows(band: "Image.Image") -> int:
+    """
+    Rows in the uncompared band that carry something other than the frame's background.
+
+    The background is taken from the band's own modal colour rather than assumed white, so a
+    scrim-backed sheet is judged against its scrim.
+    """
+    if band.height <= 0:
+        return 0
+    arr = np.asarray(band).astype(int)
+    flat = arr.reshape(-1, 3)
+    values, counts = np.unique(flat, axis=0, return_counts=True)
+    background = values[int(np.argmax(counts))]
+    ink = np.abs(arr - background).max(axis=2) > 24
+    return int((ink.sum(axis=1) > 2).sum())
+
+
+def compare(
+    figma_path: Path,
+    emulator_path: Path,
+    out_dir: Path,
+    section: str,
+    node_id: str,
+    name: str,
+    frame_w: float,
+    frame_h: float,
+    route: str,
+    #: The inventory row, which carries this frame's own convention and status band.
+    row: dict,
+    tolerance: int = 12,
+    emulator_status_px: int = DEFAULT_EMULATOR_STATUS_PX,
+    emulator_nav_px: int = DEFAULT_EMULATOR_NAV_PX,
+) -> dict:
+    pair = aligned_views(
+        figma_path,
+        emulator_path,
+        row,
+        section,
+        node_id,
+        frame_w,
+        frame_h,
+        emulator_status_px,
+        emulator_nav_px,
+    )
+    ref_view, emu_view = pair.reference, pair.render
+    crop, profile = pair.crop, pair.profile
+    status_rows, indicator_rows = pair.status_rows, pair.indicator_rows
+    anchor, bands = pair.anchor, pair.bands
+    uncompared, height = pair.uncompared, pair.height
+    reference, target_h = pair.reference_full, pair.render_full.height
+
+    # How many of the rows we could NOT compare actually carry ink.
+    #
+    # `uncomparedReferenceRows` alone is not a verdict input, because it does not say what is in
+    # them: `592:1008` is a 950-unit frame whose last 111 units are empty white, and reporting
+    # "162 rows unseen" reads like a third of a screen went unchecked when the app has nothing
+    # left to draw there. A row counts as inked when it differs from the reference's own
+    # background, so a screen can only be passed with unseen rows when those rows are blank.
+    uncompared_ink = _inked_rows(pair.unseen)
 
     ref_a = np.asarray(ref_view).astype(np.int16)
     emu_a = np.asarray(emu_view).astype(np.int16)
@@ -313,6 +404,13 @@ def compare(
     total = per_pixel.size
     raw_diff = int((per_pixel > 0).sum())
     tol_diff = int((per_pixel > tolerance).sum())
+    # The verdict tolerance, always, whatever `--tolerance` was asked for.
+    #
+    # It used to be a second manual run whose 47 numbers were pasted into a table inside
+    # `rule_verdicts.py`. A hand-maintained table cannot survive a re-render: the moment one
+    # screen is re-captured its residual is stale and nothing says so. Scoring both here costs one
+    # comparison of an array already in memory, and makes the verdict derivable from the artefact.
+    verdict_diff = int((per_pixel > VERDICT_TOLERANCE).sum())
 
     out_dir.mkdir(parents=True, exist_ok=True)
 
@@ -354,7 +452,7 @@ def compare(
         "figmaNodeId": node_id,
         "route": route,
         "figmaFrameDp": {"width": round(frame_w, 2), "height": round(frame_h, 2)},
-        "figmaRenderPx": {"width": figma.width, "height": figma.height},
+        "figmaRenderPx": {"width": pair.figma_size[0], "height": pair.figma_size[1]},
         "viewportCropPx": {
             "left": crop.left,
             "top": crop.top,
@@ -378,10 +476,10 @@ def compare(
             "figmaRenderScale": round(crop.scale, 4),
             "figmaRenderOriginYPx": round(crop.margin, 2),
             "note": crop.note,
-            "emulatorPx": {"width": emulator.width, "height": emulator.height},
+            "emulatorPx": {"width": pair.emulator_size[0], "height": pair.emulator_size[1]},
             "emulatorContentPx": {
-                "width": emulator_content.width,
-                "height": emulator_content.height,
+                "width": pair.emulator_content_size[0],
+                "height": pair.emulator_content_size[1],
             },
             "emulatorScaledToPx": {"width": reference.width, "height": target_h},
             "comparedAtPx": {"width": reference.width, "height": height},
@@ -391,10 +489,13 @@ def compare(
         "referenceHeightPx": reference.height,
         "emulatorScaledHeightPx": target_h,
         "uncomparedReferenceRows": uncompared,
+        "uncomparedReferenceInkRows": uncompared_ink,
         "bandSplit": bands,
         "antialiasingTolerance": tolerance,
         "differingPixelPercent": round(100.0 * tol_diff / total, 4),
         "rawDifferingPixelPercent": round(100.0 * raw_diff / total, 4),
+        "verdictTolerance": VERDICT_TOLERANCE,
+        "differingPixelPercentAtVerdictTolerance": round(100.0 * verdict_diff / total, 4),
         "meanChannelDelta": round(float(delta.mean()), 4),
         "maxChannelDelta": int(delta.max()),
         "worstRows": [
