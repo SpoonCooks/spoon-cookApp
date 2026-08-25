@@ -416,7 +416,7 @@ export const galleryEntries: readonly GalleryEntry[] = [
   performance('performance/money-daily', '575:1744', 'Money — Aaj', () => (
     <MoneyPeriodView
       period="day"
-      view={performanceFixtures.daily()}
+      view={performanceFixtures.daily(8)}
       bonus={performanceFixtures.bonus()}
       rating={performanceFixtures.rating()}
       days={[]}
@@ -477,7 +477,7 @@ export const galleryEntries: readonly GalleryEntry[] = [
   performance('performance/past-weekly', '575:2098', 'Cycle ki kamai', () => (
     <PastCycleView
       label="11th Jul - 17th Jul"
-      view={performanceFixtures.cycle()}
+      view={performanceFixtures.cycle(2)}
       rating={performanceFixtures.rating()}
       days={performanceFixtures.days()}
       onBack={noop}

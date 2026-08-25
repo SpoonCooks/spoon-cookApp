@@ -106,13 +106,40 @@ const v14Tile = (
   isActionable: false,
 });
 
-const v14List: readonly JobCardModel[] = [
+/**
+ * `583:375` — the list the shift-not-started frame draws, in its own order.
+ *
+ * The three job-flow frames each publish a DIFFERENT list, and the difference is not noise: the
+ * logged-out frame is on the half hour, the logged-in frame moves four of its six five minutes
+ * earlier, and the three countdown frames drop the first entry and move the rest again. A single
+ * shared list reproduced one frame and mis-drew the other four, every card, on every row.
+ */
+const v14LoggedOutList: readonly JobCardModel[] = [
   v14Tile('v14-1', '2026-11-07T08:30:00+05:30', 90),
   v14Tile('v14-2', '2026-11-07T08:30:00+05:30', 90),
   v14Tile('v14-3', '2026-11-07T08:30:00+05:30', 90),
   v14Tile('v14-4', '2026-11-07T17:30:00+05:30', 30),
   v14Tile('v14-5', '2026-11-07T15:30:00+05:30', 45),
   v14Tile('v14-6', '2026-11-07T17:30:00+05:30', 30),
+];
+
+/** `583:401` — the same six rows once the shift has started. The first and last three move. */
+const v14LoggedInList: readonly JobCardModel[] = [
+  v14Tile('v14-1', '2026-11-07T08:25:00+05:30', 90),
+  v14Tile('v14-2', '2026-11-07T08:30:00+05:30', 90),
+  v14Tile('v14-3', '2026-11-07T08:30:00+05:30', 90),
+  v14Tile('v14-4', '2026-11-07T17:25:00+05:30', 30),
+  v14Tile('v14-5', '2026-11-07T15:25:00+05:30', 45),
+  v14Tile('v14-6', '2026-11-07T17:25:00+05:30', 30),
+];
+
+/** `583:427` / `583:453` / `583:479` — the five rows that follow the lead card. */
+const v14CountdownList: readonly JobCardModel[] = [
+  v14Tile('v14-1', '2026-11-07T07:55:00+05:30', 90),
+  v14Tile('v14-2', '2026-11-07T08:10:00+05:30', 90),
+  v14Tile('v14-3', '2026-11-07T17:25:00+05:30', 30),
+  v14Tile('v14-4', '2026-11-07T15:25:00+05:30', 45),
+  v14Tile('v14-5', '2026-11-07T17:25:00+05:30', 30),
 ];
 
 /**
@@ -133,14 +160,14 @@ const v14LeadJob = (minutesToDeadline: number): JobCardModel => ({
 
 export const jobsV14Fixtures = {
   /** `583:375` — shift not started, so no break window and no actionable card. */
-  loggedOut: () => devOnly({ breakWindow: null, leadJob: null, jobs: v14List }),
+  loggedOut: () => devOnly({ breakWindow: null, leadJob: null, jobs: v14LoggedOutList }),
 
   /** `583:401` — shift started; the server has published today's break. */
   loggedIn: () =>
     devOnly({
       breakWindow: { fromLabel: '12:15 PM', toLabel: '2:15 PM' },
       leadJob: null,
-      jobs: v14List,
+      jobs: v14LoggedInList,
     }),
 
   /**
@@ -156,7 +183,7 @@ export const jobsV14Fixtures = {
       breakWindow: { fromLabel: '12:15 PM', toLabel: '2:15 PM' },
       leadJob: v14LeadJob(minutes),
       leadUrgency,
-      jobs: v14List.slice(0, 5),
+      jobs: v14CountdownList,
     }),
 } as const;
 
@@ -506,6 +533,10 @@ const period = (
   // `EarningsPeriodView` — but a `/dev` frame has to draw the state V13 draws, or the pixel
   // comparison is measuring the gap rather than the screen.
   workedMinutes: 525,
+  // Overridden per frame: `575:1744` draws `8 min`, `575:1884`, `575:1922` and `575:2013` draw
+  // `20 min`, and `575:2098` draws `2 min`. Two frames share each period fixture and they do NOT
+  // agree, so the value belongs to the gallery entry rather than to the period.
+  lateMinutes: 20,
   aboveBasePaise: 6300,
   perDayBasePaise: 107500,
   extraKaamMultiplier: 1.75,
@@ -516,30 +547,43 @@ const period = (
 });
 
 export const performanceFixtures = {
-  /** `575:1744` `12- money daily` and `575:1922` `15- past daily`. */
-  daily: (): EarningsPeriodView =>
+  /**
+   * `575:1744` `12- money daily` and `575:1922` `15- past daily`.
+   *
+   * `lateMinutes` is a parameter because the two frames that share this fixture print different
+   * figures — `8 min` and `20 min`. Every other number on them agrees.
+   */
+  daily: (lateMinutes = 20): EarningsPeriodView =>
     devOnly(
       period({
         period: 'day',
         startDateIso: '2026-07-26',
         endDateIso: '2026-07-26',
         eventCount: 1,
+        lateMinutes,
         breakdown: breakdown({ grossPaise: 106300, netPaise: 81300 }),
       }),
     ),
 
-  /** `575:1884` `13- money weekly` and `575:2098` `18- past weekly`. */
-  cycle: (): EarningsPeriodView =>
+  /** `575:1884` `13- money weekly` (`20 min`) and `575:2098` `18- past weekly` (`2 min`). */
+  cycle: (lateMinutes = 20): EarningsPeriodView =>
     devOnly(
       period({
         period: 'cycle',
+        lateMinutes,
         // `492:5421` prints `+₹100` for the long-hours bonus over a cycle. The daily frame's
         // `+₹263` is the extra-kaam RESULT, a different figure on a different frame.
         breakdown: breakdown({ longHoursPaise: 10000 }),
       }),
     ),
 
-  /** `575:2013` `16- money monthly`. */
+  /**
+   * `575:2013` `16- money monthly`.
+   *
+   * A month is not a scaled-up cycle and the frame says so: `10` five-star days against the
+   * cycle's `1`, `24` long-hours days against `8`, and `₹1,000` / `₹3,600` of bonus against
+   * `+₹50` / `+₹100`. Inheriting the cycle's counts drew a month that had had one good day.
+   */
   month: (): EarningsPeriodView =>
     devOnly(
       period({
@@ -547,9 +591,13 @@ export const performanceFixtures = {
         startDateIso: '2026-07-01',
         endDateIso: '2026-07-28',
         eventCount: 28,
+        fiveStarDays: 10,
+        longHoursDays: 24,
         // `536:201` prints `₹4,600` for the month's bonus where `537:241` prints `₹150` for the
         // cycle's. Different windows of the same signed ledger, and the frames state both.
         breakdown: breakdown({
+          ratingBonusPaise: 100000,
+          longHoursPaise: 360000,
           attendanceBonusPaise: 460000,
           grossPaise: 973900,
           netPaise: 3438900,
