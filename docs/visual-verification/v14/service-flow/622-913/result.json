@@ -12,10 +12,10 @@
     "height": 865
   },
   "viewportCropPx": {
-    "left": 0,
-    "top": 0,
-    "width": 372,
-    "height": 865
+    "left": 2,
+    "top": 1,
+    "width": 371,
+    "height": 863
   },
   "systemChromeExcluded": {
     "profile": "statusBand=32.0 homeIndicator=0.0",
@@ -26,9 +26,9 @@
     "note": "Both sides are cropped to the application-owned region before comparison. The app is forbidden from drawing the design's status-bar mock or home indicator, and the emulator's own bars are a different size, so those rows are excluded from the denominator rather than scored."
   },
   "scalingTransform": {
-    "figmaRenderScale": 1.0023,
-    "figmaRenderOriginYPx": 0.0,
-    "note": "frame is the viewport; no bezel",
+    "figmaRenderScale": 1.0,
+    "figmaRenderOriginYPx": 1.0,
+    "note": "frame located in render; effect bounds are centred at scale 1",
     "emulatorPx": {
       "width": 1080,
       "height": 2555
@@ -38,76 +38,79 @@
       "height": 2353
     },
     "emulatorScaledToPx": {
-      "width": 372,
-      "height": 810
+      "width": 371,
+      "height": 808
     },
     "comparedAtPx": {
-      "width": 372,
-      "height": 810
+      "width": 371,
+      "height": 808
     }
   },
   "anchor": "top",
-  "comparedHeightPx": 810,
-  "referenceHeightPx": 833,
-  "emulatorScaledHeightPx": 810,
+  "comparedHeightPx": 808,
+  "referenceHeightPx": 831,
+  "emulatorScaledHeightPx": 808,
   "uncomparedReferenceRows": 23,
+  "uncomparedReferenceInkRows": 0,
   "bandSplit": {
     "mode": "body top-anchored, nav bottom-anchored",
     "navBandPx": 68,
-    "bodyComparedPx": 742,
-    "bodyReferencePx": 765,
+    "bodyComparedPx": 740,
+    "bodyReferencePx": 763,
     "bodyUncomparedPx": 23,
     "why": "The nav is fixed chrome on the bottom edge in both the design and the app, and the body between them is what the shorter device has to give up. Comparing the whole frame from the top would line the render's nav up against reference body rows and score a correct bar as a total mismatch."
   },
   "antialiasingTolerance": 12,
-  "differingPixelPercent": 9.8314,
-  "rawDifferingPixelPercent": 11.6544,
-  "meanChannelDelta": 11.0702,
+  "differingPixelPercent": 9.7399,
+  "rawDifferingPixelPercent": 10.9231,
+  "verdictTolerance": 40,
+  "differingPixelPercentAtVerdictTolerance": 8.3038,
+  "meanChannelDelta": 10.5243,
   "maxChannelDelta": 255,
   "worstRows": [
     {
+      "row": 388,
+      "percent": 82.75
+    },
+    {
       "row": 389,
-      "percent": 82.8
+      "percent": 83.83
     },
     {
       "row": 390,
-      "percent": 83.87
+      "percent": 84.91
     },
     {
-      "row": 391,
-      "percent": 84.95
+      "row": 456,
+      "percent": 84.64
     },
     {
       "row": 457,
-      "percent": 84.41
+      "percent": 84.1
     },
     {
       "row": 458,
-      "percent": 83.87
+      "percent": 83.02
     },
     {
-      "row": 459,
-      "percent": 82.8
+      "row": 718,
+      "percent": 82.48
     },
     {
-      "row": 719,
-      "percent": 83.6
-    },
-    {
-      "row": 808,
-      "percent": 99.46
+      "row": 807,
+      "percent": 100.0
     }
   ],
   "displacementProbe": {
-    "bestVerticalOffsetPx": -3,
-    "percentAtBestOffset": 9.8278,
+    "bestVerticalOffsetPx": -4,
+    "percentAtBestOffset": 9.2776,
     "note": "0 means the render is on its design row and the residual is rasterisation. A non-zero offset is a real layout error even when the headline percentage is low."
   },
   "verdict": "PENDING_REVIEW",
   "topAlignment": {
-    "referenceFirstInkUnits": 5.59,
+    "referenceFirstInkUnits": 5.0,
     "renderFirstInkUnits": 6.18,
-    "deltaUnits": 0.59,
+    "deltaUnits": 1.18,
     "note": "Design units between each side's first painted row and the first row the application owns. Read WITH displacementProbe, never instead of it: the probe optimises over the whole frame and drifts to a neighbouring element on a repetitive layout, so a non-zero probe offset with a delta near zero means the screen is placed correctly and differs in its content."
   }
 }

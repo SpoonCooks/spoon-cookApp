@@ -12,10 +12,10 @@
     "height": 847
   },
   "viewportCropPx": {
-    "left": 0,
-    "top": 0,
-    "width": 371,
-    "height": 847
+    "left": 2,
+    "top": 1,
+    "width": 370,
+    "height": 846
   },
   "systemChromeExcluded": {
     "profile": "statusBand=32.0 homeIndicator=0.0",
@@ -26,9 +26,9 @@
     "note": "Both sides are cropped to the application-owned region before comparison. The app is forbidden from drawing the design's status-bar mock or home indicator, and the emulator's own bars are a different size, so those rows are excluded from the denominator rather than scored."
   },
   "scalingTransform": {
-    "figmaRenderScale": 1.0012,
-    "figmaRenderOriginYPx": 0.0,
-    "note": "frame is the viewport; no bezel",
+    "figmaRenderScale": 1.0,
+    "figmaRenderOriginYPx": 0.5,
+    "note": "frame located in render; effect bounds are centred at scale 1",
     "emulatorPx": {
       "width": 1080,
       "height": 2811
@@ -38,76 +38,79 @@
       "height": 2609
     },
     "emulatorScaledToPx": {
-      "width": 371,
-      "height": 896
+      "width": 370,
+      "height": 894
     },
     "comparedAtPx": {
-      "width": 371,
-      "height": 815
+      "width": 370,
+      "height": 814
     }
   },
   "anchor": "top",
-  "comparedHeightPx": 815,
-  "referenceHeightPx": 815,
-  "emulatorScaledHeightPx": 896,
+  "comparedHeightPx": 814,
+  "referenceHeightPx": 814,
+  "emulatorScaledHeightPx": 894,
   "uncomparedReferenceRows": 0,
+  "uncomparedReferenceInkRows": 0,
   "bandSplit": {
     "mode": "body top-anchored, nav bottom-anchored",
     "navBandPx": 68,
-    "bodyComparedPx": 747,
-    "bodyReferencePx": 747,
+    "bodyComparedPx": 746,
+    "bodyReferencePx": 746,
     "bodyUncomparedPx": 0,
     "why": "The nav is fixed chrome on the bottom edge in both the design and the app, and the body between them is what the shorter device has to give up. Comparing the whole frame from the top would line the render's nav up against reference body rows and score a correct bar as a total mismatch."
   },
   "antialiasingTolerance": 12,
-  "differingPixelPercent": 12.0768,
-  "rawDifferingPixelPercent": 15.0467,
-  "meanChannelDelta": 10.3194,
+  "differingPixelPercent": 11.9649,
+  "rawDifferingPixelPercent": 14.3791,
+  "verdictTolerance": 40,
+  "differingPixelPercentAtVerdictTolerance": 9.0474,
+  "meanChannelDelta": 9.5223,
   "maxChannelDelta": 255,
   "worstRows": [
     {
+      "row": 65,
+      "percent": 84.32
+    },
+    {
       "row": 66,
-      "percent": 84.1
+      "percent": 85.41
+    },
+    {
+      "row": 143,
+      "percent": 85.68
     },
     {
       "row": 144,
-      "percent": 84.91
+      "percent": 84.32
     },
     {
-      "row": 145,
-      "percent": 82.75
+      "row": 388,
+      "percent": 82.16
     },
     {
-      "row": 461,
-      "percent": 82.21
+      "row": 668,
+      "percent": 82.43
     },
     {
-      "row": 493,
-      "percent": 81.94
+      "row": 700,
+      "percent": 82.16
     },
     {
-      "row": 565,
-      "percent": 82.48
-    },
-    {
-      "row": 669,
-      "percent": 82.48
-    },
-    {
-      "row": 745,
-      "percent": 99.46
+      "row": 744,
+      "percent": 100.0
     }
   ],
   "displacementProbe": {
-    "bestVerticalOffsetPx": 1,
-    "percentAtBestOffset": 10.5996,
+    "bestVerticalOffsetPx": 2,
+    "percentAtBestOffset": 9.2719,
     "note": "0 means the render is on its design row and the residual is rasterisation. A non-zero offset is a real layout error even when the headline percentage is low."
   },
   "verdict": "PENDING_REVIEW",
   "topAlignment": {
-    "referenceFirstInkUnits": 7.62,
+    "referenceFirstInkUnits": 7.0,
     "renderFirstInkUnits": 8.23,
-    "deltaUnits": 0.61,
+    "deltaUnits": 1.23,
     "note": "Design units between each side's first painted row and the first row the application owns. Read WITH displacementProbe, never instead of it: the probe optimises over the whole frame and drifts to a neighbouring element on a repetitive layout, so a non-zero probe offset with a delta near zero means the screen is placed correctly and differs in its content."
   }
 }

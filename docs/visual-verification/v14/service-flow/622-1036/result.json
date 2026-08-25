@@ -12,10 +12,10 @@
     "height": 865
   },
   "viewportCropPx": {
-    "left": 0,
-    "top": 0,
-    "width": 372,
-    "height": 865
+    "left": 2,
+    "top": 1,
+    "width": 371,
+    "height": 863
   },
   "systemChromeExcluded": {
     "profile": "statusBand=32.0 homeIndicator=0.0",
@@ -26,9 +26,9 @@
     "note": "Both sides are cropped to the application-owned region before comparison. The app is forbidden from drawing the design's status-bar mock or home indicator, and the emulator's own bars are a different size, so those rows are excluded from the denominator rather than scored."
   },
   "scalingTransform": {
-    "figmaRenderScale": 1.0023,
-    "figmaRenderOriginYPx": 0.0,
-    "note": "frame is the viewport; no bezel",
+    "figmaRenderScale": 1.0,
+    "figmaRenderOriginYPx": 1.0,
+    "note": "frame located in render; effect bounds are centred at scale 1",
     "emulatorPx": {
       "width": 1080,
       "height": 2444
@@ -38,76 +38,79 @@
       "height": 2242
     },
     "emulatorScaledToPx": {
-      "width": 372,
-      "height": 772
+      "width": 371,
+      "height": 770
     },
     "comparedAtPx": {
-      "width": 372,
-      "height": 772
+      "width": 371,
+      "height": 770
     }
   },
   "anchor": "top",
-  "comparedHeightPx": 772,
-  "referenceHeightPx": 833,
-  "emulatorScaledHeightPx": 772,
+  "comparedHeightPx": 770,
+  "referenceHeightPx": 831,
+  "emulatorScaledHeightPx": 770,
   "uncomparedReferenceRows": 61,
+  "uncomparedReferenceInkRows": 0,
   "bandSplit": {
     "mode": "body top-anchored, nav bottom-anchored",
     "navBandPx": 68,
-    "bodyComparedPx": 704,
-    "bodyReferencePx": 765,
+    "bodyComparedPx": 702,
+    "bodyReferencePx": 763,
     "bodyUncomparedPx": 61,
     "why": "The nav is fixed chrome on the bottom edge in both the design and the app, and the body between them is what the shorter device has to give up. Comparing the whole frame from the top would line the render's nav up against reference body rows and score a correct bar as a total mismatch."
   },
   "antialiasingTolerance": 12,
-  "differingPixelPercent": 16.6447,
-  "rawDifferingPixelPercent": 36.8586,
-  "meanChannelDelta": 15.1333,
+  "differingPixelPercent": 14.5469,
+  "rawDifferingPixelPercent": 34.5315,
+  "verdictTolerance": 40,
+  "differingPixelPercentAtVerdictTolerance": 9.7067,
+  "meanChannelDelta": 10.2537,
   "maxChannelDelta": 255,
   "worstRows": [
     {
+      "row": 139,
+      "percent": 78.44
+    },
+    {
+      "row": 315,
+      "percent": 79.51
+    },
+    {
       "row": 316,
-      "percent": 79.03
+      "percent": 78.44
     },
     {
       "row": 317,
-      "percent": 78.23
+      "percent": 77.36
     },
     {
-      "row": 653,
-      "percent": 77.96
-    },
-    {
-      "row": 655,
-      "percent": 78.49
+      "row": 677,
+      "percent": 80.05
     },
     {
       "row": 678,
-      "percent": 80.11
+      "percent": 78.71
     },
     {
       "row": 679,
-      "percent": 79.57
+      "percent": 77.36
     },
     {
-      "row": 680,
-      "percent": 78.49
-    },
-    {
-      "row": 770,
-      "percent": 99.46
+      "row": 769,
+      "percent": 100.0
     }
   ],
   "displacementProbe": {
-    "bestVerticalOffsetPx": 4,
-    "percentAtBestOffset": 13.9488,
+    "bestVerticalOffsetPx": 3,
+    "percentAtBestOffset": 8.7885,
     "note": "0 means the render is on its design row and the residual is rasterisation. A non-zero offset is a real layout error even when the headline percentage is low."
   },
   "verdict": "PENDING_REVIEW",
   "topAlignment": {
-    "referenceFirstInkUnits": 5.59,
+    "referenceFirstInkUnits": 5.0,
     "renderFirstInkUnits": 6.18,
-    "deltaUnits": 0.59,
+    "deltaUnits": 1.18,
     "note": "Design units between each side's first painted row and the first row the application owns. Read WITH displacementProbe, never instead of it: the probe optimises over the whole frame and drifts to a neighbouring element on a repetitive layout, so a non-zero probe offset with a delta near zero means the screen is placed correctly and differs in its content."
   }
 }

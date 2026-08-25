@@ -51,6 +51,7 @@
   "referenceHeightPx": 767,
   "emulatorScaledHeightPx": 750,
   "uncomparedReferenceRows": 17,
+  "uncomparedReferenceInkRows": 12,
   "bandSplit": {
     "mode": "single band",
     "navBandPx": 0
@@ -58,6 +59,8 @@
   "antialiasingTolerance": 12,
   "differingPixelPercent": 4.7964,
   "rawDifferingPixelPercent": 44.8955,
+  "verdictTolerance": 40,
+  "differingPixelPercentAtVerdictTolerance": 1.68,
   "meanChannelDelta": 2.2626,
   "maxChannelDelta": 224,
   "worstRows": [

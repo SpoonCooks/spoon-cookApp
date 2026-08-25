@@ -1,220 +1,230 @@
 # Cook App — V14 closure report
 
-Status: **47 of 47 implemented, rendered and compared. 22 pixel-verified, 25 still open.**
+Status: **47 of 47 implemented, rendered and compared. 32 pixel-verified, 15 still open.**
 
-This run took the V14 build from "implemented" to measured. All 47 screens were rendered on the
-393dp emulator and diffed against their own V14 reference renders, which surfaced **twelve
-defects** — eight of them in production code, none of them visible to the 429-test suite. Those are
-fixed and re-verified. The 25 screens that remain open are named in §7 with what is still wrong.
-**Every one of the 47 is placed correctly** — the worst measured top-alignment error across all
-42 direct frames is 0.77 design units. What remains is content, not placement.
+This run did not close the section. It did something the previous two runs could not: it found out
+why the twenty-five open screens were open. Two of the three causes are fixed and measured; the
+third is named below with what is known about it and what is not.
+
+The headline finding is in the harness, not the app. **`viewport.py` was reading every one of the
+41 `direct` reference renders from the wrong origin**, by about two pixels horizontally and one
+vertically, because `get_screenshot` returns effect bounds and a direct frame has drop shadows.
+Every element on every one of those screens was being compared against a column two units to its
+left. That is invisible on a splash and decisive on a tariff table.
 
 ## 1. Starting state
 
-|               |                                                               |
-| ------------- | ------------------------------------------------------------- |
-| Branch        | `v13-pixel-perfect`                                           |
-| HEAD at start | `44e364c`                                                     |
-| Worktree      | verified before any edit; `9d38dc8` and `8177e7d` both intact |
-| Emulator      | `Ref393GA`, 1080x2392 @ 440dpi                                |
+|               |                                                                    |
+| ------------- | ------------------------------------------------------------------ |
+| Branch        | `v13-pixel-perfect`                                                |
+| HEAD at start | `3cdd598`                                                          |
+| Worktree      | clean, verified before any edit; every preceding commit intact     |
+| Emulator      | `Ref393GA`, 1080x2392 @ 440dpi, headless                           |
+| Figma         | `3iYf9ckrUDZLPlJP56dyKI`, page `Cook App` (`434:2401`), 7 sections |
 
-Nothing was reset, stashed or discarded. The uncommitted harness work found in the tree was
-completed and committed rather than dropped (`7e2b9bb`).
+Nothing was reset, stashed or discarded. One change of my own was reverted — see §6.
 
-## 2. What the pixel run found
+## 2. The harness was measuring the wrong column
 
-Every one of these was invisible to the test suite: the component tree was correct in each case,
-so the tests passed while the screen was wrong.
+`viewport.py` already knew that `get_screenshot` returns **effect** bounds. It says so at length
+about the five `Login flow` frames, whose 25px-offset drop shadow it locates rather than solves.
+But it treated every `direct` frame as if it began at `(0, 0)` and solved the scale from the frame
+height.
 
-| #   | Defect                                                                                              | Scope                      | Commit    |
-| --- | --------------------------------------------------------------------------------------------------- | -------------------------- | --------- |
-| 1   | **All five bottom-nav glyphs rendered blank.** `absoluteFill` on a box that measures to zero width. | 33 screens, **production** | `925c568` |
-| 2   | Gallery drew no bottom nav at all, so 33 frames captured without it                                 | 33 screens                 | `c2cf932` |
-| 3   | Service entries claimed a safe area they do not own — rendered ~49dp high                           | 13 screens                 | `c2cf932` |
-| 4   | Stitcher locked onto the fixed nav; tall nav frames scored on one viewport                          | tall frames                | `c2cf932` |
-| 5   | `dayHistory` 7→10 rows, `cycleHistory` 4→6 rows                                                     | 2 screens                  | `c2cf932` |
-| 6   | Info rule sheets missing from the bottom-anchored set (~96 units)                                   | 5 screens                  | `a021b32` |
-| 7   | **`JobViews` and `InfoViews` never applied a top inset**                                            | 6 screens, **production**  | `b4c1c75` |
-| 8   | **Info rule sheets had no bottom inset** — sheet under the system bar                               | 5 screens, **production**  | `b4c1c75` |
-| 9   | **`textTransform: 'uppercase'` dropped the last word of a headline**                                | 2+ screens, **production** | `b4c1c75` |
-| 10  | **Three SVGs loaded as image sources — drew nothing**                                               | 11 screens, **production** | `8eee50c` |
-| 11  | **Service art boxes rendered at ~4x and overflowed**                                                | 3 screens, **production**  | `1fc0be7` |
-| 12  | **`622:913` drawn as a generic Active job frame** — wrong title, extra Map button                   | 1 screen, **production**   | `1fc0be7` |
-| 13  | Info policy accents: bonus sheets drawn as penalties                                                | 4 screens                  | `8eee50c` |
-| 14  | Standing value fixed at 58 units; title box 8 units short                                           | 5 screens                  | `8eee50c` |
-| 15  | **Log-out screen still used the V13 photograph**                                                    | 1 screen                   | `d75ca51` |
-| 16  | Policy tables rendered as equal thirds; none of them is                                             | 4 screens                  | `cc069bf` |
+Direct frames have effects too — the bottom nav's `drop-shadow 0 0 1`, `leave`'s `0 -1 1`, the
+Help pill's `0 0 2`. So a 371-unit frame comes back **374 or 375 pixels wide**, at scale 1, with
+the frame centred inside a one-to-two pixel margin. Reading it from `(0, 0)` starts the crop two
+pixels left of the frame and then calls a short width the whole 371-unit column.
 
-### The one worth reading twice
+The margin is `(render − frame) / 2` on both axes. That is checked, not assumed: it predicts the
+left edge of the bottom nav's active cell to within a pixel on `575:2137`, `575:1744`, `583:375`,
+`614:453`, `592:488` and `597:1131` — six frames, five sections, three different render widths —
+and its vertical half reproduces the `+0.2` to `+0.8` unit top-alignment deltas the previous run
+measured on every direct frame and could not account for.
 
-`BottomNav` is the **real** tab bar — `(tabs)/_layout.tsx` supplies it through `tabBar` and
-`service/[bookingId].tsx` renders it directly. The shipping app was drawing five blank gaps above
-its tab labels on 33 of 47 screens. The component tree was correct, every test passed, and the bar
-looked finished in review; only a diff against the reference showed the glyphs were absent.
+`alignment.py` now goes through the same crop instead of dividing the render's width by the
+frame's, because half a unit is the whole size of the number it measures.
 
-The cause recurs three times in this list (#1, #10, #11): the design writes images as
-`absolute inset-0 size-full`, and the literal port — `StyleSheet.absoluteFill` — leaves nothing in
-the box's flow, so what the box measures to on this Fabric build is not the design's size. Every
-image in the affected files now states its size in numbers.
+### What else the harness gained
 
-## 3. How a verdict was decided
+- **Both tolerances in one pass.** `compare.py` writes `differingPixelPercentAtVerdictTolerance`
+  into every `result.json`. The 47 verdict figures used to be a hand-pasted table inside
+  `rule_verdicts.py`, which made a verdict stale the moment a screen was re-rendered.
+- **`uncomparedReferenceInkRows`.** How many of the rows a 750-unit device cannot show actually
+  carry anything. Of the 21 screens with unmatched rows, 12 have **one** inked row (an antialiased
+  edge) and two — `434:3280`, `434:3330` — have 12, which is the bezel's own home-indicator strip.
+  No screen is passed with unseen content in it.
+- **One `aligned_views`.** Every consumer builds the pair the same way, so a reading aid cannot
+  show a different alignment from the one that was scored. `inspect_band.py` had its own copy,
+  keyed on a section table with no entry for `Info` or `job flow`, that ignored bottom anchoring.
+- **`capture_emulator.py`** takes `--only`, dismisses an ANR dialog during warm-up instead of
+  exhausting four relaunches against one, and checks the app owns the focused window before
+  accepting a frame as painted.
+- **`verify_assets.py`** re-checks all 35 V14 assets against their recorded SHA-256, byte count and
+  Figma nodes, in both directions. 35/35, nothing unledgered, nothing orphaned.
 
-`differingPixelPercent` **is not comparable between screens**. It counts differing pixels over the
-compared area, and every element edge and glyph edge contributes, so ink density dominates it:
-`434:3330` is a near-flat splash and scores 0.55%; `603:1924` is a dense tariff table covering most
-of its sheet and scores 31.67% with its fills sampling _identical_ to the reference and its sheet
-height matching to 0.4 of a design unit.
+## 3. Twelve more defects in the app
 
-So each screen was scored twice — at the antialiasing tolerance of 12 and again at 40:
+Each was invisible to the test suite: the component tree was correct in every case.
+
+| #   | Defect                                                                                           | Scope                     |
+| --- | ------------------------------------------------------------------------------------------------ | ------------------------- |
+| 1   | **`AAJ KA BREAK` rendered as `AAJ KA`** — Android under-measures a tracked run                   | 4 frames, **production**  |
+| 2   | **Both Service actions drawn full-width**; the design gives each half a two-column grid          | 11 frames, **production** |
+| 3   | **`59 mins` forty units above centre** — `flex: 1` on a Text, drawn against its top edge         | 4 frames, **production**  |
+| 4   | **The travel photograph and arrival art inset ten units** by a padding the design's image covers | 6 frames, **production**  |
+| 5   | **`628:1293` sixty units high** — a fixed 535-unit block sized to its content instead            | 1 frame, **production**   |
+| 6   | **`622:1125` drew the wrong photograph** — it has its own, and the app had one for all four      | 1 frame, **production**   |
+| 7   | **The Info CTA sixteen units left** — Yoga's static position, not the design's centred one       | 5 frames, **production**  |
+| 8   | **The Info blurb block missing its 6-unit padding** — 13 units of displacement                   | 4 frames, **production**  |
+| 9   | **The standing value right-aligned** where the design centres it in a 58-unit box                | 5 frames, **production**  |
+| 10  | **Policy header chips at 16/24 on a 5-unit radius**; the design says Bold 18/28 on 15            | 2 frames, **production**  |
+| 11  | **The job cards' stroke centre-aligned**; they measure `inside`, so each was 1.9 units short     | 5 frames, **production**  |
+| 12  | **The `Late` tile drew an event count** where V14 draws minutes                                  | 4 frames, **production**  |
+
+And six in the development gallery, which exists to reproduce the frames exactly:
+
+- Three job-flow frames publish three **different** lists; the fixtures had one, so four of the
+  five frames were wrong on every card — and the identical tiles then gave the scroll stitcher a
+  repeating pattern to lock onto.
+- A month is not a scaled-up cycle: `575:2013` states 10 five-star days against the cycle's 1, 24
+  long-hours days against 8, and `₹1,000` / `₹3,600` of bonus against `+₹50` / `+₹100`.
+- Two frames share each of `daily()` and `cycle()` and disagree about the late minutes.
+- Footnote bold spans end a word early on three of the four policy sheets.
+- Footnote tracking is 0.18 on the penalty sheets and **none** on the bonus ones, which is what
+  wrapped `bonus hai` onto a third line on `605:2027`.
+- The two bonus sheets set their data cells two points smaller to fit a third column.
+
+Thirteen assertions in `frameFidelity.test.tsx` now pin the per-frame facts, because every one of
+them renders perfectly well when it is wrong and costs an emulator run to find.
+
+## 4. Where the 47 stand
+
+`SCREENS_PIXEL_VERIFIED: 32`. Full table with both tolerances, the measured alignment, the
+unmatched rows and how many of them carry ink: `docs/visual-verification/v14/MANIFEST.md`.
+
+The rule is unchanged and was not moved: **PASS** at a tolerance-40 residual ≤ 10% with measured
+top alignment within 2 design units.
+
+### The fifteen still open
+
+| screen                                  | t40       | what is known                                                                                                                                                                                                                                                                                                                                     |
+| --------------------------------------- | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `575:1884` `575:2013` `575:2098`        | 13.3–14.7 | The three tall money frames. Content matches; the render drifts from +2 at the top to +6 by mid-screen and back to +4 at the bottom. Individual blocks differ in **both** directions — the `5+`/`Ghante` pair renders 107 units against the design's 113, the `CYCLE KI KAMAI` card 155 against 152 — so it is not one scale error. Not isolated. |
+| `592:1008` `592:488`                    | 10.6–12.3 | Every element within ±1 unit except a +3/+4 at two 45-unit gaps. `592:489`, the same screen without the break card, passes at 8.35.                                                                                                                                                                                                               |
+| `583:401` `583:427` `583:453` `583:479` | 10.9–11.3 | Improved from 20.2–22.5 by the stroke fix; `583:375`, the same list without a break card, now passes at 9.56.                                                                                                                                                                                                                                     |
+| `603:1924` `605:2027` `605:2094`        | 10.1–10.9 | The three policy sheets whose siblings pass at 9.29 and 9.95. Probe −2.                                                                                                                                                                                                                                                                           |
+| `622:1163` `622:801` `628:1293`         | 10.2–11.0 | Improved from 12.4, 14.5 and 36.2. All three within a point of the rule.                                                                                                                                                                                                                                                                          |
+
+Eleven of the fifteen are between 10.1 and 12.3, against a threshold of 10. **None is a placement
+failure**: all 47 measure within 1.4 design units of their reference's first painted row.
+
+`575:1744` is worth recording as a near-miss of a different kind. It came back from one capture at
+`t40 9.34` with a measured alignment of **−19 units** — a scrolled or mid-transition frame, not a
+layout error — and re-taking the same build gave `5.94` at `+1.21`. The alignment measure is what
+caught it; the residual alone would have read as a pass on a nineteen-unit displacement.
+
+### One hypothesis tested and refuted
+
+The previous report proposed that V14's `371`-wide frames against the app's 370-unit column were
+"a systematic sub-unit horizontal scale difference … one untested candidate". It is now tested.
+Re-scoring seven frames with the render resampled by `370/371` — which is exactly what changing
+the app's divisor would produce — makes five of them **worse**:
 
 ```
-python scripts/visual/compare.py --inventory … --root … --tolerance 40
+603:1924  /370 t40=10.89   /371 t40=14.24        592:488  /370 t40=10.59  /371 t40= 9.86
+605:2094  /370 t40=10.81   /371 t40=13.97        575:2032 /370 t40= 9.05  /371 t40= 7.31
+622:801   /370 t40=10.17   /371 t40=10.86        575:2135 /370 t40= 4.17  /371 t40= 5.25
+583:427   /370 t40=12.47   /371 t40=13.11
 ```
 
-A rasterisation residual collapses when the tolerance widens; a real difference does not, because
-those pixels differ by far more than 40 levels. The rule, applied without exception:
-
-> **PASS** — tolerance-40 residual ≤ 10% **and** measured top alignment within 2 design units.
-> **OPEN** — anything else.
-
-### Placement is measured, not inferred from the probe
-
-The first ruling used `displacementProbe` for the placement half, and that was wrong. The probe
-finds the offset that minimises difference over the **whole** frame, which on a repetitive layout
-is a different question from "is this screen in the right place": a `job flow` list repeats a card
-every ~108 units, so a 10-unit shift improves the local match against a neighbouring card's edge.
-All 26 screens first ruled OPEN carried a non-zero probe offset — and every one of them measures
-within **0.8 design units** of its reference's first painted row.
-
-`scripts/visual/alignment.py` measures that directly and merges it into each `result.json`. Worst
-absolute delta across the 42 direct frames: **0.77 units**. The five `Login flow` frames are bezel
-frames whose first ink is the decorative phone mockup, so the measure does not apply to them; they
-are ruled on residual alone, at 0.18–1.68%.
-
-`scripts/visual/rule_verdicts.py` applies the rule and writes `verdicts.json`. Both numbers are in
-`MANIFEST.md`, so the ruling can be re-derived rather than taken on trust. The `Login flow` scores
-are the control for the harness itself.
-
-## 4. Evidence produced
-
-For all 47, under `docs/visual-verification/v14/<section>/<node>/`:
-
-`figma.png` (reference) · `emulator.png` (render) · `overlay.png` (50% blend) · `diff.png`
-(differing pixels in red) · `result.json` · `capture.json` for every stitched screen.
-
-`result.json` carries the diff percentage, the **displacement probe**, `uncomparedReferenceRows`,
-the per-band split, and the worst rows. Tall screens are scrolled and reassembled; the bottom nav
-is excluded from the scrolled region and re-attached beneath it, because it is fixed chrome and the
-stitch template would otherwise lock onto it and stop after one screenful.
-
-**Nav-bearing frames are compared in two bands.** The emulator supplies 750 design units where most
-V14 frames want ~790. The app's answer is correct — chrome keeps its size, the body flexes, the nav
-stays on the bottom edge — but a single top-anchored comparison lines the render's nav up against
-reference _body_ rows and scores a correct bar as a solid block of difference. Body is compared from
-the top, nav from the bottom, and the body rows the device could not show are counted, not hidden.
+`CONTENT_WIDTH_DP` stays 370. The candidate is closed, and the remaining residual is not a global
+scale.
 
 ## 5. Gates
 
-| Gate                    | Result                                                                                                                         |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| TypeScript              | clean                                                                                                                          |
-| ESLint                  | clean, 0 warnings                                                                                                              |
-| Prettier                | clean                                                                                                                          |
-| Jest                    | **429/429**, 26 suites                                                                                                         |
-| Expo export             | clean — 4MB Android bundle                                                                                                     |
-| `expo prebuild --clean` | clean                                                                                                                          |
-| **NDK durability**      | pin survives a clean prebuild: present exactly once, **before** `apply plugin: "expo-root-project"`, splash drawable generated |
-| Native Android build    | **BUILD SUCCESSFUL in 12m 15s**, all four ABIs, NDK 27.2.12479018, JDK 21                                                      |
-| APK install             | `Success`                                                                                                                      |
-| Cold launch             | JS reached `Running "main"`; no crash                                                                                          |
-| Background / foreground | HOME then resume; state intact, 0 exceptions                                                                                   |
-| Process restart         | true `force-stop` (pid 9974 → 10269), relaunched clean, 0 exceptions                                                           |
+| Gate             | Result                                                          |
+| ---------------- | --------------------------------------------------------------- |
+| TypeScript       | clean                                                           |
+| ESLint           | clean, 0 warnings                                               |
+| Prettier         | clean                                                           |
+| Jest             | **442/442**, 27 suites (429 + 13 new frame-fidelity assertions) |
+| Expo export      | clean — 4MB Android bundle, 1667 modules                        |
+| Asset provenance | **35/35** verified by SHA-256 and byte count, both directions   |
 
-## 6. Behaviour preserved, and asserted
+The native durability gate is recorded in §8.
 
-- **Backend-authoritative state.** No command advances state locally; the projection decides the
-  screen.
-- **Idempotency.** One key per screen mount, so a double-tap or a post-timeout retry replays the
-  same command.
-- **Assignment versions.** Sent with every mutating command.
-- **Session expiry.** Distinguished from a dead network.
-- **The five-minute extension window.** 15 tests at the exact boundaries. `confirmedAt` is **not
-  invented**: the window is the difference between two server instants, and when the backend omits
-  the field it parses to `null`, the window computes 0, and the `622:1163` banner stays dark. That
-  is asserted by `never shows the banner against today's production payload`.
-- **Job-card colour tier stays presentation.** Now pinned by `jobUrgency.test.tsx` in both
-  directions across all three tiers: the CTA follows `isActionable` alone, and `critical` — the
-  loudest card on the screen — cannot talk the app into offering a command the server withheld.
+## 6. What was reverted, and why
 
-## 7. What is still open — 25 screens
+The `5+` / `Ghante` tiles measured 107 units against the design's explicit `h-[113px]`, so they
+were given that height. Re-rendered, all three tall money frames got **worse** — `575:1884` from
+14.72 to 20.46, with the whole render four units lower rather than two units higher. The
+measurement that motivated it must have been reading a different band. It was reverted to `HEAD`
+rather than kept on the strength of a design quotation that the device contradicts.
 
-**None is a placement failure.** Every one measures within 0.8 design units of its reference's
-first painted row, and where they were checked directly — sheet heights, fills, column geometry —
-they sample identical to the reference. What is left is content difference distributed through
-dense screens, and it has not been isolated.
+That is the rule this run followed throughout: a change that the emulator does not confirm does
+not stay, however well the design supports it.
 
-1. **Info policy sheets (4)** — `603:1865`, `603:1924`, `605:2027`, `605:2094`, 26–29% at
-   tolerance 40. Title, chevron, accent fills, column widths and sheet height were each sampled
-   against the reference and match: the title pill reads `(226,255,104)` on both, the row cells
-   `(207,255,4)` on both, and the sheet measures 644.4 units against the design's 644.0. The
-   residual is inside the tariff table and the footnote. `597:1221` and `597:1131` — the two Info
-   screens that are not policy tables — both PASS.
-2. **`628:1293` End (36%)** — the celebration art is now correctly sized and placed, and the two
-   screens are near-identical side by side, but the app draws the image slightly larger. Suspect
-   the `contain` fit against the source's natural aspect ratio; not confirmed.
-3. **job flow (5)** — 13–22%. Tops align to +0.54 units.
-4. **Service flow (10)**, **performance (3)**, **leave (2)** — 11–15%, tops aligning to
-   +0.59…+0.77 units. A systematic sub-unit horizontal scale difference is one untested candidate:
-   these frames are 371 wide against the app's 370-unit content column, which would drift ~1 unit
-   by the right edge and redden a great many glyph edges without moving anything.
+## 7. Behaviour preserved
 
-The next pass should start at (1): four screens, one component, and the fills and geometry already
-eliminated.
+No backend wiring changed. `lateMinutes` joins the group of fields the design states and the
+contract does not return: `null` from every adapter, production still renders the count it has,
+and the tile reads the way the design does the moment the field appears — with no client release.
+Nothing is invented from anything else; twice late for a minute each is not two minutes late.
 
-## 8. The design contradiction, still unresolved
+The one deliberate copy change is the bonus caption, `7 hr ke upar kaam`. The number still comes
+from `bonus.thresholdDays`; the unit word is now the design's, because V14 states this threshold
+in hours everywhere else it appears (`603:1924` is titled `Extra hours`, its blurb reads
+`Extra hours: 7 hours se upar`, its table is `8 hrs / 9 hrs / 10 hrs`). The design and the
+deployed policy disagree — GAP-19 — and it needs a backend ruling. No bonus is computed from it,
+and `BonusBar` keeps the server's own unit on the bar it draws.
 
-`583:427` / `583:453` / `583:479` are named `<45 mins`, `<10 mins` and `<5 mins` and draw `25`,
-`20` and `15` minutes. Twenty is not under ten. The tier stays an explicit input — fixtures set it
-per frame, production passes the calmest — and eligibility is untouched. **Needs a designer or
-backend ruling.** `jobUrgency.test.tsx` documents it and fails if the colour is ever wired into the
-command.
+`jobUrgency.test.tsx` is untouched. The lead card's colourway is still presentation only, and the
+`<10 mins`/`20 mins` contradiction is still unresolved.
 
-## 9. Other open items
+## 8. Native durability
 
-1. **Bottom-nav coverage is uneven.** 14 of 47 frames have no nav. Login (5) is correct — pre-auth.
-   The `leave` and `Info` sheets are modals. But `592:832 "long leave confirm"` has no nav while
-   `592:1008`, same name, has one. Needs a ruling.
-2. **Three frames share the name `long leave confirm`** — `592:832`, `592:1008` and `597:1131`, the
-   last filed under `Info`. Likely misfiled.
-3. **The backend still omits `extension.confirmedAt`.** It exists as `booking_extensions.settled_at`
-   and the cook read model does not select it. The client already parses the field, so it works the
-   moment it appears, with no client release. The backend was **not modified**.
-4. **Metro's file watcher does not work in this environment.** It serves a stale bundle and never
-   notices source edits, which silently invalidated several on-device checks before it was caught.
-   Every device verification here required a full `expo start --clear`. Environmental, but it makes
-   each check cost minutes and it will mislead the next person.
+Recorded in §11 of this file after the run.
 
-## 10. What was NOT done
+## 9. Accepted differences that are the design's, not the app's
 
-- No push, no merge, no deploy.
-- No backend modification; `D:\spoon-backend` was read only.
-- No User App file was read or touched.
-- No OTP was sent and no production data was mutated.
-- No authenticated E2E — there is no authorised test Cook.
+- **`592:563` draws a 31st of November.** The calendar mock has 31 cells for a 30-day month. The
+  app is right and the frame is wrong; the extra cell is ~0.3% of that comparison.
+- **`₹8500` on `575:1884` and `575:2098`, `₹8,500` on `575:2013`.** The same figure with and
+  without its thousands separator, in the same component, on frames beside each other. The app
+  formats money consistently.
+- **`+₹50` on the cycle frames, `₹1,000` on the month.** The sign is present on one and absent on
+  the other for the same signed ledger line.
+- **Drop shadows are omitted on Android.** `boxShadow` composites over the view rather than behind
+  it and tints the fill by 19 levels; `elevation` draws far heavier than the design. A missing
+  `0 0 2 rgba(0,0,0,.15)` costs at most nine levels over three rows. This is why the measured top
+  alignment reads `+1.18` on the Service frames: the reference's first ink is the Help pill's
+  shadow, one unit above the pill the app draws.
+
+## 10. Still open, for an owner
+
+1. **`583:427` / `583:453` / `583:479` are named `<45 mins`, `<10 mins`, `<5 mins` and draw 25, 20
+   and 15.** Twenty is not under ten. Needs a designer or backend ruling.
+2. **The backend still omits `extension.confirmedAt`** (`booking_extensions.settled_at` exists and
+   the cook read model does not select it) **and any late duration**. Both parse the day they
+   appear.
+3. **Bottom-nav coverage is uneven.** `592:832 "long leave confirm"` has no nav while `592:1008`,
+   same name, has one; three frames share that name and one of them is filed under `Info`.
+4. **Metro's file watcher does not work in this environment.** Every device verification needs a
+   full `expo start --clear`, and a source edit made while a capture is running may or may not
+   reach the frames still to be taken.
 
 ## 11. Commits
 
-| Commit    | Summary                                                                 |
-| --------- | ----------------------------------------------------------------------- |
-| `7e2b9bb` | Repoint the pixel harness at V14 and pull all 47 reference renders      |
-| `925c568` | Give the bottom-nav glyphs a size that cannot collapse to nothing       |
-| `c2cf932` | Make the /dev gallery reproduce the V14 frames it is compared against   |
-| `a021b32` | Make the evidence harness survive the run it is asked to do             |
-| `b4c1c75` | Give three screens the safe area and the full copy they were missing    |
-| `623e697` | Pin the lead card's colourway to presentation                           |
-| `1fc0be7` | Size every service art box, and give the cancelled frame its own screen |
-| `8eee50c` | Draw the vectors and colour the Info sheets the way V14 does            |
-| `d75ca51` | Use V14's own photograph on the log-out screen                          |
-| `cc069bf` | Give each Info policy table the column widths its own frame draws       |
+| Commit    | Summary                                                                               |
+| --------- | ------------------------------------------------------------------------------------- |
+| `dd1d39d` | Find the frame inside its own render, instead of assuming it starts at 0,0            |
+| `07a0492` | Give each Info rule sheet the geometry its own frame states                           |
+| `10e6a37` | Give the jobs break card the wrapper the design gives it, and its last word back      |
+| `e43560c` | Halve the Service actions, fill the banner boxes, and give End back its 535 units     |
+| `1397442` | Draw the performance Late tile in minutes, and caption the bonus in the design's unit |
+| `60423cf` | Make each gallery state reproduce its own frame, not its section's                    |
+| `b7fe1a4` | Pin the per-frame design facts, and persist the context they came from                |
+| `47b3dd2` | Give `622:1125` its own photograph, and the job cards the stroke model they measure   |
 
-Preceded by `44e364c`, `8177e7d` and `9d38dc8`, all intact.
+Preceded by `3cdd598` and everything before it, all intact.

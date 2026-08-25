@@ -12,10 +12,10 @@
     "height": 797
   },
   "viewportCropPx": {
-    "left": 0,
-    "top": 0,
-    "width": 372,
-    "height": 797
+    "left": 2,
+    "top": 1,
+    "width": 371,
+    "height": 795
   },
   "systemChromeExcluded": {
     "profile": "statusBand=32.0 homeIndicator=0.0",
@@ -26,9 +26,9 @@
     "note": "Both sides are cropped to the application-owned region before comparison. The app is forbidden from drawing the design's status-bar mock or home indicator, and the emulator's own bars are a different size, so those rows are excluded from the denominator rather than scored."
   },
   "scalingTransform": {
-    "figmaRenderScale": 1.0025,
-    "figmaRenderOriginYPx": 0.0,
-    "note": "frame is the viewport; no bezel",
+    "figmaRenderScale": 1.0,
+    "figmaRenderOriginYPx": 1.0,
+    "note": "frame located in render; effect bounds are centred at scale 1",
     "emulatorPx": {
       "width": 1080,
       "height": 2452
@@ -38,76 +38,79 @@
       "height": 2250
     },
     "emulatorScaledToPx": {
-      "width": 372,
-      "height": 775
+      "width": 371,
+      "height": 773
     },
     "comparedAtPx": {
-      "width": 372,
-      "height": 765
+      "width": 371,
+      "height": 763
     }
   },
   "anchor": "top",
-  "comparedHeightPx": 765,
-  "referenceHeightPx": 765,
-  "emulatorScaledHeightPx": 775,
+  "comparedHeightPx": 763,
+  "referenceHeightPx": 763,
+  "emulatorScaledHeightPx": 773,
   "uncomparedReferenceRows": 0,
+  "uncomparedReferenceInkRows": 0,
   "bandSplit": {
     "mode": "body top-anchored, nav bottom-anchored",
     "navBandPx": 68,
-    "bodyComparedPx": 697,
-    "bodyReferencePx": 697,
+    "bodyComparedPx": 695,
+    "bodyReferencePx": 695,
     "bodyUncomparedPx": 0,
     "why": "The nav is fixed chrome on the bottom edge in both the design and the app, and the body between them is what the shorter device has to give up. Comparing the whole frame from the top would line the render's nav up against reference body rows and score a correct bar as a total mismatch."
   },
   "antialiasingTolerance": 12,
-  "differingPixelPercent": 14.1739,
-  "rawDifferingPixelPercent": 15.8367,
-  "meanChannelDelta": 14.7573,
+  "differingPixelPercent": 8.7847,
+  "rawDifferingPixelPercent": 10.6658,
+  "verdictTolerance": 40,
+  "differingPixelPercentAtVerdictTolerance": 7.3214,
+  "meanChannelDelta": 7.7011,
   "maxChannelDelta": 255,
   "worstRows": [
     {
+      "row": 116,
+      "percent": 56.06
+    },
+    {
+      "row": 251,
+      "percent": 80.32
+    },
+    {
       "row": 252,
-      "percent": 80.11
+      "percent": 81.94
     },
     {
       "row": 253,
-      "percent": 81.45
+      "percent": 82.48
     },
     {
-      "row": 254,
-      "percent": 82.53
-    },
-    {
-      "row": 571,
-      "percent": 80.91
-    },
-    {
-      "row": 572,
-      "percent": 79.3
+      "row": 582,
+      "percent": 81.94
     },
     {
       "row": 583,
-      "percent": 82.26
+      "percent": 81.4
     },
     {
-      "row": 585,
-      "percent": 80.91
+      "row": 584,
+      "percent": 79.78
     },
     {
-      "row": 763,
-      "percent": 99.46
+      "row": 762,
+      "percent": 100.0
     }
   ],
   "displacementProbe": {
-    "bestVerticalOffsetPx": 1,
-    "percentAtBestOffset": 13.4131,
+    "bestVerticalOffsetPx": 2,
+    "percentAtBestOffset": 6.982,
     "note": "0 means the render is on its design row and the residual is rasterisation. A non-zero offset is a real layout error even when the headline percentage is low."
   },
   "verdict": "PENDING_REVIEW",
   "topAlignment": {
-    "referenceFirstInkUnits": 5.59,
+    "referenceFirstInkUnits": 5.0,
     "renderFirstInkUnits": 6.18,
-    "deltaUnits": 0.59,
+    "deltaUnits": 1.18,
     "note": "Design units between each side's first painted row and the first row the application owns. Read WITH displacementProbe, never instead of it: the probe optimises over the whole frame and drifts to a neighbouring element on a repetitive layout, so a non-zero probe offset with a delta near zero means the screen is placed correctly and differs in its content."
   }
 }

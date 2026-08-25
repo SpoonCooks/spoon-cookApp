@@ -12,10 +12,10 @@
     "height": 865
   },
   "viewportCropPx": {
-    "left": 0,
-    "top": 0,
-    "width": 372,
-    "height": 865
+    "left": 2,
+    "top": 1,
+    "width": 371,
+    "height": 863
   },
   "systemChromeExcluded": {
     "profile": "statusBand=32.0 homeIndicator=0.0",
@@ -26,88 +26,91 @@
     "note": "Both sides are cropped to the application-owned region before comparison. The app is forbidden from drawing the design's status-bar mock or home indicator, and the emulator's own bars are a different size, so those rows are excluded from the denominator rather than scored."
   },
   "scalingTransform": {
-    "figmaRenderScale": 1.0023,
-    "figmaRenderOriginYPx": 0.0,
-    "note": "frame is the viewport; no bezel",
+    "figmaRenderScale": 1.0,
+    "figmaRenderOriginYPx": 1.0,
+    "note": "frame located in render; effect bounds are centred at scale 1",
     "emulatorPx": {
       "width": 1080,
-      "height": 2392
+      "height": 2441
     },
     "emulatorContentPx": {
       "width": 1080,
-      "height": 2190
+      "height": 2239
     },
     "emulatorScaledToPx": {
-      "width": 372,
-      "height": 754
+      "width": 371,
+      "height": 769
     },
     "comparedAtPx": {
-      "width": 372,
-      "height": 754
+      "width": 371,
+      "height": 769
     }
   },
   "anchor": "top",
-  "comparedHeightPx": 754,
-  "referenceHeightPx": 833,
-  "emulatorScaledHeightPx": 754,
-  "uncomparedReferenceRows": 79,
+  "comparedHeightPx": 769,
+  "referenceHeightPx": 831,
+  "emulatorScaledHeightPx": 769,
+  "uncomparedReferenceRows": 62,
+  "uncomparedReferenceInkRows": 0,
   "bandSplit": {
     "mode": "body top-anchored, nav bottom-anchored",
     "navBandPx": 68,
-    "bodyComparedPx": 686,
-    "bodyReferencePx": 765,
-    "bodyUncomparedPx": 79,
+    "bodyComparedPx": 701,
+    "bodyReferencePx": 763,
+    "bodyUncomparedPx": 62,
     "why": "The nav is fixed chrome on the bottom edge in both the design and the app, and the body between them is what the shorter device has to give up. Comparing the whole frame from the top would line the render's nav up against reference body rows and score a correct bar as a total mismatch."
   },
   "antialiasingTolerance": 12,
-  "differingPixelPercent": 39.8406,
-  "rawDifferingPixelPercent": 61.4008,
-  "meanChannelDelta": 49.1691,
+  "differingPixelPercent": 14.1886,
+  "rawDifferingPixelPercent": 43.1971,
+  "verdictTolerance": 40,
+  "differingPixelPercentAtVerdictTolerance": 10.6394,
+  "meanChannelDelta": 13.8595,
   "maxChannelDelta": 255,
   "worstRows": [
     {
-      "row": 568,
-      "percent": 91.4
+      "row": 613,
+      "percent": 84.91
     },
     {
-      "row": 569,
-      "percent": 91.4
+      "row": 614,
+      "percent": 86.52
     },
     {
-      "row": 570,
-      "percent": 91.4
+      "row": 615,
+      "percent": 87.6
     },
     {
-      "row": 573,
-      "percent": 91.4
+      "row": 682,
+      "percent": 86.52
     },
     {
-      "row": 574,
-      "percent": 91.4
+      "row": 683,
+      "percent": 85.44
     },
     {
-      "row": 575,
-      "percent": 91.4
+      "row": 684,
+      "percent": 84.37
     },
     {
-      "row": 588,
-      "percent": 91.4
+      "row": 685,
+      "percent": 83.29
     },
     {
-      "row": 752,
-      "percent": 99.46
+      "row": 768,
+      "percent": 100.0
     }
   ],
   "displacementProbe": {
-    "bestVerticalOffsetPx": -10,
-    "percentAtBestOffset": 36.8964,
+    "bestVerticalOffsetPx": 3,
+    "percentAtBestOffset": 9.0568,
     "note": "0 means the render is on its design row and the residual is rasterisation. A non-zero offset is a real layout error even when the headline percentage is low."
   },
   "verdict": "PENDING_REVIEW",
   "topAlignment": {
-    "referenceFirstInkUnits": 5.59,
+    "referenceFirstInkUnits": 5.0,
     "renderFirstInkUnits": 6.18,
-    "deltaUnits": 0.59,
+    "deltaUnits": 1.18,
     "note": "Design units between each side's first painted row and the first row the application owns. Read WITH displacementProbe, never instead of it: the probe optimises over the whole frame and drifts to a neighbouring element on a repetitive layout, so a non-zero probe offset with a delta near zero means the screen is placed correctly and differs in its content."
   }
 }
