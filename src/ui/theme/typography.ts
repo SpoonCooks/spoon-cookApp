@@ -100,6 +100,54 @@ export const textStyle = {
     letterSpacing: 1,
     color: color.textPrimary,
   },
+  /**
+   * `572:826` — the start time on a V14 job tile. Livvic Black 24 on a **24** line with -0.6
+   * tracking.
+   *
+   * Not `display`, which sets the same size on a 32 line: the job tile packs the time into a
+   * 36-unit head row, and the taller line box pushes the building name off the card.
+   */
+  cardTime: {
+    fontFamily: fontFamily.black,
+    fontSize: fontSize.display,
+    lineHeight: lineHeight.xl,
+    letterSpacing: -0.6,
+    color: color.textPrimary,
+  },
+  /** `572:830` — the building name on a job tile. Livvic Black 18/28, -0.45 tracking. */
+  cardTitle: {
+    fontFamily: fontFamily.black,
+    fontSize: fontSize.xxl,
+    lineHeight: lineHeight.xxl,
+    letterSpacing: -0.45,
+    color: color.textPrimary,
+  },
+  /**
+   * `572:1083` — the countdown on the actionable job card. Livvic Black 30/36, no tracking.
+   *
+   * The lead card drops the tile's negative tracking as well as growing the type, which is why
+   * this is a separate variant rather than a size override on `cardTime`.
+   */
+  cardCountdown: {
+    fontFamily: fontFamily.black,
+    fontSize: fontSize.displayLg,
+    lineHeight: lineHeight.displayLg,
+    color: color.textPrimary,
+  },
+  /**
+   * `573:1222` — the `CHALO` CTA. Livvic Black 24 on a 30 line with **-0.6** tracking.
+   *
+   * `actionLabel` sets the same size and line with **+1**. The two sit one card apart in V14 and
+   * the 1.6-unit difference accumulates across a six-glyph word, so neither substitutes for the
+   * other.
+   */
+  ctaLabelTight: {
+    fontFamily: fontFamily.black,
+    fontSize: fontSize.display,
+    lineHeight: lineHeight.displayTight,
+    letterSpacing: -0.6,
+    color: color.textPrimary,
+  },
   /** `528:475` — the break window times. Livvic Bold 18 on a 28 line, wider than `heading`. */
   timeStrong: {
     fontFamily: fontFamily.bold,
@@ -132,6 +180,21 @@ export const textStyle = {
     fontSize: fontSize.l,
     lineHeight: lineHeight.l,
     color: color.black80,
+  },
+  /**
+   * `634:2483` and its siblings — a label under a V14 bottom-nav icon. Livvic Bold 12 on a 16
+   * line, and **pure black** rather than `textPrimary`.
+   *
+   * Not `caption`, which is otherwise identical: the nav is the one place V14 writes `text-black`
+   * (`#000000`) instead of the `color/black/solid` variable every other 12px Bold run uses, and
+   * `caption` resolves to `#0a0a0a`. Ten levels is invisible alone but the label repeats five
+   * times across the bar, so it is stated exactly rather than approximated.
+   */
+  navLabel: {
+    fontFamily: fontFamily.bold,
+    fontSize: fontSize.m,
+    lineHeight: lineHeight.m,
+    color: color.black,
   },
   /**
    * `434:2892` / `537:732` — `Bonus ke liye: N se zyada …`. Livvic Black **11** on a 16.5 line,

@@ -1,0 +1,148 @@
+{
+  "assets": {
+    "back.svg": {
+      "bytes": 1317,
+      "constName": "back",
+      "nodes": ["592:488"],
+      "sha256": "a345781fa19303341a8c5d720e43f4837949b07005ecd9fe058614c93f05aa40"
+    },
+    "building-icon.png": {
+      "bytes": 480,
+      "constName": "buildingIcon",
+      "nodes": ["614:453"],
+      "sha256": "0682ab19d8e58300ae070f626bbd406766bd05aea5d0b3008dd27668771bffb3"
+    },
+    "calendar.png": {
+      "bytes": 613,
+      "constName": "calendar",
+      "nodes": ["592:488"],
+      "sha256": "83d562b90b0ec8afb64851566fa93d015d4d1060280263902f7f95317fd9cc08"
+    },
+    "call-icon.svg": {
+      "bytes": 1338,
+      "constName": "callIcon",
+      "nodes": ["614:453"],
+      "sha256": "35d798fa1f80ad89a709bb1592c125298940ffcf049a7e566a916e5688b2c1c6"
+    },
+    "city-buildings.png": {
+      "bytes": 445,
+      "constName": "cityBuildings",
+      "nodes": ["614:453"],
+      "sha256": "03b5e37d2df6b1099d5f3549a2c24ce7304c3ec96817c0c49808fecb1bc57e70"
+    },
+    "clock.png": {
+      "bytes": 1352,
+      "constName": "clock",
+      "nodes": ["575:1744"],
+      "sha256": "2cf9db01fb668061ec9295130e702e5e3374413f893fca68ad35d3096b4cefe4"
+    },
+    "cook-photo.png": {
+      "bytes": 1608513,
+      "constName": "cookPhoto",
+      "nodes": ["622:1163"],
+      "sha256": "da01f0cc111ab2082a259e4209f7f8256a2b5fe16fdfb81a137feea33525b4e7"
+    },
+    "cook-walking.png": {
+      "bytes": 1495906,
+      "constName": "cookWalking",
+      "nodes": ["614:453"],
+      "sha256": "8304e6da25fd036a7f23543b5fcbc5866e7cc6324dc7e5a96c4805d3ab845b5f"
+    },
+    "extension-clock.png": {
+      "bytes": 173006,
+      "constName": "extensionClock",
+      "nodes": ["622:1163"],
+      "sha256": "1ef8dfede36a1c82b3224e88a300e064fe9591802f02c6214bcc40800f897649"
+    },
+    "home-page.png": {
+      "bytes": 850,
+      "constName": "homePage",
+      "nodes": ["614:453"],
+      "sha256": "55d03316c3ab7d38ee27104d6ab7c782da06f465211aae802aac2db4a3bf4f52"
+    },
+    "map-pin.svg": {
+      "bytes": 501,
+      "constName": "mapPin",
+      "nodes": ["614:453"],
+      "sha256": "da87c1f81a0b9d928be194aa725037942be6b5c431c8310bbecd9b8b420aa3c9"
+    },
+    "mistake-disc.svg": {
+      "bytes": 234,
+      "constName": "mistakeDisc",
+      "nodes": ["575:1744"],
+      "sha256": "f44972f607a2531271ec5a71197acf1eb8478ed714f44a727e1f46b8745571ad"
+    },
+    "multiply.png": {
+      "bytes": 828,
+      "constName": "multiply",
+      "nodes": ["575:1744"],
+      "sha256": "68de709cdfd5c7a4bab26e8fe7cf689c39527b4dba1487ba577f076c49a2e5de"
+    },
+    "nav-chutti.png": {
+      "bytes": 23612,
+      "constName": "navChutti",
+      "nodes": ["575:1744", "622:1163"],
+      "sha256": "f1bc77d7a01fd888840091d37ce0501d48187a49ebcc99926871a918d2edeb11"
+    },
+    "nav-hazri.png": {
+      "bytes": 11277,
+      "constName": "navHazri",
+      "nodes": ["575:1744", "622:1163"],
+      "sha256": "e3e1024b47859cf2aaa42df968035a24c9d4f5a849c73c4c1e7cfe07b2925abd"
+    },
+    "nav-kaam.png": {
+      "bytes": 16832,
+      "constName": "navKaam",
+      "nodes": ["575:1744", "622:1163"],
+      "sha256": "d3bb3ae53d9268f7294d3e02d111cc62922b225c4b7b3f2d40594fb8913bc9c7"
+    },
+    "nav-kamai.png": {
+      "bytes": 16810,
+      "constName": "navKamai",
+      "nodes": ["575:1744", "622:1163"],
+      "sha256": "db42d3193b2af60df34e6e3dd8266257b68de3b0ba2106a0bc128fef6c4defce"
+    },
+    "nav-niyam.png": {
+      "bytes": 15816,
+      "constName": "navNiyam",
+      "nodes": ["575:1744", "622:1163"],
+      "sha256": "a1dc9594b38396d116f0c13984b538fdbe52d57abf45cf030b79108c2336cce0"
+    },
+    "rating-disc.svg": {
+      "bytes": 234,
+      "constName": "ratingDisc",
+      "nodes": ["575:1744"],
+      "sha256": "097b9cfbcd2436e529ea36d2543bc28c0b7017e5ed656b2ea8e88d7117ba460d"
+    },
+    "stairs-up.png": {
+      "bytes": 659,
+      "constName": "stairsUp",
+      "nodes": ["614:453"],
+      "sha256": "11d2c8e3d09529a6546d084c64f8cfdb92eee20fa3848dbda97bb6560a3eb59c"
+    },
+    "star.png": {
+      "bytes": 1410,
+      "constName": "star",
+      "nodes": ["575:1744"],
+      "sha256": "0ea4de52d8ad498d6a038acf068345c2d37464f0e18570f3d9ee6b1b2b5fdea5"
+    },
+    "timer-2.png": {
+      "bytes": 1638,
+      "constName": "timer2",
+      "nodes": ["583:401"],
+      "sha256": "0ce4af26e5cb2f758ff4a9e6ac2f79b43c9223c426691bc4b66cb66df8d43bd2"
+    },
+    "timer.png": {
+      "bytes": 1944,
+      "constName": "timer",
+      "nodes": ["575:1744"],
+      "sha256": "47a65003ccedf30cc1fc130fe14ae02384e925ab2982ba1942bb5224bd06f65e"
+    },
+    "whats-app.png": {
+      "bytes": 1419,
+      "constName": "whatsApp",
+      "nodes": ["622:1163", "583:401", "592:488"],
+      "sha256": "1e57d94e42dba593935930cda903f7bbb0ad051b82bc7bbe8956ab80a0332d65"
+    }
+  }
+}

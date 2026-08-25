@@ -1,6 +1,3 @@
-import { useState } from 'react';
-import { View } from 'react-native';
-
 import {
   AbsentView,
   DailyLogInView,
@@ -14,6 +11,7 @@ import {
   type LongLeaveCard,
   type SingleDayLeaveOption,
 } from '@features/leave/LeaveViews';
+import { JobsView } from '@features/jobs/JobViews';
 import { BootView, OtpView, PhoneView } from '@features/login/LoginViews';
 import {
   CycleHistoryView,
@@ -25,16 +23,7 @@ import {
 
 import { earningsPeriodLabels, earningsPeriods } from '@core/domain/money';
 import { otpLength } from '@core/domain/otp';
-import { projectServiceState, type ServiceState } from '@core/domain/serviceState';
-import { performanceFixtures, serviceFixtures } from '@core/fixtures';
-import {
-  ArrivalView,
-  CompletedView,
-  CookingView,
-  EndOtpView,
-  StartOtpView,
-  TravelView,
-} from '@features/service/ServiceViews';
+import { jobsV14Fixtures, performanceFixtures } from '@core/fixtures';
 
 /**
  * Development-only visual gallery.
@@ -78,71 +67,8 @@ export interface GalleryEntry {
   readonly render: () => React.ReactElement;
 }
 
-/** Renders a service snapshot through the same dispatch the real route uses. */
-function ServiceStateView({ state }: { state: ServiceState }): React.ReactElement {
-  switch (state.kind) {
-    case 'travelling':
-      return (
-        <TravelView
-          job={state.job}
-          timing={state.timing}
-          minutesToDeadline={state.minutesToDeadline}
-        />
-      );
-    case 'arrived':
-      return <ArrivalView job={state.job} timing={state.timing} />;
-    case 'awaiting_start_otp':
-      return <StartOtpFixture timing={state.timing} />;
-    case 'cooking':
-      return (
-        <CookingView
-          minutesRemaining={state.minutesRemaining}
-          isEndingSoon={state.isEndingSoon}
-          isExtended={state.extension.isExtended}
-          newExpectedEndIso={state.extension.newExpectedEndIso}
-        />
-      );
-    case 'awaiting_end_otp':
-      return <EndOtpFixture />;
-    case 'completed':
-      return <CompletedView onDone={noop} />;
-    default:
-      // A fixture that projects to `idle`/`assigned`/`interrupted` is a bug in the fixture, not a
-      // screen to draw. Render nothing rather than inventing a frame V13 does not contain.
-      return <View testID={`gallery-unrenderable-${state.kind}`} />;
-  }
-}
-
 function noop(): void {
   /* The gallery never advances a booking. */
-}
-
-/** Start OTP with local input state, so the boxes can be typed into during review. */
-function StartOtpFixture({ timing }: { timing: 'on_time' | 'late' }): React.ReactElement {
-  const [code, setCode] = useState('');
-  return (
-    <StartOtpView
-      timing={timing}
-      code={code}
-      onChange={(next) => setCode(next.slice(0, otpLength.start))}
-      onSubmit={noop}
-      error={null}
-      isSubmitting={false}
-    />
-  );
-}
-
-function EndOtpFixture(): React.ReactElement {
-  const [code, setCode] = useState('');
-  return (
-    <EndOtpView
-      code={code}
-      onChange={(next) => setCode(next.slice(0, otpLength.end))}
-      onSubmit={noop}
-      error={null}
-      isSubmitting={false}
-    />
-  );
 }
 
 /** One of the three OTP frames, which differ only in code, countdown and error. */
@@ -183,6 +109,21 @@ function attendance(
   render: () => React.ReactElement,
 ): GalleryEntry {
   return { id, section: 'log in flow', nodeId, label, ownsSafeArea: true, render };
+}
+
+/**
+ * One of the five `job flow` frames.
+ *
+ * `JobsView` draws its own top nav directly under the status bar, the same shape the attendance
+ * and leave screens use, so it owns its safe area.
+ */
+function jobs(
+  id: string,
+  nodeId: string,
+  label: string,
+  render: () => React.ReactElement,
+): GalleryEntry {
+  return { id, section: 'job flow', nodeId, label, ownsSafeArea: true, render };
 }
 
 /** One of the seven `leave` frames. All three surfaces apply their own safe-area inset. */
@@ -250,23 +191,8 @@ const PERIOD_TABS = earningsPeriods.map((key) => ({
   subtitle: earningsPeriodLabels[key].subtitle,
 }));
 
-function service(
-  id: string,
-  nodeId: string,
-  label: string,
-  snapshot: () => ReturnType<typeof serviceFixtures.travelOnTime>,
-): GalleryEntry {
-  return {
-    id,
-    section: 'Service flow',
-    nodeId,
-    label,
-    render: () => <ServiceStateView state={projectServiceState(snapshot())} />,
-  };
-}
-
 /**
- * Every finalized V13 state that is reachable today.
+ * Every finalized V14 state that is reachable today.
  *
  * A missing entry is a visible gap in `/dev`, which is the point: the gallery must never imply
  * coverage it does not have.
@@ -400,48 +326,18 @@ export const galleryEntries: readonly GalleryEntry[] = [
   leave('leave/short-confirm', '592:888', '1 din ki Chutti — confirm', () => (
     <ShortLeaveSheetView dayLabel="8 November" relativeLabel="Parso" canConfirm />
   )),
-  service('service/travel-on-time', '462:3617', 'Travel — on time', serviceFixtures.travelOnTime),
-  service(
-    'service/travel-at-risk',
-    '463:3779',
-    'Travel — 5 min buffer',
-    serviceFixtures.travelAtRisk,
-  ),
-  service(
-    'service/travel-late',
-    '464:3864',
-    'Travel — late (negative)',
-    serviceFixtures.travelLate,
-  ),
-  service(
-    'service/arrival-on-time',
-    '468:3935',
-    'Arrival — on time',
-    serviceFixtures.arrivedOnTime,
-  ),
-  service('service/arrival-late', '468:4040', 'Arrival — late', serviceFixtures.arrivedLate),
-  service(
-    'service/start-otp-on-time',
-    '482:4587',
-    'Start OTP — on time',
-    serviceFixtures.startOtpOnTime,
-  ),
-  service('service/start-otp-late', '482:4656', 'Start OTP — late', serviceFixtures.startOtpLate),
-  service('service/cooking', '483:4741', 'Cooking', serviceFixtures.cooking),
-  service(
-    'service/cooking-ending',
-    '483:4795',
-    'Cooking — last 7 mins',
-    serviceFixtures.cookingEndingSoon,
-  ),
-  service(
-    'service/cooking-extended',
-    '483:4835',
-    'Cooking — extended',
-    serviceFixtures.cookingExtended,
-  ),
-  service('service/end-otp', '484:4875', 'End OTP', serviceFixtures.endOtp),
-  service('service/completed', '485:4917', 'Job end', serviceFixtures.completed),
+  /*
+   * `Service flow` (`485:4971`) — 13 frames, NOT built here yet.
+   *
+   * V14 deleted all twelve V13 service nodes and rebuilt the section on a different authoring
+   * convention: 371-wide `direct` frames with the V14 bottom nav, against V13's 390x830 phone
+   * bezel. The twelve entries that used to sit here rendered `ServiceViews` against node ids
+   * (`462:3617` … `485:4917`) that no longer exist in the file, so they were removed rather than
+   * repointed — a gallery entry aimed at a deleted frame compares a render against nothing.
+   *
+   * The outstanding node ids are enumerated in `pendingScreens` in `@core/figma/scope`, and
+   * `gallery.test.tsx` asserts this section stays empty until each view is rebuilt.
+   */
   /*
    * `performance` (`575:1741`). Three states of the money tab and four pushed frames.
    */
@@ -515,6 +411,23 @@ export const galleryEntries: readonly GalleryEntry[] = [
       onBack={noop}
       onOpenDays={noop}
     />
+  )),
+
+  /* ---- job flow (592:1070) — 5 ---- */
+  jobs('jobs/logged-out', '583:375', 'Jobs - shift not started', () => (
+    <JobsView dateLabel="7 November" {...jobsV14Fixtures.loggedOut()} />
+  )),
+  jobs('jobs/logged-in', '583:401', 'Jobs - shift started', () => (
+    <JobsView dateLabel="7 November" {...jobsV14Fixtures.loggedIn()} />
+  )),
+  jobs('jobs/next-45', '583:427', 'Jobs - next in 25 mins', () => (
+    <JobsView dateLabel="7 November" {...jobsV14Fixtures.countdown(25, 'soon')} />
+  )),
+  jobs('jobs/next-10', '583:453', 'Jobs - next in 20 mins', () => (
+    <JobsView dateLabel="7 November" {...jobsV14Fixtures.countdown(20, 'imminent')} />
+  )),
+  jobs('jobs/next-5', '583:479', 'Jobs - next in 15 mins', () => (
+    <JobsView dateLabel="7 November" {...jobsV14Fixtures.countdown(15, 'critical')} />
   )),
 ];
 

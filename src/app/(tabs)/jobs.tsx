@@ -1,24 +1,33 @@
 import { router } from 'expo-router';
 import { useMemo, useRef, useState } from 'react';
-import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { RefreshControl, StyleSheet, View } from 'react-native';
 
 import { toJobCard } from '@core/api/adapters';
 import { newIdempotencyKey } from '@core/api/cook';
 import { apiErrorMessage, isAssignmentChanged, isSessionExpired } from '@core/api/errors';
 import { useCookProfile, useJobs, useStartCommute } from '@core/api/queries';
-import { groupJobsByDate, type JobCardModel } from '@core/domain/job';
+import type { JobCardModel } from '@core/domain/job';
 import { useSession } from '@core/session/store';
-import { color, EmptyState, ErrorState, JobCard, LoadingState, spacing, Text } from '@ui';
+import { formatLocalTime } from '@features/leave/leaveModel';
+import { JobsView, type BreakWindowModel } from '@features/jobs/JobViews';
+import { color, EmptyState, ErrorState, LoadingState, spacing, Text } from '@ui';
 
 /**
- * Page 3 — job list (Figma `434:3086`) and Page 3a — start (`494:5648`).
+ * KAAM — the V14 `job flow` section (`592:1070`).
  *
- * These are one screen. The only difference between the two Figma frames is the countdown value
- * and whether the `START` CTA is enabled — both server rulings on the same card model, not
- * separate layouts.
+ * Five frames, one screen:
  *
- * ## `START` begins TRAVEL
+ *   `583:375`  shift not started      → the list alone
+ *   `583:401`  shift started          → the same list under the `aaj ka break` window
+ *   `583:427`  next job < 45 mins     → a lead card with a countdown and the `CHALO` CTA
+ *   `583:453`  next job < 10 mins     → the same card in the lime colourway
+ *   `583:479`  next job < 5 mins      → the same card in red, CTA label inverted to white
+ *
+ * V13 excluded this section by brief and the screen still drew the V12 `Namaste, <name>` banner
+ * over `@ui/JobCard`. V14 finalizes it, so the layout is rebuilt from the design; the backend
+ * wiring below is unchanged and deliberately so.
+ *
+ * ## `CHALO` begins TRAVEL
  *
  * It posts `start-commute`, not a service start. The service begins only after Start-OTP
  * verification. Navigation to the service screen happens **after** the backend confirms the
@@ -27,17 +36,8 @@ import { color, EmptyState, ErrorState, JobCard, LoadingState, spacing, Text } f
  * `assignmentVersion` rides along on the command: a cook acting on a card rendered before a
  * reassignment is refused with `ACTIVE_ASSIGNMENT_CHANGED` and the list is re-read, rather than
  * starting travel to a job that is no longer theirs.
- *
- * ## Scope note
- *
- * Both frames sit at canvas top level rather than inside one of the four approved `SECTION`s
- * (`434:3115` Login flow, `485:4971` Service flow, `540:397` Performance & earnings,
- * `540:416` Attendance). They are retained because they are the Jobs tab destination that the
- * in-section Service-flow frames are reached from — removing them would orphan the entire
- * Service section. Recorded as an explicit deviation in the implementation report.
  */
 export default function JobsScreen(): React.ReactElement {
-  const insets = useSafeAreaInsets();
   const signOut = useSession((s) => s.signOut);
 
   const [submittingId, setSubmittingId] = useState<string | null>(null);
@@ -54,14 +54,10 @@ export default function JobsScreen(): React.ReactElement {
     [jobs.data],
   );
 
-  const currentJob = cards.find((card) => card.isActionable) ?? null;
-  const upcoming = useMemo(
-    () =>
-      groupJobsByDate(
-        cards.filter((card) => card.bookingId !== currentJob?.bookingId),
-        (dateIso) => labelForDate(dateIso, jobs.data?.serverTime ?? null),
-      ),
-    [cards, currentJob, jobs.data],
+  const leadJob = cards.find((card) => card.isActionable) ?? null;
+  const rest = useMemo(
+    () => cards.filter((card) => card.bookingId !== leadJob?.bookingId),
+    [cards, leadJob],
   );
 
   const startTravel = (bookingId: string): void => {
@@ -111,76 +107,68 @@ export default function JobsScreen(): React.ReactElement {
     );
   }
 
-  const hasAnything = currentJob !== null || upcoming.length > 0;
-  const name = profile.data?.cook.name ?? '';
+  const today = profile.data?.today ?? null;
+  const shift = today?.shift ?? null;
+
+  /**
+   * `573:1205` is drawn once the shift has started and the server has published a break window.
+   *
+   * Same rule the Chutti tab applies to `528:465`: a cook who is not at work today has no break
+   * to be told about, and the window is never synthesised from a local clock.
+   */
+  const breakWindow: BreakWindowModel | null =
+    today?.attendance?.status === 'present' && shift !== null
+      ? {
+          fromLabel: formatLocalTime(shift.breakStartLocalTime),
+          toLabel: formatLocalTime(shift.breakEndLocalTime),
+        }
+      : null;
+
+  const hasAnything = leadJob !== null || rest.length > 0;
 
   return (
-    <View style={styles.flex}>
-      <View style={[styles.banner, { paddingTop: insets.top + spacing.s }]}>
-        <Text variant="headingLg">{`Namaste, ${name}`}</Text>
-      </View>
-
-      {commandError !== null && (
-        <View style={styles.commandError}>
-          <Text variant="caption" color={color.danger} testID="jobs-command-error">
-            {commandError}
-          </Text>
-        </View>
-      )}
-
-      {!hasAnything ? (
-        <EmptyState message="Abhi koi kaam nahi hai." />
-      ) : (
-        <ScrollView
-          contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + spacing.huge }]}
-          refreshControl={
-            <RefreshControl refreshing={jobs.isFetching} onRefresh={() => void jobs.refetch()} />
-          }
-          testID="jobs-scroll"
-        >
-          {currentJob !== null && (
-            <JobCard
-              job={currentJob}
-              variant="prominent"
-              onStartTravel={startTravel}
-              isSubmitting={submittingId === currentJob.bookingId}
-            />
-          )}
-
-          {upcoming.map((group) => (
-            <View key={group.dateIso} style={styles.group}>
-              {group.label !== null && <Text variant="labelStrong">{group.label}</Text>}
-              {group.jobs.map((job) => (
-                <JobCard key={job.bookingId} job={job} variant="compact" />
-              ))}
-            </View>
-          ))}
-        </ScrollView>
-      )}
-    </View>
+    <JobsView
+      dateLabel={formatServerDate(jobs.data?.serverTime ?? profile.data?.serverTime ?? null)}
+      leadJob={leadJob}
+      jobs={rest}
+      breakWindow={breakWindow}
+      onStartTravel={startTravel}
+      submittingId={submittingId}
+      banner={
+        commandError !== null ? (
+          <View style={styles.commandError}>
+            <Text variant="caption" color={color.danger} testID="jobs-command-error">
+              {commandError}
+            </Text>
+          </View>
+        ) : !hasAnything ? (
+          <EmptyState message="Abhi koi kaam nahi hai." />
+        ) : null
+      }
+      scrollProps={{
+        refreshControl: (
+          <RefreshControl refreshing={jobs.isFetching} onRefresh={() => void jobs.refetch()} />
+        ),
+      }}
+    />
   );
 }
 
 /**
- * `Aaj` / `Kal` headings, anchored to the SERVER's date.
+ * `7 November` from the SERVER's instant, in IST.
  *
- * `serverTime` is the reference so a device with a wrong clock cannot file tomorrow's job under
- * today. Anything beyond tomorrow gets no heading rather than an invented one.
+ * Anchored to server time rather than the device so a wrong device clock cannot title today's
+ * list with yesterday's date. Falls back to an empty title rather than inventing one.
  */
-function labelForDate(dateIso: string, serverTimeIso: string | null): string | null {
-  if (serverTimeIso === null) return null;
-  const today = serverTimeIso.slice(0, 10);
-  if (dateIso === today) return 'Aaj';
-  const tomorrow = new Date(Date.parse(`${today}T00:00:00Z`) + 86_400_000)
-    .toISOString()
-    .slice(0, 10);
-  return dateIso === tomorrow ? 'Kal' : null;
+export function formatServerDate(serverTimeIso: string | null): string {
+  if (serverTimeIso === null) return '';
+  return new Date(serverTimeIso).toLocaleDateString('en-GB', {
+    day: 'numeric',
+    month: 'long',
+    timeZone: 'Asia/Kolkata',
+  });
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1 },
-  banner: { paddingHorizontal: spacing.xl, paddingBottom: spacing.m },
   commandError: { paddingHorizontal: spacing.xl, paddingBottom: spacing.s },
-  content: { paddingHorizontal: spacing.xl, gap: spacing.l },
-  group: { gap: spacing.m },
 });

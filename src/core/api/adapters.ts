@@ -163,6 +163,9 @@ function toExtension(job: CookJobResponse): ExtensionProjection {
     isExtended,
     extendedByMinutes: job.extension.minutes,
     newExpectedEndIso: job.extension.expectedEnd,
+    // Absent on today's API. Left null rather than substituted, so the banner stays dark until
+    // the backend can say when the extension was actually confirmed.
+    confirmedAtIso: job.extension.confirmedAt ?? null,
   };
 }
 

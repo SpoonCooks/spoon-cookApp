@@ -92,6 +92,45 @@ export function formatMinutes(minutes: number): string {
   return `${minutes} ${Math.abs(minutes) === 1 ? 'min' : 'mins'}`;
 }
 
+/**
+ * How loudly the lead job card is drawn.
+ *
+ * V14 escalates it through three colourways — `583:427`, `583:453` and `583:479` — swapping the
+ * border, the icon disc, the duration chip and the CTA together, and inverting the CTA label to
+ * white at the last tier.
+ *
+ * ## Why this is NOT derived from `minutesToDeadline`
+ *
+ * The obvious reading is that the frame names give the thresholds: `<45 mins`, `<10 mins`,
+ * `<5 mins`. The frames' own content contradicts that reading —
+ *
+ *   | frame     | name            | countdown it draws |
+ *   | --------- | --------------- | ------------------ |
+ *   | `583:427` | `next in <45 mins` | `25 mins`       |
+ *   | `583:453` | `next <10 mins`    | `20 mins`       |
+ *   | `583:479` | `next <5 mins`     | `15 mins`       |
+ *
+ * — `20` is not under ten and `15` is not under five. Either the names or the mock values are
+ * stale, and the file gives no way to tell which. Picking thresholds anyway would mean inventing
+ * a rule the design does not state and then painting a card red on the strength of it, so the
+ * tier is an explicit input instead: fixtures set it per frame, and production passes the calmest
+ * value until the backend rules on it.
+ *
+ * Eligibility is unaffected either way — whether the cook may leave stays `isActionable`, a server
+ * ruling — so the open question costs a colour, never a command.
+ */
+export const jobUrgencies = ['soon', 'imminent', 'critical'] as const;
+export type JobUrgency = (typeof jobUrgencies)[number];
+
+/**
+ * The tier used against production data.
+ *
+ * `GET /v1/cook/jobs` exposes no urgency ruling, and the design's thresholds are contradictory
+ * (above), so the calmest treatment is used rather than a guessed escalation. A cook is never
+ * shown a red "leave now" card the server did not ask for.
+ */
+export const defaultJobUrgency: JobUrgency = 'soon';
+
 /** Group jobs by IST service date, preserving server order within each group. */
 export function groupJobsByDate(
   jobs: readonly JobCardModel[],

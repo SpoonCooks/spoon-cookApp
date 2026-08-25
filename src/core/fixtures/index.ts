@@ -18,7 +18,7 @@
  */
 
 import type { AttendanceMonth, TodayAttendance } from '../domain/attendance';
-import type { JobCardModel, JobsProjection } from '../domain/job';
+import type { JobCardModel, JobsProjection, JobUrgency } from '../domain/job';
 import type {
   BonusProgress,
   EarningsBreakdown,
@@ -84,6 +84,81 @@ const upcomingJob: JobCardModel = {
   isActionable: false,
   scheduledStartIso: '2026-08-21T15:30:00+05:30',
 };
+
+/**
+ * The V14 `job flow` list, reproducing `583:375`'s six tiles exactly.
+ *
+ * Start times and durations are the Figma's own mock values (`8:30 AM`, `1.5 hrs`, `5:30 PM`,
+ * `30 mins`, `45 mins`), so a gallery render and the reference frame compare like for like.
+ */
+const v14Tile = (
+  bookingId: string,
+  startIso: string,
+  serviceDurationMinutes: number,
+): JobCardModel => ({
+  ...currentJob,
+  bookingId,
+  scheduledStartIso: startIso,
+  serviceDurationMinutes,
+  minutesToDeadline: null,
+  travelMinutes: null,
+  action: 'none',
+  isActionable: false,
+});
+
+const v14List: readonly JobCardModel[] = [
+  v14Tile('v14-1', '2026-11-07T08:30:00+05:30', 90),
+  v14Tile('v14-2', '2026-11-07T08:30:00+05:30', 90),
+  v14Tile('v14-3', '2026-11-07T08:30:00+05:30', 90),
+  v14Tile('v14-4', '2026-11-07T17:30:00+05:30', 30),
+  v14Tile('v14-5', '2026-11-07T15:30:00+05:30', 45),
+  v14Tile('v14-6', '2026-11-07T17:30:00+05:30', 30),
+];
+
+/**
+ * The lead card, at a chosen countdown.
+ *
+ * `isActionable` is true because in every one of `583:427`, `583:453` and `583:479` the server
+ * has already ruled the CTA live — the three frames differ in urgency, not in eligibility.
+ */
+const v14LeadJob = (minutesToDeadline: number): JobCardModel => ({
+  ...currentJob,
+  bookingId: 'v14-lead',
+  scheduledStartIso: '2026-11-07T08:25:00+05:30',
+  serviceDurationMinutes: 90,
+  minutesToDeadline,
+  isActionable: true,
+  action: 'start_travel',
+});
+
+export const jobsV14Fixtures = {
+  /** `583:375` — shift not started, so no break window and no actionable card. */
+  loggedOut: () => devOnly({ breakWindow: null, leadJob: null, jobs: v14List }),
+
+  /** `583:401` — shift started; the server has published today's break. */
+  loggedIn: () =>
+    devOnly({
+      breakWindow: { fromLabel: '12:15 PM', toLabel: '2:15 PM' },
+      leadJob: null,
+      jobs: v14List,
+    }),
+
+  /**
+   * `583:427` / `583:453` / `583:479` — the same screen at three countdowns.
+   *
+   * The countdown and the tier are set independently because the design's own frames disagree
+   * about how they relate: `583:453` is named `<10 mins` and draws `20 mins`. Each fixture
+   * therefore reproduces one frame exactly — its number AND its colourway — rather than deriving
+   * one from the other. `25`, `20` and `15` are the Figma's own values.
+   */
+  countdown: (minutes: number, leadUrgency: JobUrgency) =>
+    devOnly({
+      breakWindow: { fromLabel: '12:15 PM', toLabel: '2:15 PM' },
+      leadJob: v14LeadJob(minutes),
+      leadUrgency,
+      jobs: v14List.slice(0, 5),
+    }),
+} as const;
 
 export const jobFixtures = {
   /** Backend state: no assignment. */
@@ -161,7 +236,12 @@ const baseSnapshot: ServiceSnapshot = {
   expectedEndIso: null,
   minutesRemaining: null,
   isEndingSoon: false,
-  extension: { isExtended: false, extendedByMinutes: null, newExpectedEndIso: null },
+  extension: {
+    isExtended: false,
+    extendedByMinutes: null,
+    newExpectedEndIso: null,
+    confirmedAtIso: null,
+  },
   canStartTravel: true,
   interruption: null,
 };
@@ -258,6 +338,7 @@ export const serviceFixtures = {
         isExtended: true,
         extendedByMinutes: 30,
         newExpectedEndIso: '2026-08-21T14:00:00+05:30',
+        confirmedAtIso: null,
       },
     }),
 

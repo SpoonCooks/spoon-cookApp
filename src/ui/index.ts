@@ -10,6 +10,9 @@ export type { FigmaGradientProps } from './components/FigmaGradient';
 export { HelpPill, TopNavBar } from './components/HelpPill';
 export type { HelpPillProps } from './components/HelpPill';
 
+export { BottomNav, BOTTOM_NAV_HEIGHT } from './components/BottomNav';
+export type { BottomNavProps, BottomNavTab } from './components/BottomNav';
+
 export { OtpInput } from './components/OtpInput';
 export type { OtpInputProps, OtpInputVariant } from './components/OtpInput';
 

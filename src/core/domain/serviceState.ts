@@ -110,6 +110,61 @@ export interface ExtensionProjection {
   readonly extendedByMinutes: number | null;
   /** Authoritative post-extension end time. Replaces the original `expectedEndIso`. */
   readonly newExpectedEndIso: string | null;
+  /**
+   * When the backend settled the extension. The origin of the five-minute banner window.
+   *
+   * ## This is currently always null in production, and that is deliberate
+   *
+   * The value exists in the database — `booking_extensions.settled_at` — but the cook read model
+   * (`src/cooks/projections.ts`) selects only `state`, `minutes` and `new_expected_end`, so
+   * `GET /v1/cook/jobs/:id` never sends it. Until the endpoint adds it, this parses to `null`,
+   * {@link extensionBannerRemainingMs} returns `0`, and the `622:1163` banner therefore never
+   * renders against production data.
+   *
+   * That is the safe failure: a cook sees the ordinary Active Job screen with the extended timer,
+   * which is correct, rather than a banner timed from a guess. Inventing a confirmation instant
+   * — falling back to "first time the app saw the extension", or to the device clock — would make
+   * the window restart on every reinstall and drift per device, so it is not done.
+   */
+  readonly confirmedAtIso: string | null;
+}
+
+/**
+ * How long the `622:1163` extension banner stays on screen after the backend confirms.
+ *
+ * The designer's rule: the extension element remains for five minutes only, then the UI returns
+ * to the normal Active Job screen. It is nowhere in the Figma file — no annotation, no prototype
+ * reaction, no motion data — so it is stated here once, as a named constant, rather than being
+ * spread across the view as a magic number.
+ */
+export const EXTENSION_BANNER_MS = 5 * 60 * 1000;
+
+/**
+ * Milliseconds of banner left at the moment the server produced this snapshot.
+ *
+ * ## Why this is computed from two SERVER instants and nothing else
+ *
+ * Both operands — `confirmedAtIso` and the snapshot's `clock.serverNowIso` — come from the backend in
+ * the same response. Their difference is therefore a duration measured entirely on the server's
+ * clock, and moving the device's clock forward or back cannot lengthen or shorten it. The caller
+ * counts this duration down with a timer, which the JS runtime drives from system uptime rather
+ * than from wall time, so the window survives a clock change mid-service as well.
+ *
+ * Backgrounding, termination and reinstall all reconstruct the same answer, because the answer is
+ * a function of two server timestamps and not of any state the app kept.
+ *
+ * Returns `0` — never a negative number and never a fresh five minutes — when the extension is
+ * unconfirmed, when the backend sent no confirmation instant, or when the window has closed.
+ */
+export function extensionBannerRemainingMs(
+  extension: ExtensionProjection,
+  serverNowIso: string,
+): number {
+  if (!extension.isExtended || extension.confirmedAtIso === null) return 0;
+  const confirmedAt = Date.parse(extension.confirmedAtIso);
+  const serverNow = Date.parse(serverNowIso);
+  if (Number.isNaN(confirmedAt) || Number.isNaN(serverNow)) return 0;
+  return Math.max(0, confirmedAt + EXTENSION_BANNER_MS - serverNow);
 }
 
 export interface JobSummary {
@@ -156,6 +211,15 @@ export type ServiceState =
       readonly minutesRemaining: number;
       readonly isEndingSoon: boolean;
       readonly extension: ExtensionProjection;
+      /**
+       * Milliseconds of `622:1163` banner remaining as of `clock.serverNowIso`.
+       *
+       * `0` means render the ordinary Active Job screen. The view counts this down rather than
+       * re-deriving it, so the banner disappears on time without waiting for the next poll — and
+       * the extended timer keeps running either way. Losing the banner is not losing the
+       * extension.
+       */
+      readonly extensionBannerMsRemaining: number;
     }
   | { readonly kind: 'awaiting_end_otp'; readonly job: JobSummary }
   | { readonly kind: 'completed'; readonly job: JobSummary }
@@ -243,6 +307,10 @@ export function projectServiceState(snapshot: ServiceSnapshot): ServiceState {
         minutesRemaining: snapshot.minutesRemaining ?? 0,
         isEndingSoon: snapshot.isEndingSoon,
         extension: snapshot.extension,
+        extensionBannerMsRemaining: extensionBannerRemainingMs(
+          snapshot.extension,
+          snapshot.clock.serverNowIso,
+        ),
       };
     }
 

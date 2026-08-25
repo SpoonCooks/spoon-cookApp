@@ -1,20 +1,20 @@
 import { render, screen } from '@testing-library/react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
-import { figmaScreens } from '@core/figma/scope';
+import { builtScreens, figmaScreens, pendingScreens } from '@core/figma/scope';
 import { galleryEntries, galleryEntryFor } from '@features/dev/galleryStates';
 
 /**
  * Development gallery contract.
  *
- * The gallery is how every V13 state gets in front of a camera without an approved test Cook, so
+ * The gallery is how every V14 state gets in front of a camera without an approved test Cook, so
  * its ids must stay pinned to the Figma inventory. A renamed state that still renders would
  * silently orphan a Figma frame from its evidence folder, and the pixel run would keep passing
  * while comparing the wrong screen.
  */
 
 describe('gallery entries', () => {
-  it('uses ids that exist in the V13 scope', () => {
+  it('uses ids that exist in the V14 scope', () => {
     const known = new Set(figmaScreens.map((screen) => screen.galleryState));
     for (const entry of galleryEntries) {
       expect(known.has(entry.id)).toBe(true);
@@ -35,6 +35,8 @@ describe('gallery entries', () => {
       ['540:416', 'leave'],
       ['592:1068', 'log in flow'],
       ['575:1741', 'performance'],
+      ['592:1070', 'job flow'],
+      ['611:398', 'Info'],
     ]);
     const byNode = new Map(figmaScreens.map((screen) => [screen.nodeId, screen]));
     for (const entry of galleryEntries) {
@@ -49,18 +51,26 @@ describe('gallery entries', () => {
   });
 
   it('resolves a known id and rejects an unknown one', () => {
-    expect(galleryEntryFor('service/cooking')?.nodeId).toBe('483:4741');
-    expect(galleryEntryFor('service/nope')).toBeNull();
+    expect(galleryEntryFor('jobs/next-5')?.nodeId).toBe('583:479');
+    expect(galleryEntryFor('jobs/nope')).toBeNull();
   });
 
-  it('covers all twelve Service flow frames', () => {
+  it('builds no Service flow entry until the section is rebuilt', () => {
+    // V14 deleted every V13 service node, so the twelve entries that used to live here pointed at
+    // frames that no longer exist. They are removed, not repointed: an entry aimed at a deleted
+    // frame compares a render against nothing. `pendingScreens` tracks the thirteen replacements.
     const service = galleryEntries.filter((entry) => entry.section === 'Service flow');
-    expect(service).toHaveLength(12);
+    expect(service).toHaveLength(0);
   });
 
   it('covers all five Login flow frames', () => {
     const login = galleryEntries.filter((entry) => entry.section === 'Login flow');
     expect(login).toHaveLength(5);
+  });
+
+  it('covers all five job flow frames', () => {
+    const jobs = galleryEntries.filter((entry) => entry.section === 'job flow');
+    expect(jobs).toHaveLength(5);
   });
 
   it('covers all four log in flow frames', () => {
@@ -79,21 +89,51 @@ describe('gallery entries', () => {
   });
 
   /**
-   * Coverage is asserted as an exact set rather than a count, so a screen can never be dropped
-   * from the gallery and replaced by a duplicate of another without this failing. Every one of the
-   * 35 finalized frames now has a `/dev` state; a `galleryState` the entries do not build is a
-   * visible gap, which is the point — the gallery must never imply coverage it does not have.
+   * Coverage is asserted as an exact set in BOTH directions, against the `pendingScreens` ledger
+   * in `@core/figma/scope`.
+   *
+   * V14 raised the inventory from 35 screens to 47 and rebuilt `Service flow` on a new authoring
+   * convention, so nineteen screens are outstanding. Rather than relax this assertion — which is
+   * the one thing stopping the gallery implying coverage it does not have — the outstanding node
+   * ids are enumerated in `pendingScreens`, and this test pins both sides against it:
+   *
+   *   - a screen NOT on the ledger must have a `/dev` state (nothing may quietly go missing), and
+   *   - a screen ON the ledger must NOT have one (the ledger cannot go stale while work lands).
+   *
+   * So removing an id from the ledger without building its state fails here, and building a state
+   * without removing its id fails here too. The gap is visible in code and enforced, and the suite
+   * still fails the moment either side drifts.
    */
-  it('covers every one of the 35 finalized screens', () => {
+  it('builds a /dev state for every screen not on the pending ledger', () => {
     const built = new Set(galleryEntries.map((entry) => entry.id));
-    const missing = figmaScreens
+    const missing = builtScreens()
       .filter((screen) => !built.has(screen.galleryState))
       .map((screen) => screen.galleryState)
       .sort();
 
     expect(missing).toEqual([]);
-    expect(built.size).toBe(35);
-    expect(figmaScreens).toHaveLength(35);
+  });
+
+  it('builds no /dev state for a screen still on the pending ledger', () => {
+    const built = new Set(galleryEntries.map((entry) => entry.id));
+    const pending = new Set(pendingScreens);
+    const claimed = figmaScreens
+      .filter((screen) => pending.has(screen.nodeId) && built.has(screen.galleryState))
+      .map((screen) => screen.nodeId)
+      .sort();
+
+    expect(claimed).toEqual([]);
+  });
+
+  it('accounts for all 47 finalized screens, built plus pending', () => {
+    expect(figmaScreens).toHaveLength(47);
+    expect(builtScreens()).toHaveLength(28);
+    expect(pendingScreens).toHaveLength(19);
+    expect(galleryEntries).toHaveLength(28);
+
+    // Every pending id is a real screen, so the ledger cannot name a frame that does not exist.
+    const inventory = new Set(figmaScreens.map((screen) => screen.nodeId));
+    for (const nodeId of pendingScreens) expect(inventory.has(nodeId)).toBe(true);
   });
 });
 
@@ -120,15 +160,15 @@ describe('gallery rendering', () => {
     }
   });
 
-  it('renders the cooking state with the fixture countdown', () => {
-    render(withSafeArea(galleryEntryFor('service/cooking')!.render()));
-    expect(screen.getByText('37 mins')).toBeTruthy();
+  it('renders the job flow lead card with the fixture countdown', () => {
+    render(withSafeArea(galleryEntryFor('jobs/next-45')!.render()));
+    expect(screen.getByText('25 mins')).toBeTruthy();
   });
 
-  it('renders the late travel state with a negative countdown', () => {
-    // The negative value is the whole point of `464:3864`; clamping it to zero would erase the
-    // state the frame exists to show.
-    render(withSafeArea(galleryEntryFor('service/travel-late')!.render()));
-    expect(screen.getByText('-2 mins')).toBeTruthy();
+  it('escalates the lead card CTA copy with the countdown', () => {
+    // `583:427` -> `583:453` -> `583:479` change the CTA label as well as the colourway, and the
+    // label is what a screenshot can actually distinguish the three frames by.
+    render(withSafeArea(galleryEntryFor('jobs/next-5')!.render()));
+    expect(screen.getByText('CHALO!!')).toBeTruthy();
   });
 });

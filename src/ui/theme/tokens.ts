@@ -91,6 +91,16 @@ export const semantic = {
   scrim: 'rgba(0, 0, 0, 0.8)',
   /** `528:662` — `Pakka` before a range is chosen. A fill, not an opacity on the live button. */
   disabledFill: 'rgba(0, 0, 0, 0.07)',
+  /**
+   * `575:1493` / `575:1496` — the pale red behind the icon disc and duration chip on a job that
+   * is under five minutes away.
+   *
+   * The only tint in this palette that is a *desaturated* red rather than a yellow or a lime, and
+   * the last step of the `583:427` -> `583:453` -> `583:479` escalation. Distinct from `danger`,
+   * which is the border and CTA fill on the same card; the two sit side by side, so neither
+   * substitutes for the other.
+   */
+  dangerSoft: '#fdd2d2',
 } as const;
 
 export const color = {
@@ -244,7 +254,9 @@ export const shadow = {
 
 /**
  * Figma frames are 390x830 with a 370-wide content column, i.e. a 10pt gutter each side.
- * `navHeight` is the fixed bottom nav (`nav.fixed`, 96 tall in Figma).
+ * `navHeight` is the V14 five-tab bottom nav (`634:2478`): a 52-unit row inside 8 units of
+ * vertical padding, so 68 units total. V13 had no designed nav and this token carried V12's
+ * 96, which described a bar the app never drew.
  */
 /**
  * A Figma drop shadow, applied only where the platform can draw it without damaging the fill.
@@ -284,7 +296,7 @@ export const layout = {
   designHeight: 830,
   contentWidth: 370,
   gutter: 10,
-  navHeight: 96,
+  navHeight: 68,
   bannerHeight: 74,
   minTouchTarget: 44,
 } as const;

@@ -1,5 +1,5 @@
 """
-Download the original bytes of Figma V13 assets referenced by a screen's design context.
+Download the original bytes of Figma assets referenced by a screen's design context.
 
 `get_design_context` returns remote asset URLs that expire in ~7 days, so every URL must be
 fetched during the same screen pass that produced it. This script does that, deduplicates by
@@ -7,9 +7,12 @@ content hash (the Spoon logo is referenced by five separate Login-flow frames bu
 and records provenance so a later reader can prove which node each byte came from.
 
 Usage:
-    python scripts/visual/capture_assets.py --node 434:3116 name=url [name=url ...]
+    python scripts/visual/capture_assets.py --node 622:1163 name=url [name=url ...]
+    python scripts/visual/capture_assets.py --version v13 --node 434:3116 name=url
 
-Writes into assets/images/figma-v13/ and updates assets/images/figma-v13/ASSETS.json.
+Writes into assets/images/figma-<version>/ and updates that directory's ASSETS.json. The
+version defaults to the current design revision, `v14`; the `v13` tree is kept intact so its
+evidence stays readable rather than being overwritten in place.
 """
 
 from __future__ import annotations
@@ -22,8 +25,13 @@ import subprocess
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-ASSET_DIR = ROOT / "assets" / "images" / "figma-v13"
-LEDGER = ASSET_DIR / "ASSETS.json"
+
+#: Current design revision. `v13` remains on disk so its evidence stays readable.
+DEFAULT_VERSION = "v14"
+
+
+def asset_dir(version: str) -> Path:
+    return ROOT / "assets" / "images" / f"figma-{version}"
 
 
 def slugify(name: str) -> str:
@@ -35,20 +43,23 @@ def slugify(name: str) -> str:
     return re.sub(r"-+", "-", name).strip("-").lower()
 
 
-def load_ledger() -> dict:
-    if LEDGER.exists():
-        return json.loads(LEDGER.read_text(encoding="utf-8"))
+def load_ledger(ledger: Path) -> dict:
+    if ledger.exists():
+        return json.loads(ledger.read_text(encoding="utf-8"))
     return {"assets": {}}
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--node", required=True)
+    parser.add_argument("--version", default=DEFAULT_VERSION, help="design revision, e.g. v14")
     parser.add_argument("pairs", nargs="+", help="constName=https://...")
     args = parser.parse_args()
 
-    ASSET_DIR.mkdir(parents=True, exist_ok=True)
-    ledger = load_ledger()
+    directory = asset_dir(args.version)
+    ledger_path = directory / "ASSETS.json"
+    directory.mkdir(parents=True, exist_ok=True)
+    ledger = load_ledger(ledger_path)
     by_hash = {v["sha256"]: k for k, v in ledger["assets"].items()}
 
     for pair in args.pairs:
@@ -85,7 +96,7 @@ def main() -> int:
             filename = f"{slugify(const)}-{counter}{ext}"
             counter += 1
 
-        (ASSET_DIR / filename).write_bytes(body)
+        (directory / filename).write_bytes(body)
         ledger["assets"][filename] = {
             "sha256": digest,
             "bytes": len(body),
@@ -95,7 +106,7 @@ def main() -> int:
         by_hash[digest] = filename
         print(f"ok {const:34} -> {filename} ({len(body) // 1024}KB, {ext[1:]})")
 
-    LEDGER.write_text(json.dumps(ledger, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    ledger_path.write_text(json.dumps(ledger, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     print(f"\nledger: {len(ledger['assets'])} unique assets")
     return 0
 

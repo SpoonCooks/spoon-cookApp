@@ -34,7 +34,12 @@ const base: ServiceSnapshot = {
   expectedEndIso: null,
   minutesRemaining: null,
   isEndingSoon: false,
-  extension: { isExtended: false, extendedByMinutes: null, newExpectedEndIso: null },
+  extension: {
+    isExtended: false,
+    extendedByMinutes: null,
+    newExpectedEndIso: null,
+    confirmedAtIso: null,
+  },
   canStartTravel: true,
   interruption: null,
 };
@@ -127,6 +132,7 @@ describe('projectServiceState', () => {
           isExtended: true,
           extendedByMinutes: 30,
           newExpectedEndIso: '2026-08-21T14:00:00+05:30',
+          confirmedAtIso: null,
         },
       });
       expect(state).toMatchObject({ expectedEndIso: '2026-08-21T14:00:00+05:30' });
