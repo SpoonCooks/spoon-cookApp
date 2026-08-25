@@ -146,7 +146,14 @@ const customerGlyph = require('@/assets/images/figma-v13/customer.png');
 const whatsAppGlyph = require('@/assets/images/figma-v13/whats-app.png');
 const checkedUserMale = require('@/assets/images/figma-v13/checked-user-male.png');
 const arrowRight = require('@/assets/images/figma-v13/arrow-right.png');
-const cookResting = require('@/assets/images/figma-v13/cook-resting.png');
+/**
+ * `572:760` — V14 re-shot this photograph.
+ *
+ * The V13 file is a different frame entirely: same cook and apron, a different set, pose and
+ * props. Comparing the V14 render against it scored 30% on `575:2136` with the layout perfectly
+ * placed, because the largest element on the screen was simply the wrong picture.
+ */
+const cookResting = require('@/assets/images/figma-v14/cook-resting.png');
 
 export interface TopNavProps {
   readonly onHelp?: (() => void) | undefined;

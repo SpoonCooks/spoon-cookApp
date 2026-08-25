@@ -60,6 +60,12 @@
       "nodes": ["622:1163"],
       "sha256": "da01f0cc111ab2082a259e4209f7f8256a2b5fe16fdfb81a137feea33525b4e7"
     },
+    "cook-resting.png": {
+      "bytes": 2055392,
+      "constName": "imgCookResting",
+      "nodes": ["572:760"],
+      "sha256": "7bbabf75d34be9c20d0d17eacb7b57e3b1f8bc86ae3d64faffd10fde1ce7dddb"
+    },
     "cook-walking.png": {
       "bytes": 1495906,
       "constName": "cookWalking",
