@@ -28,6 +28,7 @@ from __future__ import annotations
 import argparse
 import base64
 import json
+import os
 import re
 import subprocess
 import time
@@ -83,10 +84,49 @@ COMPARISON_STATUS_BAND = {
 
 
 def adb(adb_path: str, *args: str, binary: bool = False):
-    result = subprocess.run(
-        [adb_path, *args], capture_output=True, timeout=120, check=False
-    )
+    result = subprocess.run([adb_path, *args], capture_output=True, timeout=120, check=False)
     return result.stdout if binary else result.stdout.decode("utf-8", "replace")
+
+
+def require_single_device(adb_path: str) -> str:
+    """
+    Fail loudly when more than one device is attached, naming what to do about it.
+
+    Every `adb` call here is unqualified, so a second attached device — a phone plugged in
+    mid-run, a second emulator — makes each one ambiguous. adb then writes `more than one
+    device/emulator` to stderr and nothing to stdout, and the first thing downstream that touches
+    the empty result is PIL:
+
+        PIL.UnidentifiedImageError: cannot identify image file <_io.BytesIO object ...>
+
+    which says nothing about the actual cause and cost a full capture run to diagnose. The
+    evidence is calibrated to one specific AVD anyway — 1080x2392 at 440dpi, with the 136px and
+    66px system bars `compare.py` excludes — so a second device is never something to silently
+    pick between.
+    """
+    listing = adb(adb_path, "devices")
+    serials = [
+        line.split()[0]
+        for line in listing.splitlines()[1:]
+        if line.strip() and line.split()[-1] == "device"
+    ]
+    # An explicit ANDROID_SERIAL is how a run is pinned when a phone is also plugged in; adb
+    # honours it for every call, so the ambiguity this guard exists to catch is already resolved.
+    pinned = os.environ.get("ANDROID_SERIAL")
+    if pinned:
+        if pinned not in serials:
+            raise SystemExit(f"!! ANDROID_SERIAL={pinned} is set but that device is not attached")
+        return pinned
+    if len(serials) == 1:
+        return serials[0]
+    if not serials:
+        raise SystemExit("!! no device is attached; start the Ref393GA AVD first")
+    raise SystemExit(
+        f"!! {len(serials)} devices attached ({', '.join(serials)}).\n"
+        "   Every adb call in this run is unqualified, so pin one before re-running:\n"
+        "       ANDROID_SERIAL=emulator-5554 python scripts/visual/capture_emulator.py ...\n"
+        "   The evidence is calibrated to the 393dp AVD; a phone would need its own profile."
+    )
 
 
 def reject_reason(png_bytes: bytes) -> str | None:
@@ -357,7 +397,26 @@ def capture_full_height(args, row: dict, first_png: bytes) -> tuple[bytes, dict 
         return first_png, None
 
     def screenshot() -> bytes:
-        return adb(args.adb, "exec-out", "screencap", "-p", binary=True)
+        """
+        One screenshot, retried until it actually decodes.
+
+        `exec-out screencap -p` occasionally returns truncated or empty bytes on this emulator,
+        and a stitch run turns that into an `UnidentifiedImageError` several segments deep — the
+        whole screen is then lost even though the device was fine a second later. Retrying here
+        costs a moment; not retrying costs the run.
+        """
+        for attempt in range(4):
+            raw = adb(args.adb, "exec-out", "screencap", "-p", binary=True)
+            try:
+                Image.open(BytesIO(raw)).load()
+                return raw
+            except Exception:
+                if attempt == 3:
+                    raise RuntimeError(
+                        f"screencap returned {len(raw)} undecodable bytes four times running"
+                    ) from None
+                time.sleep(1.0)
+        raise AssertionError("unreachable")
 
     def swipe() -> None:
         x = shot.width // 2
@@ -415,6 +474,8 @@ def main() -> int:
     inventory = json.loads(Path(args.inventory).read_text(encoding="utf-8"))
     states = json.loads(Path(args.states).read_text(encoding="utf-8"))
     by_node = {row["nodeId"]: row for row in inventory}
+
+    require_single_device(args.adb)
 
     size = adb(args.adb, "shell", "wm", "size")
     match = re.search(r"(\d+)x(\d+)", size)

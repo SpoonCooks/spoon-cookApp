@@ -97,14 +97,35 @@ SERVICE_STATUS_BAND_HEIGHT = 36.198
 
 #: Frames whose content is anchored to the BOTTOM of the viewport rather than the top.
 #:
-#: The three `leave` bottom sheets are 846 content units tall against the verified emulator's 750,
+#: These are the bottom sheets. Each is 846 content units tall against the verified emulator's 750,
 #: so 96 units cannot be shown. On a top-anchored screen the missing rows are at the bottom -- the
 #: user scrolls to them. On a sheet they are at the TOP, and they are scrim: the sheet keeps its
 #: design height and stays against the bottom edge, which is what the app draws and what a device
 #: does. Aligning these by their first row would displace every sheet element by 96 units and score
 #: a correct render as a total failure, so they are aligned by their last row instead. The rows that
 #: go uncompared are still counted, and `anchor` is written into every `result.json`.
-BOTTOM_ANCHORED_NODES = frozenset({"592:563", "592:639", "592:888"})
+#:
+#: In the committed canvas dump every one of these is a 36.198 status mock at y=0, a single content
+#: child, and no nav of any kind. Seven of the eight are the tall sheet -- **y=239.2, height 643**;
+#: `592:888` is the short one, **y=396.2, height 486**. What makes them all bottom-anchored is the
+#: scrim above the sheet, not the sheet's own height.
+#:
+#: The three `leave` sheets were listed first. The five `Info` rule sheets are the same component
+#: and were missing, which would have reported every one of them as ~96 units displaced.
+BOTTOM_ANCHORED_NODES = frozenset(
+    {
+        # leave
+        "592:563",  # long leave
+        "592:639",  # long leave selected
+        "592:888",  # short leave
+        # Info -- identical geometry, added after the canvas dump was re-read
+        "597:1221",  # rating tiers
+        "603:1865",  # No Show
+        "603:1924",  # >7 bonus
+        "605:2027",  # 5+ bonus
+        "605:2094",  # Late
+    }
+)
 
 
 @dataclass(frozen=True)
