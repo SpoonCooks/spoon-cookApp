@@ -1,5 +1,10 @@
 import { useMemo } from 'react';
-import { Text as RNText, type TextProps as RNTextProps, type TextStyle } from 'react-native';
+import {
+  StyleSheet,
+  Text as RNText,
+  type TextProps as RNTextProps,
+  type TextStyle,
+} from 'react-native';
 
 import { useDesignScale } from '../theme/designScale';
 import { textStyle, type TextStyleToken } from '../theme/typography';
@@ -35,6 +40,23 @@ export interface TextProps extends RNTextProps {
  * pixel and would otherwise draw a 14-unit style 2.8% large — see `snapFontSize` in
  * `designScale.ts`. `lineHeight` and `letterSpacing` keep their sub-pixel precision, which is what
  * React Native does with them.
+ *
+ * ## `textTransform: 'uppercase'` is applied in JS, not handed to the platform
+ *
+ * On Fabric Android the two halves of that style disagree: the text is MEASURED from the string as
+ * written and RENDERED after transforming it. Uppercase is the wider of the two, so a string that
+ * measured as fitting is drawn too wide for the box it was given, and the overflow is dropped at a
+ * word boundary — silently, with no ellipsis and no wrap.
+ *
+ * It cost the last word of two screens before a pixel diff caught it. `575:2137` drew
+ * `AAJ AAP KAAM PAI AAYE` where the design says `AAJ AAP KAAM PAI AAYE HAI.`, and `575:2138` lost
+ * the same `HAI.`, while every short overline in the app was unaffected — the transformed width
+ * only overflows once the string is long enough. Nothing about the source said so: the copy is
+ * right, and `attendanceScreens.test.tsx` asserts the full string because the tree does contain it.
+ *
+ * Uppercasing here means the string that is measured is the string that is drawn. The style is
+ * then removed so the platform cannot transform it a second time. `capitalize` is left to the
+ * platform: its word splitting is locale-dependent and no variant in this app uses it.
  */
 export function Text({
   variant = 'body',
@@ -64,15 +86,30 @@ export function Text({
     };
   }, [variant, s, font]);
 
+  const composed = StyleSheet.flatten([
+    scaled,
+    color !== undefined && { color },
+    align !== undefined && { textAlign: align },
+    style,
+  ]) as TextStyle;
+
+  // Only a plain string can be transformed safely. Children that are elements keep the platform
+  // behaviour rather than being reached into and rewritten.
+  const { children, ...props } = rest;
+  const transform = composed.textTransform;
+  if (typeof children === 'string' && (transform === 'uppercase' || transform === 'lowercase')) {
+    const cased = transform === 'uppercase' ? children.toUpperCase() : children.toLowerCase();
+    const { textTransform: _dropped, ...untransformed } = composed;
+    return (
+      <RNText {...props} style={untransformed}>
+        {cased}
+      </RNText>
+    );
+  }
+
   return (
-    <RNText
-      {...rest}
-      style={[
-        scaled,
-        color !== undefined && { color },
-        align !== undefined && { textAlign: align },
-        style,
-      ]}
-    />
+    <RNText {...props} style={composed}>
+      {children}
+    </RNText>
   );
 }

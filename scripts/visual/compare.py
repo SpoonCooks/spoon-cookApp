@@ -112,6 +112,20 @@ SERVICE_STATUS_BAND_HEIGHT = 36.198
 #:
 #: The three `leave` sheets were listed first. The five `Info` rule sheets are the same component
 #: and were missing, which would have reported every one of them as ~96 units displaced.
+#: Height of the V14 five-tab bottom nav in design units (`634:2478`): a 52-unit row inside 8
+#: units of vertical padding. Mirrors `BOTTOM_NAV_HEIGHT` in `src/ui/components/BottomNav.tsx` and
+#: `BOTTOM_NAV_UNITS` in `capture_emulator.py`.
+BOTTOM_NAV_UNITS = 68
+
+
+def _stack(top: "Image.Image", bottom: "Image.Image") -> "Image.Image":
+    """Join two equal-width crops vertically, so the artefacts stay one picture of one screen."""
+    out = Image.new("RGB", (top.width, top.height + bottom.height))
+    out.paste(top, (0, 0))
+    out.paste(bottom, (0, top.height))
+    return out
+
+
 BOTTOM_ANCHORED_NODES = frozenset(
     {
         # leave
@@ -227,16 +241,70 @@ def compare(
 
     # Compare over the overlapping height only, and report what was left out. Which END is
     # dropped depends on where the frame's content is anchored (see BOTTOM_ANCHORED_NODES).
-    height = min(reference.height, scaled.height)
+    #
+    # ## A frame with a bottom nav is compared in TWO bands, not one
+    #
+    # The emulator gives 750 design units between its system bars, and most V14 frames want more
+    # -- `575:2137` is 789 units of content. The app's answer is the correct one: chrome keeps its
+    # size, the body flexes, and the nav stays on the bottom edge. But a single top-anchored
+    # comparison then lines the render's nav up against the reference's BODY, roughly 32 rows
+    # early, and scores a correct bar as a solid block of difference on all 33 nav-bearing frames
+    # -- while the reference's own nav rows fall past the overlap and go unscored entirely.
+    #
+    # So the two bands are compared the way the app actually anchors them: the body from the top,
+    # the nav from the bottom. Neither band is stretched to meet the other; the body rows that the
+    # device could not show are counted in `uncomparedReferenceRows` exactly as before, and the
+    # per-band numbers are written into `result.json` so the split is auditable rather than a
+    # quiet re-scoring.
+    nav_rows = round(BOTTOM_NAV_UNITS * crop.scale) if row.get("bottomNav") else 0
+    # Guard the arithmetic rather than trust it: a frame shorter than its own nav would silently
+    # invert these crops.
+    if nav_rows and (reference.height <= nav_rows or scaled.height <= nav_rows):
+        nav_rows = 0
+
     anchor = "bottom" if node_id in BOTTOM_ANCHORED_NODES else "top"
-    if anchor == "bottom":
-        ref_box = (0, reference.height - height, reference.width, reference.height)
-        emu_box = (0, scaled.height - height, reference.width, scaled.height)
+
+    if nav_rows:
+        ref_body = reference.crop((0, 0, reference.width, reference.height - nav_rows))
+        emu_body = scaled.crop((0, 0, reference.width, scaled.height - nav_rows))
+        body_h = min(ref_body.height, emu_body.height)
+        ref_view = ref_body.crop((0, 0, reference.width, body_h))
+        emu_view = emu_body.crop((0, 0, reference.width, body_h))
+        ref_nav = reference.crop(
+            (0, reference.height - nav_rows, reference.width, reference.height)
+        )
+        emu_nav = scaled.crop((0, scaled.height - nav_rows, reference.width, scaled.height))
+        # Stack body over nav so the overlay and diff images stay one picture of one screen.
+        ref_view = _stack(ref_view, ref_nav)
+        emu_view = _stack(emu_view, emu_nav)
+        height = body_h + nav_rows
+        uncompared = max(0, ref_body.height - body_h)
+        bands = {
+            "mode": "body top-anchored, nav bottom-anchored",
+            "navBandPx": nav_rows,
+            "bodyComparedPx": body_h,
+            "bodyReferencePx": ref_body.height,
+            "bodyUncomparedPx": uncompared,
+            "why": (
+                "The nav is fixed chrome on the bottom edge in both the design and the app, and "
+                "the body between them is what the shorter device has to give up. Comparing the "
+                "whole frame from the top would line the render's nav up against reference body "
+                "rows and score a correct bar as a total mismatch."
+            ),
+        }
     else:
-        ref_box = (0, 0, reference.width, height)
-        emu_box = (0, 0, reference.width, height)
-    ref_view = reference.crop(ref_box)
-    emu_view = scaled.crop(emu_box)
+        height = min(reference.height, scaled.height)
+        if anchor == "bottom":
+            ref_box = (0, reference.height - height, reference.width, reference.height)
+            emu_box = (0, scaled.height - height, reference.width, scaled.height)
+        else:
+            ref_box = (0, 0, reference.width, height)
+            emu_box = (0, 0, reference.width, height)
+        ref_view = reference.crop(ref_box)
+        emu_view = scaled.crop(emu_box)
+        uncompared = max(0, reference.height - height)
+        bands = {"mode": "single band", "navBandPx": 0}
+
     ref_a = np.asarray(ref_view).astype(np.int16)
     emu_a = np.asarray(emu_view).astype(np.int16)
 
@@ -322,7 +390,8 @@ def compare(
         "comparedHeightPx": height,
         "referenceHeightPx": reference.height,
         "emulatorScaledHeightPx": target_h,
-        "uncomparedReferenceRows": max(0, reference.height - height),
+        "uncomparedReferenceRows": uncompared,
+        "bandSplit": bands,
         "antialiasingTolerance": tolerance,
         "differingPixelPercent": round(100.0 * tol_diff / total, 4),
         "rawDifferingPixelPercent": round(100.0 * raw_diff / total, 4),

@@ -126,7 +126,7 @@ describe('575:2135 — 3a, daily log in', () => {
   it('asks the question and offers PRESENT', () => {
     render(<AttendanceScreen />);
     expect(screen.getByTestId('attendance-headline')).toHaveTextContent(
-      'aaj aap kaam pai aaye hai?',
+      'AAJ AAP KAAM PAI AAYE HAI?',
     );
     expect(screen.getByTestId('attendance-mark-present')).toBeTruthy();
   });
@@ -177,7 +177,7 @@ describe('575:2135 — 3a, daily log in', () => {
     // the server's record may change it.
     expect(mockMutate).toHaveBeenCalledTimes(1);
     expect(screen.getByTestId('attendance-headline')).toHaveTextContent(
-      'aaj aap kaam pai aaye hai?',
+      'AAJ AAP KAAM PAI AAYE HAI?',
     );
     expect(screen.queryByTestId('attendance-verdict')).toBeNull();
   });
@@ -212,7 +212,7 @@ describe('575:2137 — 3b, present', () => {
   it('renders the PRESENT verdict', () => {
     render(<AttendanceScreen />);
     expect(screen.getByTestId('attendance-headline')).toHaveTextContent(
-      'aaj aap kaam pai aaye hai.',
+      'AAJ AAP KAAM PAI AAYE HAI.',
     );
     expect(screen.getByTestId('attendance-verdict')).toHaveTextContent('Aaj ke liye PRESENT!');
   });
@@ -229,7 +229,7 @@ describe('575:2138 — 3c, absent', () => {
     profile({ status: 'absent', checkInAt: null, onTime: null });
     render(<AttendanceScreen />);
     expect(screen.getByTestId('attendance-headline')).toHaveTextContent(
-      'aaj aap kaam pai NAHI aaye hai.',
+      'AAJ AAP KAAM PAI NAHI AAYE HAI.',
     );
     expect(screen.getByTestId('attendance-verdict')).toHaveTextContent('Aaj ke liye ABSENT!');
     expect(screen.queryByTestId('attendance-mark-present')).toBeNull();

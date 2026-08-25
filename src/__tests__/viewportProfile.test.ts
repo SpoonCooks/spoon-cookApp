@@ -95,16 +95,37 @@ describe('viewport profiles', () => {
     expect(viewportProfile('540:416').statusBandHeight).toBe(LEAVE_STATUS_BAND_HEIGHT);
   });
 
-  it('lists the leave sheets as bottom-anchored, and nothing else', () => {
-    // The three sheets are 96 design units taller than the emulator can show. Aligning them by
-    // their first row would displace every element in them; the harness aligns them by the last.
-    const match = /BOTTOM_ANCHORED_NODES = frozenset\(\{([^}]*)\}\)/.exec(comparePy);
+  it('lists every bottom sheet as bottom-anchored, and nothing else', () => {
+    // A sheet is 96 design units taller than the emulator can show, and the rows that cannot be
+    // shown are at the TOP, where they are scrim. Aligning one by its first row would displace
+    // every element in it, so the harness aligns them by their last.
+    //
+    // The five `Info` rule sheets belong here for exactly the reason the three `leave` sheets do:
+    // in the committed canvas dump each is a 36.198 status mock at y=0, one content child over a
+    // scrim, and no nav of any kind. They were missing, and all five were reported displaced.
+    const match = /BOTTOM_ANCHORED_NODES = frozenset\(\s*\{([\s\S]*?)\}\s*\)/.exec(comparePy);
     const nodes = (match?.[1] ?? '')
+      // `\r?\n`, not `\n`: the file is checked out CRLF, and a stray `\r` is a line terminator
+      // that `.` will not match — so `#.*$` would silently strip no comment at all.
+      .split(/\r?\n/)
+      .map((line) => line.replace(/#.*$/, '').trim())
+      .join('')
       .split(',')
       .map((entry) => entry.trim().replace(/"/g, ''))
-      .filter((entry) => entry.length > 0)
+      .filter((entry) => /^\d+:\d+$/.test(entry))
       .sort();
-    expect(nodes).toEqual(['592:563', '592:639', '592:888']);
+    expect(nodes).toEqual(
+      [
+        '592:563',
+        '592:639',
+        '592:888',
+        '597:1221',
+        '603:1865',
+        '603:1924',
+        '605:2027',
+        '605:2094',
+      ].sort(),
+    );
   });
 
   it('rejects an unknown section rather than guessing a convention', () => {

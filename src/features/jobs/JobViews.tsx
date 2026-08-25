@@ -1,4 +1,5 @@
 import { Image, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
   defaultJobUrgency,
@@ -174,9 +175,20 @@ export function JobsView({
 }: JobsViewProps): React.ReactElement {
   const scale = useDesignScale();
   const { s } = scale;
+  const insets = useSafeAreaInsets();
 
   return (
     <View style={styles.flex}>
+      {/*
+       * The OS owns the status band; this screen starts below it.
+       *
+       * `583:*` draws a 32-unit status mock at y=0 the way every `direct` frame does, and the app
+       * must never reproduce it — it has to sit below the real inset instead. Without this the top
+       * nav was drawn over the system clock and the whole screen rendered one status-bar height
+       * high, which the V14 pixel run measured as a 10-unit displacement on all five job frames.
+       * Every other section already did this; `jobs` was the one that did not.
+       */}
+      <View style={{ height: insets.top }} />
       <View
         style={[
           styles.nav,

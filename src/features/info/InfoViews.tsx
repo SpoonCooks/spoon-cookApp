@@ -6,6 +6,7 @@ import {
   View,
   type ImageSourcePropType,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { chipLabels, niyamIndexChips, type RuleIcon, type RuleKey, type RuleSheet } from './rules';
 import {
@@ -139,9 +140,16 @@ export interface NiyamIndexViewProps {
 export function NiyamIndexView({ onOpenRule, onHelp }: NiyamIndexViewProps): React.ReactElement {
   const scale = useDesignScale();
   const { s } = scale;
+  const insets = useSafeAreaInsets();
 
   return (
     <View style={styles.screen}>
+      {/*
+       * `597:1131` draws the 32-unit `phone bar` at y=0. That band is the OS's, so the screen
+       * starts below the real inset — the same thing every other destination does, and what this
+       * one was missing when the pixel run measured it 10 units high.
+       */}
+      <View style={{ height: insets.top }} />
       <TopNavBar title="Jaankari" titleVariant="screenTitle" onHelp={onHelp} testID="niyam-nav" />
       <ScrollView
         contentContainerStyle={[styles.indexBody, { padding: s(INDEX.padding), gap: s(INDEX.gap) }]}
@@ -326,9 +334,20 @@ export function RuleSheetView({
 }: RuleSheetViewProps): React.ReactElement {
   const scale = useDesignScale();
   const { s } = scale;
+  const insets = useSafeAreaInsets();
 
   return (
-    <View style={styles.scrim} testID={`rule-sheet-${sheet.key}`}>
+    /*
+     * The scrim runs edge to edge — including behind the status band, which is what the design
+     * draws — but the SHEET stops above the device's navigation bar, exactly as the `leave`
+     * sheets do. Without the bottom inset the sheet sat flush to the window edge, its last rows
+     * under the system bar, and since these five frames are compared by their LAST row that
+     * displaced every element in all five.
+     */
+    <View
+      style={[styles.scrim, { paddingBottom: insets.bottom }]}
+      testID={`rule-sheet-${sheet.key}`}
+    >
       <View
         style={[
           styles.sheet,
