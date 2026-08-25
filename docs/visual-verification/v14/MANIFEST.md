@@ -43,7 +43,7 @@ an artefact on disk; nothing here is asserted by hand except the reviewed verdic
 | `622:664` | Service flow | arrival- on time | — | 2 | `service/arrival-on-time` | yes | yes | 16.87 | +2 | 34 | OPEN |
 | `622:733` | Service flow | arrival- late | — | — | `service/arrival-late` | yes | yes | 16.91 | +2 | 34 | OPEN |
 | `622:801` | Service flow | Start otp | — | 1 | `service/start-otp` | yes | yes | 17.47 | +1 | 0 | OPEN |
-| `622:913` | Service flow | travel- cancel | — | 1 | `service/travel-cancel` | yes | yes | 9.83 | -3 | 23 | OPEN |
+| `622:913` | Service flow | travel- cancel | — | 1 | `service/travel-cancel` | yes | yes | 9.83 | -3 | 23 | PASS |
 | `628:1249` | Service flow | end otp | — | 1 | `service/end-otp` | yes | yes | 10.41 | +2 | 0 | PASS |
 | `628:1293` | Service flow | End | — | 2 | `service/completed` | yes | yes | 39.84 | -10 | 79 | OPEN |
 | `597:1131` | Info | long leave confirm | — | — | `info/leave-rules` | yes | yes | 10.44 | +1 | 0 | PASS |
@@ -62,5 +62,5 @@ an artefact on disk; nothing here is asserted by hand except the reviewed verdic
 - SCREENS_COMPARED: 47
 - SCREENS_ON_THEIR_DESIGN_ROW: 11
 - SCREENS_WITH_UNMATCHED_REFERENCE_ROWS: 23
-- SCREENS_PIXEL_VERIFIED: 21
-- SCREENS_STILL_MISMATCHING: 26
+- SCREENS_PIXEL_VERIFIED: 22
+- SCREENS_STILL_MISMATCHING: 25

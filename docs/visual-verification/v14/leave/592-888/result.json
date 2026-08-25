@@ -99,5 +99,11 @@
     "percentAtBestOffset": 5.5945,
     "note": "0 means the render is on its design row and the residual is rasterisation. A non-zero offset is a real layout error even when the headline percentage is low."
   },
-  "verdict": "PENDING_REVIEW"
+  "verdict": "PENDING_REVIEW",
+  "topAlignment": {
+    "referenceFirstInkUnits": -0.2,
+    "renderFirstInkUnits": 0.0,
+    "deltaUnits": 0.2,
+    "note": "Design units between each side's first painted row and the first row the application owns. Read WITH displacementProbe, never instead of it: the probe optimises over the whole frame and drifts to a neighbouring element on a repetitive layout, so a non-zero probe offset with a delta near zero means the screen is placed correctly and differs in its content."
+  }
 }

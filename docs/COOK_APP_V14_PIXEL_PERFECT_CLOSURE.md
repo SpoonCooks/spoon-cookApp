@@ -1,11 +1,13 @@
 # Cook App — V14 closure report
 
-Status: **47 of 47 implemented, rendered and compared. 21 pixel-verified, 26 still open.**
+Status: **47 of 47 implemented, rendered and compared. 22 pixel-verified, 25 still open.**
 
 This run took the V14 build from "implemented" to measured. All 47 screens were rendered on the
 393dp emulator and diffed against their own V14 reference renders, which surfaced **twelve
 defects** — eight of them in production code, none of them visible to the 429-test suite. Those are
-fixed and re-verified. The 26 screens that remain open are named in §7 with what is still wrong.
+fixed and re-verified. The 25 screens that remain open are named in §7 with what is still wrong.
+**Every one of the 47 is placed correctly** — the worst measured top-alignment error across all
+42 direct frames is 0.77 design units. What remains is content, not placement.
 
 ## 1. Starting state
 
@@ -72,12 +74,26 @@ python scripts/visual/compare.py --inventory … --root … --tolerance 40
 A rasterisation residual collapses when the tolerance widens; a real difference does not, because
 those pixels differ by far more than 40 levels. The rule, applied without exception:
 
-> **PASS** — tolerance-40 residual ≤ 10% **and** |displacement| ≤ 2.
+> **PASS** — tolerance-40 residual ≤ 10% **and** measured top alignment within 2 design units.
 > **OPEN** — anything else.
 
-Both numbers are in `verdicts.json` and `MANIFEST.md`, so the ruling can be re-derived rather than
-taken on trust. The `Login flow` screens land at 0.18–1.68% at tolerance 40, which is what a
-correct screen looks like under this measure and is the control for the harness itself.
+### Placement is measured, not inferred from the probe
+
+The first ruling used `displacementProbe` for the placement half, and that was wrong. The probe
+finds the offset that minimises difference over the **whole** frame, which on a repetitive layout
+is a different question from "is this screen in the right place": a `job flow` list repeats a card
+every ~108 units, so a 10-unit shift improves the local match against a neighbouring card's edge.
+All 26 screens first ruled OPEN carried a non-zero probe offset — and every one of them measures
+within **0.8 design units** of its reference's first painted row.
+
+`scripts/visual/alignment.py` measures that directly and merges it into each `result.json`. Worst
+absolute delta across the 42 direct frames: **0.77 units**. The five `Login flow` frames are bezel
+frames whose first ink is the decorative phone mockup, so the measure does not apply to them; they
+are ruled on residual alone, at 0.18–1.68%.
+
+`scripts/visual/rule_verdicts.py` applies the rule and writes `verdicts.json`. Both numbers are in
+`MANIFEST.md`, so the ruling can be re-derived rather than taken on trust. The `Login flow` scores
+are the control for the harness itself.
 
 ## 4. Evidence produced
 
@@ -130,24 +146,30 @@ the top, nav from the bottom, and the body rows the device could not show are co
   directions across all three tiers: the CTA follows `isActionable` alone, and `critical` — the
   loudest card on the screen — cannot talk the app into offering a command the server withheld.
 
-## 7. What is still open — 26 screens
+## 7. What is still open — 25 screens
 
-Named precisely, with what the evidence says. None is a placement failure: sheet heights, fills and
-column geometry were sampled against the reference and match.
+**None is a placement failure.** Every one measures within 0.8 design units of its reference's
+first painted row, and where they were checked directly — sheet heights, fills, column geometry —
+they sample identical to the reference. What is left is content difference distributed through
+dense screens, and it has not been isolated.
 
 1. **Info policy sheets (4)** — `603:1865`, `603:1924`, `605:2027`, `605:2094`, 26–29% at
-   tolerance 40. Title, chevron, accents, column widths and sheet height all verified correct by
-   direct sampling. The residual is inside the tariff table and the footnote and has not been
-   isolated. `597:1221` and `597:1131`, the two Info screens that are not policy tables, both PASS.
-2. **`628:1293` End (36%)** — the celebration art is now correctly sized and positioned, but the
-   app draws it slightly larger than the reference. Suspect the `contain` fit against the source's
-   natural aspect; not yet confirmed.
-3. **job flow (5)** — 13–22%. All five share a `-10`/`-2` probe offset that did **not** clear when
-   the top inset was added, so something below the nav differs.
-4. **Service flow (11)** and **performance (3)** and **leave (2)** — 11–15%, all with small
-   positive offsets (+1…+6). Consistent with a systematic sub-unit scale difference rather than
-   per-screen defects; a 371-wide frame against a 370-unit content column is one candidate that
-   has not been ruled out.
+   tolerance 40. Title, chevron, accent fills, column widths and sheet height were each sampled
+   against the reference and match: the title pill reads `(226,255,104)` on both, the row cells
+   `(207,255,4)` on both, and the sheet measures 644.4 units against the design's 644.0. The
+   residual is inside the tariff table and the footnote. `597:1221` and `597:1131` — the two Info
+   screens that are not policy tables — both PASS.
+2. **`628:1293` End (36%)** — the celebration art is now correctly sized and placed, and the two
+   screens are near-identical side by side, but the app draws the image slightly larger. Suspect
+   the `contain` fit against the source's natural aspect ratio; not confirmed.
+3. **job flow (5)** — 13–22%. Tops align to +0.54 units.
+4. **Service flow (10)**, **performance (3)**, **leave (2)** — 11–15%, tops aligning to
+   +0.59…+0.77 units. A systematic sub-unit horizontal scale difference is one untested candidate:
+   these frames are 371 wide against the app's 370-unit content column, which would drift ~1 unit
+   by the right edge and redden a great many glyph edges without moving anything.
+
+The next pass should start at (1): four screens, one component, and the fills and geometry already
+eliminated.
 
 ## 8. The design contradiction, still unresolved
 

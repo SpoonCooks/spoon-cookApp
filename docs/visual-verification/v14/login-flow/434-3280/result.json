@@ -99,5 +99,8 @@
     "percentAtBestOffset": 4.7568,
     "note": "0 means the render is on its design row and the residual is rasterisation. A non-zero offset is a real layout error even when the headline percentage is low."
   },
-  "verdict": "PENDING_REVIEW"
+  "verdict": "PENDING_REVIEW",
+  "topAlignment": {
+    "notApplicable": "bezel frame; first ink is the phone mockup's border"
+  }
 }
