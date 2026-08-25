@@ -33,9 +33,11 @@ import { color, dropShadow } from '../theme/tokens';
  * a calendar), but substituting one would put artwork on screen that the design does not contain,
  * so the exported bytes are used and committed.
  *
- * Each glyph is drawn `contain` into the full 50x26 icon box rather than at a fixed size: the five
- * bitmaps do not share an aspect ratio, and fixing either dimension would crop or letterbox some
- * of them. This mirrors the design, where the `<img>` is `absolute inset-0 object-contain`.
+ * Each glyph is drawn `contain` into the full 50x26 icon box: the five bitmaps do not share an
+ * aspect ratio, so `contain` is what keeps every one of them whole. The box is `50` because the
+ * tab is `58` wide with `4` of padding either side.
+ *
+ * Both the box and the image state that size in NUMBERS, and they have to — see `iconBox` below.
  */
 
 /** The five destinations, in the order V14 draws them left to right. */
@@ -86,8 +88,9 @@ const NAV = {
   gap: 10,
   tabPadding: 4,
   tabRadius: 5,
+  /** The glyph box: the tab's `58` less `4` of padding either side. */
+  iconWidth: 50,
   iconHeight: 26,
-  iconPaddingH: 8,
   labelGap: 2,
 } as const;
 
@@ -133,14 +136,11 @@ export function BottomNav({ active, onSelect, testID }: BottomNavProps): React.R
               testID={`bottom-nav-${tab.id}`}
             >
               <View
-                style={[
-                  styles.iconBox,
-                  { height: s(NAV.iconHeight), paddingHorizontal: s(NAV.iconPaddingH) },
-                ]}
+                style={[styles.iconBox, { width: s(NAV.iconWidth), height: s(NAV.iconHeight) }]}
               >
                 <Image
                   source={tab.icon}
-                  style={StyleSheet.absoluteFill}
+                  style={{ width: s(NAV.iconWidth), height: s(NAV.iconHeight) }}
                   resizeMode="contain"
                   accessibilityIgnoresInvertColors
                 />
@@ -194,8 +194,22 @@ const styles = StyleSheet.create({
   },
   /** `634:2484` — the active destination's `#ffef99` pill. */
   tabActive: { backgroundColor: color.yellow300 },
+  /**
+   * The glyph box carries an explicit size, and that is not a stylistic preference.
+   *
+   * The design writes this `<img>` as `absolute inset-0 object-contain size-full` inside a
+   * `w-full` box, and the first port took it literally: `alignSelf: 'stretch'` for the box and
+   * `StyleSheet.absoluteFill` for the image. On device all five glyphs rendered BLANK while the
+   * labels and the `#ffef99` pill drew perfectly — so the bar looked finished in review, and only
+   * a diff against the reference showed the icons were missing.
+   *
+   * The box collapses. Nothing is left in its flow once the image is positioned absolutely, so it
+   * measures to zero width and an absolutely-inset child of a zero-width box paints nothing. The
+   * label box survives the same `alignSelf` only because a `Text` gives it something to measure.
+   *
+   * `50 x 26` is the box the design draws, said in numbers that cannot collapse to nothing.
+   */
   iconBox: {
-    alignSelf: 'stretch',
     alignItems: 'center',
     justifyContent: 'center',
   },
