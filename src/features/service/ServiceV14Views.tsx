@@ -76,7 +76,12 @@ const TRAVEL = {
 } as const;
 
 /** `468:3940` — the arrival banner: a full-width illustration over a centred headline. */
-const ARRIVAL = { artHeight: 150, artPadding: 10, gap: 10 } as const;
+/**
+ * `468:3941` — the arrival art, `330 x 150` inside the 338-wide status banner.
+ *
+ * The width is STATED, not stretched. See `promoArt` below for what stretching cost.
+ */
+const ARRIVAL = { artWidth: 330, artHeight: 150, artPadding: 10, gap: 10 } as const;
 
 /** `468:4045` — `Pahauch gaye`. */
 const ARRIVED_CTA = { radius: 15, paddingH: 12, paddingV: 6, gap: 12, glyph: 40 } as const;
@@ -127,7 +132,28 @@ const OTP_BLOCK = {
 } as const;
 
 /** `473:4192` — the promo block under the OTP. */
-const PROMO = { gap: 6, paddingH: 12, paddingV: 6, radius: 20 } as const;
+/**
+ * `473:4193`, `628:1252`, `485:4930` — the promo art blocks.
+ *
+ * All three are `Frame 50`, all three are **314** wide, and only the height changes: 217 on
+ * `622:801`, 245 on `628:1249`, 336 on `628:1293`.
+ */
+const PROMO = { gap: 6, paddingH: 12, paddingV: 6, radius: 20, artWidth: 314 } as const;
+
+/**
+ * `622:1022` — the cancelled-booking art.
+ *
+ * Every art box in this file states its size in NUMBERS rather than filling its parent with
+ * `StyleSheet.absoluteFill`. That was the original port of the design's `absolute inset-0`, and on
+ * this Fabric build it does not measure: the celebration art on `628:1293` rendered at roughly
+ * four times its box and overflowed it, and this one drew behind the CTA and the customer card.
+ * The same failure blanked all five bottom-nav glyphs. An absolutely-positioned child leaves
+ * nothing in the box's flow, and what the box then measures to is not the design's.
+ */
+const CANCEL_ART = { width: 328, height: 214 } as const;
+
+/** `485:4930` — the celebration art on `628:1293`, the tallest of the three `Frame 50`s. */
+const COMPLETED_ART_HEIGHT = 336;
 
 /** `479:4353` — the cooking card. */
 const COOK = {
@@ -235,11 +261,18 @@ function ServiceShell({
   gap = BODY.gap,
   onHelp,
   testID,
+  title = 'Active job',
 }: {
   children: React.ReactNode;
   gap?: number;
   onHelp?: (() => void) | undefined;
   testID?: string;
+  /**
+   * The nav title. `Active job` on twelve of the thirteen Service frames, and `Jaankari` on
+   * `622:913` — read out of the reference renders rather than the layer names, which are stale in
+   * this file (`628:1316` is NAMED `Serving at` and READS `Active job`).
+   */
+  title?: string;
 }): React.ReactElement {
   const { s } = useDesignScale();
   return (
@@ -252,7 +285,7 @@ function ServiceShell({
       >
         <View style={{ width: s(NAV.titleWidth) }}>
           <Text variant="screenTitle" color={color.black} testID="service-nav-title">
-            Active job
+            {title}
           </Text>
         </View>
         <HelpPill onPress={onHelp} testID="service-nav-help" />
@@ -292,11 +325,18 @@ function UserDetailsCard({
   onMap,
   onCall,
   showCall = true,
+  showMap = true,
 }: {
   job: JobSummary;
   onMap?: (() => void) | undefined;
   onCall?: (() => void) | undefined;
   showCall?: boolean;
+  /**
+   * `622:913` draws the card WITHOUT `Map dekhe`, which is why this exists alongside `showCall`.
+   * The booking is cancelled: there is nowhere left to navigate to, and the design's own card is
+   * 230 units tall there against 332 everywhere else — the difference is this row.
+   */
+  showMap?: boolean;
 }): React.ReactElement {
   const scale = useDesignScale();
   const { s } = scale;
@@ -317,14 +357,16 @@ function UserDetailsCard({
         ]}
         testID="service-details"
       >
-        <ActionButton
-          label="Map dekhe"
-          glyph={art.mapPin}
-          fill={color.lime600}
-          onPress={onMap}
-          scale={scale}
-          testID="service-map"
-        />
+        {showMap && (
+          <ActionButton
+            label="Map dekhe"
+            glyph={art.mapPin}
+            fill={color.lime600}
+            onPress={onMap}
+            scale={scale}
+            testID="service-map"
+          />
+        )}
 
         <View
           style={[
@@ -483,7 +525,7 @@ export function TravelView({
           >
             <Image
               source={tier.art}
-              style={StyleSheet.absoluteFill}
+              style={{ width: s(TRAVEL.artWidth), height: s(TRAVEL.artHeight) }}
               resizeMode="contain"
               accessibilityIgnoresInvertColors
             />
@@ -561,13 +603,13 @@ export function TravelCancelledView({
   const scale = useDesignScale();
   const { s } = scale;
   return (
-    <ServiceShell onHelp={onHelp} testID="service-travel-cancelled">
+    <ServiceShell title="Jaankari" onHelp={onHelp} testID="service-travel-cancelled">
       <Block>
         <View style={styles.cancelBanner}>
-          <View style={{ width: s(328), height: s(214) }}>
+          <View style={{ width: s(CANCEL_ART.width), height: s(CANCEL_ART.height) }}>
             <Image
               source={art.cancelled}
-              style={StyleSheet.absoluteFill}
+              style={{ width: s(CANCEL_ART.width), height: s(CANCEL_ART.height) }}
               resizeMode="contain"
               accessibilityIgnoresInvertColors
             />
@@ -587,8 +629,12 @@ export function TravelCancelledView({
           testID="service-see-jobs"
         />
       </Block>
-      {/* The cancelled frame drops `Call kare`: there is no longer a customer to ring. */}
-      <UserDetailsCard job={job} onMap={onMap} showCall={false} />
+      {/*
+       * The cancelled frame drops BOTH actions. There is no longer a customer to ring, and
+       * nowhere to navigate to — `622:923` draws neither row, which is why its card is 230 units
+       * tall where every other Service frame's is 332.
+       */}
+      <UserDetailsCard job={job} showCall={false} showMap={false} />
     </ServiceShell>
   );
 }
@@ -619,14 +665,14 @@ export function ArrivalView({
         <View style={[styles.arrivalBanner, { gap: s(ARRIVAL.gap) }]}>
           <View
             style={{
-              alignSelf: 'stretch',
+              width: s(ARRIVAL.artWidth),
               height: s(ARRIVAL.artHeight),
               padding: s(ARRIVAL.artPadding),
             }}
           >
             <Image
               source={art.arrival}
-              style={StyleSheet.absoluteFill}
+              style={{ width: s(ARRIVAL.artWidth), height: s(ARRIVAL.artHeight) }}
               resizeMode="contain"
               accessibilityIgnoresInvertColors
             />
@@ -785,7 +831,7 @@ function PromoBlock({
     <View
       key="image"
       style={{
-        alignSelf: 'stretch',
+        width: s(PROMO.artWidth),
         height: s(height),
         borderRadius: s(PROMO.radius),
         overflow: 'hidden',
@@ -793,7 +839,7 @@ function PromoBlock({
     >
       <Image
         source={source}
-        style={StyleSheet.absoluteFill}
+        style={{ width: s(PROMO.artWidth), height: s(height) }}
         resizeMode="cover"
         accessibilityIgnoresInvertColors
       />
@@ -1140,10 +1186,10 @@ export function CompletedView({
         <Text variant="completedHeadline" color={color.black} align="center" style={styles.stretch}>
           Agle booking mein bhi accha kaam kare!
         </Text>
-        <View style={{ alignSelf: 'stretch', height: s(336) }}>
+        <View style={{ width: s(PROMO.artWidth), height: s(COMPLETED_ART_HEIGHT) }}>
           <Image
             source={art.completed}
-            style={StyleSheet.absoluteFill}
+            style={{ width: s(PROMO.artWidth), height: s(COMPLETED_ART_HEIGHT) }}
             resizeMode="contain"
             accessibilityIgnoresInvertColors
           />
