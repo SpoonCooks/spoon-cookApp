@@ -103,6 +103,8 @@ const POLICY = {
   tableFirstColumn: 175,
   cellHeight: 35,
   cellRadius: 5,
+  /** `603:1960` — a header chip's radius. Three times the data cells' 5. */
+  headerRadius: 15,
   footRadius: 5,
   footPaddingH: 12,
   footPaddingV: 8,
@@ -417,7 +419,15 @@ export function RuleSheetView({
           <HelpPill size="compact" onPress={onHelp} testID={`rule-help-${sheet.key}`} />
         </View>
 
-        <View style={[styles.block, { paddingHorizontal: s(SHEET.blockPaddingH) }]}>
+        <View
+          style={[
+            styles.block,
+            {
+              paddingHorizontal: s(SHEET.blockPaddingH),
+              paddingVertical: s(sheet.blurbPaddingV),
+            },
+          ]}
+        >
           <View style={[styles.blurb, { gap: s(BLURB.gap), borderRadius: s(BLURB.radius) }]}>
             <Image
               source={RULE_ICONS[sheet.icon]}
@@ -425,7 +435,22 @@ export function RuleSheetView({
               resizeMode="contain"
               accessibilityIgnoresInvertColors
             />
-            <Text variant="timeStrong" color={color.black} align="center">
+            {/*
+             * A MINIMUM width, not a fixed one.
+             *
+             * V14 fixes this line at 247–291 units and centres the icon-plus-line pair inside the
+             * block, so the width is what decides where the ICON lands. But Android measures
+             * `NO SHOW: booking pe nahi jaana` about two units wider than Figma lays it out, and
+             * a hard 291 wrapped `jaana` onto a second line — a far worse error than the unit of
+             * icon drift the width exists to remove. A minimum gives the design's geometry
+             * wherever the platform agrees, and one line wherever it does not.
+             */}
+            <Text
+              variant="timeStrong"
+              color={color.black}
+              align="center"
+              style={{ minWidth: s(sheet.blurbWidth) }}
+            >
               {sheet.blurb}
             </Text>
           </View>
@@ -460,14 +485,32 @@ export function RuleSheetView({
               },
             ]}
           >
-            <Text variant="title" color={color.danger} style={styles.flexOne}>
+            <Text
+              variant="title"
+              color={color.danger}
+              style={
+                sheet.standingLabelWidth === null
+                  ? styles.flexOne
+                  : { width: s(sheet.standingLabelWidth) }
+              }
+            >
               {sheet.standingLabel}
             </Text>
+            {/*
+             * Centred in its own box, which is what every one of the five frames draws. Aligning
+             * it to the right instead put `6` hard against the row's inner edge, twenty-two units
+             * past where the design's 58-unit box centres it.
+             */}
             <Text
               variant="chipLabel"
               color={color.black}
-              align="right"
+              align="center"
               numberOfLines={1}
+              style={
+                sheet.standingValueWidth === null
+                  ? styles.flexOne
+                  : { width: s(sheet.standingValueWidth) }
+              }
               testID={`rule-standing-${sheet.key}`}
             >
               {standingValue}
@@ -475,34 +518,42 @@ export function RuleSheetView({
           </View>
         </View>
 
-        <View
-          style={[
-            styles.cta,
-            {
-              bottom: s(SHEET.ctaBottom),
+        {/*
+         * `left: 0, right: 0` and a centred 338-unit child, NOT a bare `width: 338`.
+         *
+         * The design writes `left: calc(50% - 0.5px)` with `translateX(-50%)`, which lands the
+         * block at x=16 in the 371 frame. An absolute child with neither edge set takes Yoga's
+         * static position, which is the sheet's border-box origin -- x=0 -- so the whole button
+         * drew sixteen units left of its design column on all five sheets. Pinning both edges
+         * makes the answer the same whether the containing block is read as the padding box or
+         * the border box: 371 minus 338 and 339 minus 338 both centre on x=16.5.
+         */}
+        <View style={[styles.cta, { bottom: s(SHEET.ctaBottom) }]}>
+          <View
+            style={{
               width: s(SHEET.ctaWidth),
               paddingHorizontal: s(SHEET.blockPaddingH),
               paddingVertical: s(SHEET.blockPaddingV),
-            },
-          ]}
-        >
-          <Pressable
-            accessibilityRole="button"
-            onPress={onAcknowledge}
-            style={[
-              styles.ctaButton,
-              {
-                borderRadius: s(CTA.radius),
-                paddingHorizontal: s(CTA.paddingH),
-                paddingVertical: s(CTA.paddingV),
-              },
-            ]}
-            testID={`rule-ack-${sheet.key}`}
+            }}
           >
-            <Text variant="screenTitle" color={color.black} align="center">
-              Samajh gyi
-            </Text>
-          </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              onPress={onAcknowledge}
+              style={[
+                styles.ctaButton,
+                {
+                  borderRadius: s(CTA.radius),
+                  paddingHorizontal: s(CTA.paddingH),
+                  paddingVertical: s(CTA.paddingV),
+                },
+              ]}
+              testID={`rule-ack-${sheet.key}`}
+            >
+              <Text variant="screenTitle" color={color.black} align="center">
+                Samajh gyi
+              </Text>
+            </Pressable>
+          </View>
         </View>
       </View>
     </View>
@@ -642,10 +693,10 @@ function PolicyBody({
                 style={[
                   styles.cell,
                   { width: s(body.columnWidths[index] ?? POLICY.tableFirstColumn) },
-                  { backgroundColor: body.accent.chip, borderRadius: s(POLICY.cellRadius) },
+                  { backgroundColor: body.accent.chip, borderRadius: s(POLICY.headerRadius) },
                 ]}
               >
-                <Text variant="title" color={color.black} align="center">
+                <Text variant="policyHeaderCell" color={color.black} align="center">
                   {label}
                 </Text>
               </View>
@@ -670,7 +721,11 @@ function PolicyBody({
                   { backgroundColor: body.rowFill, borderRadius: s(POLICY.cellRadius) },
                 ]}
               >
-                <Text variant="policyCell" color={color.black} align="center">
+                <Text
+                  variant={body.cellFontSize === 20 ? 'policyCell' : 'policyCellSm'}
+                  color={color.black}
+                  align="center"
+                >
                   {cellText}
                 </Text>
               </View>
@@ -690,10 +745,21 @@ function PolicyBody({
           },
         ]}
       >
-        <Text variant="ruleFootnote" color={color.black} align="center" style={styles.flexOne}>
+        <Text
+          variant={body.footnoteTracking === 0 ? 'ruleFootnotePlain' : 'ruleFootnote'}
+          color={color.black}
+          align="center"
+          style={styles.flexOne}
+        >
           {body.footnote.map((segment, index) =>
             segment.strong === true ? (
-              <Text key={index} variant="ruleFootnoteStrong" color={color.black}>
+              <Text
+                key={index}
+                variant={
+                  body.footnoteTracking === 0 ? 'ruleFootnotePlainStrong' : 'ruleFootnoteStrong'
+                }
+                color={color.black}
+              >
                 {segment.text}
               </Text>
             ) : (
@@ -780,7 +846,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
 
-  cta: { position: 'absolute', alignItems: 'center', justifyContent: 'center' },
+  cta: { position: 'absolute', left: 0, right: 0, alignItems: 'center' },
   ctaButton: {
     alignSelf: 'stretch',
     flexDirection: 'row',

@@ -168,7 +168,10 @@ export const textStyle = {
     lineHeight: lineHeight.s,
     color: color.textPrimary,
   },
-  /** `603:1902` — a policy-table cell. Livvic SemiBold **20** on a 16 line. */
+  /**
+   * `603:1902` / `605:2131` — a policy-table cell on a **two-column** sheet. Livvic SemiBold 20
+   * on a 16 line.
+   */
   policyCell: {
     fontFamily: fontFamily.semibold,
     fontSize: fontSize.xxxl,
@@ -176,8 +179,37 @@ export const textStyle = {
     color: color.textPrimary,
   },
   /**
-   * `603:1918` — the footnote under a policy table. Livvic SemiBold 18 on a **27** line with
-   * 0.18 tracking, with Bold spans for the emphasised figures.
+   * `603:1967` / `609:331` — a policy-table cell on a **three-column** sheet. Livvic SemiBold
+   * **18** on the same 16 line.
+   *
+   * The two are not one variant. `Extra hours` and `5+ rating` have to fit `+₹13,500` into a
+   * 100-unit column and `+₹4,800` into an 86-unit one, so V14 drops them two points; the
+   * two-column sheets have 96 units for `-₹300` and keep 20. Rendering all four at 20 widened
+   * every figure on the two bonus sheets.
+   */
+  policyCellSm: {
+    fontFamily: fontFamily.semibold,
+    fontSize: fontSize.xxl,
+    lineHeight: lineHeight.s,
+    color: color.textPrimary,
+  },
+  /**
+   * `603:1961` / `609:325` — a policy-table **header** chip. Livvic Bold 18 on a 28 line.
+   *
+   * Not `ruleCell`: the rating matrix's header (`598:1355`) is Bold 16 on a 24 line and these are
+   * Bold 18 on a 28. Two design units of type and four of leading across `Ghante`, `Din` and
+   * `Mahina` is a visible difference, and the chips they sit in carry a 15-unit radius against the
+   * data cells' 5.
+   */
+  policyHeaderCell: {
+    fontFamily: fontFamily.bold,
+    fontSize: fontSize.xxl,
+    lineHeight: lineHeight.xxl,
+    color: color.textPrimary,
+  },
+  /**
+   * `603:1918` / `605:2143` — the footnote under a **penalty** policy table. Livvic SemiBold 18
+   * on a **27** line with 0.18 tracking, with Bold spans for the emphasised figures.
    */
   ruleFootnote: {
     fontFamily: fontFamily.semibold,
@@ -191,6 +223,27 @@ export const textStyle = {
     fontSize: fontSize.xxl,
     lineHeight: 27,
     letterSpacing: 0.18,
+    color: color.textPrimary,
+  },
+  /**
+   * `603:1973` / `609:349` — the same footnote on a **bonus** sheet, with NO tracking.
+   *
+   * V14 sets 0.18 on the two penalty sheets and none on the two bonus ones. It is 0.18 of a unit
+   * per character, which sounds like nothing until a 28-character line is two units wider than
+   * its box and wraps a word early: `Har ghar se 5+ laane ka ₹100` came off the first line on
+   * `605:2027` and took `bonus hai` down with it. Named after `actionLabelPlain`, which exists
+   * for the same reason.
+   */
+  ruleFootnotePlain: {
+    fontFamily: fontFamily.semibold,
+    fontSize: fontSize.xxl,
+    lineHeight: 27,
+    color: color.textPrimary,
+  },
+  ruleFootnotePlainStrong: {
+    fontFamily: fontFamily.bold,
+    fontSize: fontSize.xxl,
+    lineHeight: 27,
     color: color.textPrimary,
   },
   /** `462:3729` — an address line on the customer card. Livvic Black 18 on a **20** line. */

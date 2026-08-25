@@ -74,6 +74,20 @@ export interface RulePolicyBody {
    * comparisons were still scoring.
    */
   readonly columnWidths: readonly number[];
+  /**
+   * The type size of a data cell, in design units, exactly as the frame states it.
+   *
+   * `603:1902` and `605:2131` are 20; `603:1967` and `609:331` are **18**. The two bonus sheets
+   * have a third column and drop two points to fit `+₹13,500`.
+   */
+  readonly cellFontSize: 18 | 20;
+  /**
+   * Letter spacing on the footnote, in design units, exactly as the frame states it.
+   *
+   * 0.18 on the two penalty sheets (`603:1918`, `605:2143`), **0** on the two bonus ones
+   * (`603:1973`, `609:349`). It changes where the run wraps.
+   */
+  readonly footnoteTracking: 0 | 0.18;
   /** The pill and header-chip fills. See {@link PolicyAccent}. */
   readonly accent: PolicyAccent;
   readonly footnote: readonly { readonly text: string; readonly strong?: boolean }[];
@@ -90,6 +104,27 @@ export interface RuleSheet {
   readonly body: RuleMatrixBody | RulePolicyBody;
   /** `597:1338` — the label on the cook's own standing row. The VALUE is supplied at render. */
   readonly standingLabel: string;
+  /**
+   * The standing row's two box widths in design units, or `null` where the design lets a box take
+   * the free space.
+   *
+   * Neither is decoration. The value box is **centred**, so its width decides where the glyph
+   * lands: a 58-unit box pinned to the row's right edge draws `6` at x≈310, and there is no width
+   * at which right-aligning it is the same picture. `603:1924` and `605:2094` instead let the
+   * value flex — `4 hrs 5 mins` and `1 hr 34 mins` do not fit 58 — and pin the label instead.
+   */
+  readonly standingLabelWidth: number | null;
+  readonly standingValueWidth: number | null;
+  /**
+   * `597:1247` — vertical padding on the blurb block, in design units.
+   *
+   * **Zero on `597:1221` and six on the other four.** The one frame that is a rating matrix omits
+   * it; the four policy sheets set it. Twelve units of block height either way, which walks every
+   * element below the blurb, and it is the single largest difference the V14 pixel run left open.
+   */
+  readonly blurbPaddingV: 0 | 6;
+  /** `597:1344` — the fixed width V14 gives the blurb line, which decides where the icon sits. */
+  readonly blurbWidth: number;
 }
 
 /** Design fills, named where a token exists and stated literally where the design is one-off. */
@@ -135,6 +170,10 @@ export const ruleSheets: Readonly<Record<RuleKey, RuleSheet>> = {
     icon: 'star',
     blurb: 'ACCHA kaam, ACCHI kamai',
     standingLabel: 'Aapki rating',
+    standingLabelWidth: null,
+    standingValueWidth: 58,
+    blurbPaddingV: 0,
+    blurbWidth: 247,
     body: {
       kind: 'matrix',
       header: ['Rating', 'Din', 'Mahina'],
@@ -155,12 +194,18 @@ export const ruleSheets: Readonly<Record<RuleKey, RuleSheet>> = {
     icon: 'multiply',
     blurb: 'NO SHOW: booking pe nahi jaana',
     standingLabel: 'Cycle ke NO SHOWS',
+    standingLabelWidth: 183,
+    standingValueWidth: 58,
+    blurbPaddingV: 6,
+    blurbWidth: 291,
     body: {
       kind: 'policy',
       title: '1 cycle ke NO SHOWS',
       columns: null,
       rowFill: TIER_4,
       columnWidths: [175, 96],
+      cellFontSize: 20,
+      footnoteTracking: 0.18,
       accent: PENALTY_ACCENT,
       rows: [
         ['1- pehla', '-₹300'],
@@ -184,12 +229,18 @@ export const ruleSheets: Readonly<Record<RuleKey, RuleSheet>> = {
     icon: 'timer',
     blurb: 'Extra hours: 7 hours se upar',
     standingLabel: 'Cycle ke extra hours',
+    standingLabelWidth: 183,
+    standingValueWidth: null,
+    blurbPaddingV: 6,
+    blurbWidth: 291,
     body: {
       kind: 'policy',
       title: '7 se zyada ke kaam',
       columns: ['Ghante', 'Din', 'Mahina'],
       rowFill: TIER_4,
       columnWidths: [87, 76, 100],
+      cellFontSize: 18,
+      footnoteTracking: 0,
       accent: BONUS_ACCENT,
       rows: [
         ['8 hrs', '+₹150', '+₹4,500'],
@@ -200,8 +251,8 @@ export const ruleSheets: Readonly<Record<RuleKey, RuleSheet>> = {
         { text: '7 se upar har ' },
         { text: '1 extra ghante', strong: true },
         { text: ' ka ' },
-        { text: '₹150', strong: true },
-        { text: ' bonus hai' },
+        { text: '₹150 bonus', strong: true },
+        { text: ' hai' },
       ],
     },
   },
@@ -213,12 +264,18 @@ export const ruleSheets: Readonly<Record<RuleKey, RuleSheet>> = {
     icon: 'star',
     blurb: '5+ : bohot he zyada accha kaam',
     standingLabel: 'Cycle ke 5+ ratings',
+    standingLabelWidth: 183,
+    standingValueWidth: 58,
+    blurbPaddingV: 6,
+    blurbWidth: 290,
     body: {
       kind: 'policy',
       title: '5+ rating se kamai',
       columns: ['5+', 'Cycle', 'Mahina'],
       rowFill: TIER_4,
       columnWidths: [76, 86, 100],
+      cellFontSize: 18,
+      footnoteTracking: 0,
       accent: BONUS_ACCENT,
       rows: [
         ['3', '+₹300', '+₹1,200'],
@@ -229,8 +286,8 @@ export const ruleSheets: Readonly<Record<RuleKey, RuleSheet>> = {
         { text: 'Har ghar se ' },
         { text: '5+', strong: true },
         { text: ' laane ka ' },
-        { text: '₹100', strong: true },
-        { text: ' bonus hai' },
+        { text: '₹100 bonus ', strong: true },
+        { text: 'hai' },
       ],
     },
   },
@@ -242,12 +299,18 @@ export const ruleSheets: Readonly<Record<RuleKey, RuleSheet>> = {
     icon: 'clock',
     blurb: 'LATE: booking pe late jaana',
     standingLabel: 'Cycle ke total late',
+    standingLabelWidth: 165,
+    standingValueWidth: null,
+    blurbPaddingV: 6,
+    blurbWidth: 291,
     body: {
       kind: 'policy',
       title: 'Kisi job pe late jaana',
       columns: null,
       rowFill: TIER_4,
       columnWidths: [175, 96],
+      cellFontSize: 20,
+      footnoteTracking: 0.18,
       accent: PENALTY_ACCENT,
       rows: [
         ['3 mins', '-₹30'],
@@ -256,7 +319,9 @@ export const ruleSheets: Readonly<Record<RuleKey, RuleSheet>> = {
         ['15 mins', '-₹150'],
       ],
       footnote: [
-        { text: 'Diye gaye time ke baad, har minute, ' },
+        { text: 'Diye gaye time ke baad, ' },
+        { text: 'har minute,', strong: true },
+        { text: ' ' },
         { text: '₹10', strong: true },
         { text: ' ka nuksaan hai' },
       ],
