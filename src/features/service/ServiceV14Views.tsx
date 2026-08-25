@@ -66,7 +66,6 @@ const BLOCK = { paddingH: 4, paddingV: 6 } as const;
 const TRAVEL = {
   artWidth: 112,
   artHeight: 150,
-  artPadding: 10,
   gap: 10,
   columnWidth: 206,
   headlineRadius: 15,
@@ -83,7 +82,7 @@ const TRAVEL = {
  *
  * The width is STATED, not stretched. See `promoArt` below for what stretching cost.
  */
-const ARRIVAL = { artWidth: 330, artHeight: 150, artPadding: 10, gap: 10 } as const;
+const ARRIVAL = { artWidth: 330, artHeight: 150, gap: 10 } as const;
 
 /** `468:4045` — `Pahauch gaye`. */
 const ARRIVED_CTA = { radius: 15, paddingH: 12, paddingV: 6, gap: 12, glyph: 40 } as const;
@@ -100,6 +99,8 @@ const DETAILS = {
   actionPaddingH: 12,
   actionPaddingV: 6,
   actionGap: 8,
+  /** `462:3596` — the gutter between the grid's two columns. */
+  actionColumnGap: 10,
   actionGlyph: 16,
   addressPaddingH: 12,
   addressPaddingV: 8,
@@ -140,7 +141,27 @@ const OTP_BLOCK = {
  * All three are `Frame 50`, all three are **314** wide, and only the height changes: 217 on
  * `622:801`, 245 on `628:1249`, 336 on `628:1293`.
  */
-const PROMO = { gap: 6, paddingH: 12, paddingV: 6, radius: 20, artWidth: 314 } as const;
+/**
+ * `485:4929` — the celebration block on `628:1293`.
+ *
+ * `width` and `height` are both the design's own fixed numbers, and `justifyContent: 'center'`
+ * is what they are for: 63 + 50 + 336 is 449 units of content inside a 535-unit box, so the
+ * design leaves 43 units of white above the headline and 43 below the art. Letting the block size
+ * itself removed both, which lifted the headline, the artwork and the CTA about sixty units up
+ * the screen and left the slack in one lump above the bottom nav instead.
+ */
+const PROMO = {
+  gap: 6,
+  /** `485:4929` — the End block's own gap between headline and art. NOT `PromoBlock`'s. */
+  completedGap: 50,
+  paddingH: 12,
+  paddingV: 6,
+  radius: 20,
+  width: 338,
+  height: 535,
+  headlineHeight: 63,
+  artWidth: 314,
+} as const;
 
 /**
  * `622:1022` — the cancelled-booking art.
@@ -464,7 +485,17 @@ function ActionButton({
 }): React.ReactElement {
   const { s } = scale;
   return (
-    <View style={styles.actionGrid}>
+    /*
+     * A two-column grid with the button in column ONE, and an empty column two.
+     *
+     * `462:3596` and `614:400` are `grid-cols-[repeat(2,minmax(0,1fr))]` holding a single
+     * `justify-self-stretch` child, so each button is half the card's inner width less half the
+     * 10-unit gutter — 148 units, which is what the reference draws. The app gave the button
+     * `flex: 1` in a plain row, so both actions spanned the full 306-unit card on all eleven
+     * Service frames that draw them. The spacer reproduces the empty cell rather than hardcoding
+     * 148, so the halves stay halves if the card is ever resized.
+     */
+    <View style={[styles.actionGrid, { columnGap: s(DETAILS.actionColumnGap) }]}>
       <Pressable
         accessibilityRole="button"
         onPress={onPress}
@@ -486,6 +517,7 @@ function ActionButton({
           {label}
         </Text>
       </Pressable>
+      <View style={styles.flexOne} />
     </View>
   );
 }
@@ -519,13 +551,15 @@ export function TravelView({
     <ServiceShell onHelp={onHelp} testID={`service-travel-${timing}`}>
       <Block>
         <View style={[styles.travelBanner, { gap: s(TRAVEL.gap) }]}>
-          <View
-            style={{
-              width: s(TRAVEL.artWidth),
-              height: s(TRAVEL.artHeight),
-              padding: s(TRAVEL.artPadding),
-            }}
-          >
+          {/*
+           * The photograph fills the box; the box's 10-unit padding does NOT indent it.
+           *
+           * `464:3858` writes the image as `absolute inset-0 size-full`, which in the design
+           * covers the padding as well. Laying it out as a padded child instead started it ten
+           * units in and ten units down on every travel frame, so the cook walked out of her own
+           * frame — and because the box is fixed at 112x150 the overflow was invisible in review.
+           */}
+          <View style={{ width: s(TRAVEL.artWidth), height: s(TRAVEL.artHeight) }}>
             <Image
               source={tier.art}
               style={{ width: s(TRAVEL.artWidth), height: s(TRAVEL.artHeight) }}
@@ -666,13 +700,8 @@ export function ArrivalView({
     <ServiceShell onHelp={onHelp} testID={`service-arrival-${timing}`}>
       <Block>
         <View style={[styles.arrivalBanner, { gap: s(ARRIVAL.gap) }]}>
-          <View
-            style={{
-              width: s(ARRIVAL.artWidth),
-              height: s(ARRIVAL.artHeight),
-              padding: s(ARRIVAL.artPadding),
-            }}
-          >
+          {/* `468:3941` is the same `absolute inset-0 size-full` as the travel photo. */}
+          <View style={{ width: s(ARRIVAL.artWidth), height: s(ARRIVAL.artHeight) }}>
             <Image
               source={art.arrival}
               style={{ width: s(ARRIVAL.artWidth), height: s(ARRIVAL.artHeight) }}
@@ -1089,7 +1118,16 @@ function TimerCell({
         },
       ]}
     >
-      <Text variant="timerValue" color={textColor} align="center" style={styles.flexOne}>
+      {/*
+       * `alignSelf: 'stretch'`, NOT `flex: 1`.
+       *
+       * `flex: 1` made the label fill the cell's 154 units of height, and Android draws a text
+       * box's glyphs against its TOP edge — so `59 mins` sat forty units above the centre the
+       * design puts it on, on all four cooking frames, while the cell it sits in was exactly
+       * right. Stretching the cross axis gives the same full width without touching the height,
+       * and the cell's own `justifyContent: 'center'` then does the centring.
+       */}
+      <Text variant="timerValue" color={textColor} align="center" style={styles.stretch}>
         {text}
       </Text>
     </View>
@@ -1183,12 +1221,26 @@ export function CompletedView({
       <View
         style={[
           styles.promo,
-          { gap: s(50), paddingHorizontal: s(PROMO.paddingH), paddingVertical: s(PROMO.paddingV) },
+          {
+            width: s(PROMO.width),
+            height: s(PROMO.height),
+            gap: s(PROMO.completedGap),
+            paddingHorizontal: s(PROMO.paddingH),
+            paddingVertical: s(PROMO.paddingV),
+          },
         ]}
       >
-        <Text variant="completedHeadline" color={color.black} align="center" style={styles.stretch}>
-          Agle booking mein bhi accha kaam kare!
-        </Text>
+        {/* `485:4932` is a 63-unit box holding a 72-unit two-line run, centred and clipped. */}
+        <View style={[styles.headlineBox, { height: s(PROMO.headlineHeight) }]}>
+          <Text
+            variant="completedHeadline"
+            color={color.black}
+            align="center"
+            style={styles.stretch}
+          >
+            Agle booking mein bhi accha kaam kare!
+          </Text>
+        </View>
         <View style={{ width: s(PROMO.artWidth), height: s(COMPLETED_ART_HEIGHT) }}>
           <Image
             source={art.completed}
@@ -1307,7 +1359,13 @@ const styles = StyleSheet.create({
     backgroundColor: color.lime400,
     overflow: 'hidden',
   },
-  promo: { alignSelf: 'stretch', alignItems: 'center', backgroundColor: color.white },
+  promo: { alignItems: 'center', justifyContent: 'center', backgroundColor: color.white },
+  headlineBox: {
+    alignSelf: 'stretch',
+    alignItems: 'flex-start',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
 
   cookCard: { alignItems: 'flex-start', backgroundColor: color.white },
   timer: { alignSelf: 'stretch', flexDirection: 'row', alignItems: 'stretch' },
