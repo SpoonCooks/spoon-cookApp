@@ -65,6 +65,8 @@ export interface RulePolicyBody {
   readonly columns: readonly string[] | null;
   readonly rows: readonly (readonly string[])[];
   readonly rowFill: string;
+  /** The pill and header-chip fills. See {@link PolicyAccent}. */
+  readonly accent: PolicyAccent;
   readonly footnote: readonly { readonly text: string; readonly strong?: boolean }[];
 }
 
@@ -86,6 +88,34 @@ const TIER_1 = '#cfff04';
 const TIER_2 = '#ecff9b';
 const TIER_3 = '#ffe666';
 const TIER_4 = '#ffef99';
+
+/**
+ * A policy card's two accent fills: the titled pill, and the table's header chips.
+ *
+ * V14 uses two schemes, and which one a sheet gets is not decoration — it is what the sheet is
+ * ABOUT. The two sheets that pay a cook money are lime; the two that cost her money are yellow.
+ * Sampled from the committed reference renders at the pill's and the first header chip's centres:
+ *
+ * | sheet                  | pill      | chips     |
+ * | ---------------------- | --------- | --------- |
+ * | `603:1865` No Show     | `#ffd600` | `#ffef99` |
+ * | `605:2094` Late        | `#ffd600` | `#ffef99` |
+ * | `603:1924` Extra hours | `#e2ff68` | `#cfff04` |
+ * | `605:2027` 5+ rating   | `#e2ff68` | `#cfff04` |
+ *
+ * The app drew `#ffd600` for BOTH fills on all four, so the bonus sheets read as penalties and
+ * the penalty sheets' header chips were a shade too strong.
+ */
+export interface PolicyAccent {
+  readonly pill: string;
+  readonly chip: string;
+}
+
+/** What a deduction costs. `603:1865`, `605:2094`. */
+const PENALTY_ACCENT: PolicyAccent = { pill: '#ffd600', chip: '#ffef99' };
+
+/** What a bonus pays. `603:1924`, `605:2027`. */
+const BONUS_ACCENT: PolicyAccent = { pill: '#e2ff68', chip: '#cfff04' };
 const TIER_BLOCKED = '#f5f5f5';
 
 export const ruleSheets: Readonly<Record<RuleKey, RuleSheet>> = {
@@ -121,6 +151,7 @@ export const ruleSheets: Readonly<Record<RuleKey, RuleSheet>> = {
       title: '1 cycle ke NO SHOWS',
       columns: null,
       rowFill: TIER_4,
+      accent: PENALTY_ACCENT,
       rows: [
         ['1- pehla', '-₹300'],
         ['2- dusra', '-₹400'],
@@ -148,6 +179,7 @@ export const ruleSheets: Readonly<Record<RuleKey, RuleSheet>> = {
       title: '7 se zyada ke kaam',
       columns: ['Ghante', 'Din', 'Mahina'],
       rowFill: TIER_4,
+      accent: BONUS_ACCENT,
       rows: [
         ['8 hrs', '+₹150', '+₹4,500'],
         ['9 hrs', '+₹300', '+₹9,000'],
@@ -175,6 +207,7 @@ export const ruleSheets: Readonly<Record<RuleKey, RuleSheet>> = {
       title: '5+ rating se kamai',
       columns: ['5+', 'Cycle', 'Mahina'],
       rowFill: TIER_4,
+      accent: BONUS_ACCENT,
       rows: [
         ['3', '+₹300', '+₹1,200'],
         ['6', '+₹600', '+₹2,400'],
@@ -202,6 +235,7 @@ export const ruleSheets: Readonly<Record<RuleKey, RuleSheet>> = {
       title: 'Kisi job pe late jaana',
       columns: null,
       rowFill: TIER_4,
+      accent: PENALTY_ACCENT,
       rows: [
         ['3 mins', '-₹30'],
         ['5 mins', '-₹50'],

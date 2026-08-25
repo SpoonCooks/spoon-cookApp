@@ -6,12 +6,17 @@
  * original Figma export; re-running the generator must produce no diff.
  *
  * Render with `SvgXml` from `react-native-svg`. The project has no SVG Metro transformer,
- * so the markup has to reach the bundle as source rather than as an import.
+ * so the markup has to reach the bundle as source rather than as an import — handing the
+ * `.svg` to an `<Image>` renders nothing on Android.
  */
 
 /** `booked-tick.svg` — Figma nodes: 592:1008. */
 export const bookedTick =
   '<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">\n<g id="Frame">\n<path id="Vector" d="M3.03069 21.1024L14.3651 33.1397L37.034 9.06502" stroke="#FF0000" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>\n</g>\n</svg>';
+
+/** `call-icon.svg` — Figma nodes: 462:3617. */
+export const callIcon =
+  '<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">\n<g id="Frame" clip-path="url(#clip0_0_4)">\n<path id="Vector" d="M9.22133 11.0453C9.35902 11.1086 9.51413 11.123 9.66113 11.0863C9.80812 11.0496 9.93822 10.9639 10.03 10.8433L10.2667 10.5333C10.3909 10.3677 10.5519 10.2333 10.737 10.1408C10.9222 10.0482 11.1263 10 11.3333 10H13.3333C13.687 10 14.0261 10.1405 14.2761 10.3905C14.5262 10.6406 14.6667 10.9797 14.6667 11.3333V13.3333C14.6667 13.687 14.5262 14.0261 14.2761 14.2761C14.0261 14.5262 13.687 14.6667 13.3333 14.6667C10.1507 14.6667 7.09849 13.4024 4.84805 11.1519C2.59762 8.90151 1.33333 5.84926 1.33333 2.66667C1.33333 2.31304 1.47381 1.97391 1.72386 1.72386C1.97391 1.47381 2.31304 1.33333 2.66667 1.33333H4.66667C5.02029 1.33333 5.35943 1.47381 5.60948 1.72386C5.85952 1.97391 6 2.31304 6 2.66667V4.66667C6 4.87366 5.95181 5.07781 5.85924 5.26295C5.76667 5.44809 5.63226 5.60914 5.46667 5.73333L5.15467 5.96733C5.03228 6.06078 4.94601 6.19372 4.91053 6.34357C4.87504 6.49341 4.89252 6.65092 4.96 6.78933C5.87112 8.63991 7.36962 10.1365 9.22133 11.0453Z" stroke="black" stroke-width="1.33333" stroke-linecap="round" stroke-linejoin="round"/>\n</g>\n<defs>\n<clipPath id="clip0_0_4">\n<rect width="16" height="16" fill="white"/>\n</clipPath>\n</defs>\n</svg>';
 
 /** `check-tick.svg` — Figma nodes: 575:2137. */
 export const checkTick =
@@ -65,6 +70,10 @@ export const editIcon =
 export const ellipse4 =
   '<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="50" height="50" viewBox="0 0 50 50" fill="none" xmlns="http://www.w3.org/2000/svg">\n<circle id="Ellipse 4" cx="25" cy="25" r="25" fill="#ECFF9B"/>\n</svg>';
 
+/** `map-pin.svg` — Figma nodes: 462:3617. */
+export const mapPin =
+  '<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">\n<g id="Frame">\n<path id="Vector" d="M2 7.33333L14.6667 1.33333L8.66667 14L7.33333 8.66667L2 7.33333Z" stroke="black" stroke-width="1.33333" stroke-linecap="round" stroke-linejoin="round"/>\n</g>\n</svg>';
+
 /** `mistake-disc.svg` — Figma nodes: 575:1744, 575:2013, 575:1884, 575:1922, 575:2098. */
 export const mistakeDisc =
   '<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">\n<circle id="Ellipse 2" cx="14" cy="14" r="14" fill="white"/>\n</svg>';
@@ -92,6 +101,10 @@ export const rowChevron2 =
 /** `row-chevron.svg` — Figma nodes: 575:2013, 575:1884. */
 export const rowChevron =
   '<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">\n<g id="back" clip-path="url(#clip0_0_20)">\n<g id="Ellipse 1" filter="url(#filter0_d_0_20)">\n<circle cx="16" cy="16" r="14" fill="white"/>\n</g>\n<path id="Vector" d="M18.6667 22.6667L12 16L18.6667 9.33333" stroke="black" stroke-opacity="0.7" stroke-width="1.66667" stroke-linecap="round" stroke-linejoin="round"/>\n</g>\n<defs>\n<filter id="filter0_d_0_20" x="-2" y="-2" width="36" height="36" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">\n<feFlood flood-opacity="0" result="BackgroundImageFix"/>\n<feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>\n<feOffset/>\n<feGaussianBlur stdDeviation="2"/>\n<feComposite in2="hardAlpha" operator="out"/>\n<feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.07 0"/>\n<feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_0_20"/>\n<feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow_0_20" result="shape"/>\n</filter>\n<clipPath id="clip0_0_20">\n<rect width="32" height="32" fill="white"/>\n</clipPath>\n</defs>\n</svg>';
+
+/** `service-back.svg` — Figma nodes: 462:3617. */
+export const serviceBack =
+  '<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">\n<g id="Frame" clip-path="url(#clip0_0_8)">\n<g id="Ellipse 1" filter="url(#filter0_d_0_8)">\n<circle cx="16" cy="16" r="14" fill="white"/>\n</g>\n<path id="Vector" d="M18.6667 22.6667L12 16L18.6667 9.33333" stroke="black" stroke-opacity="0.7" stroke-width="1.66667" stroke-linecap="round" stroke-linejoin="round"/>\n</g>\n<defs>\n<filter id="filter0_d_0_8" x="-2" y="-2" width="36" height="36" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">\n<feFlood flood-opacity="0" result="BackgroundImageFix"/>\n<feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>\n<feOffset/>\n<feGaussianBlur stdDeviation="2"/>\n<feComposite in2="hardAlpha" operator="out"/>\n<feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.15 0"/>\n<feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_0_8"/>\n<feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow_0_8" result="shape"/>\n</filter>\n<clipPath id="clip0_0_8">\n<rect width="32" height="32" fill="white"/>\n</clipPath>\n</defs>\n</svg>';
 
 /** `sheet-back-2.svg` — Figma nodes: 592:888. */
 export const sheetBack2 =

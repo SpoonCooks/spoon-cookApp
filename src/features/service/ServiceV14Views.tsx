@@ -6,6 +6,7 @@ import {
   View,
   type ImageSourcePropType,
 } from 'react-native';
+import { SvgXml } from 'react-native-svg';
 
 import { formatDurationHours } from '@core/domain/job';
 import type { ArrivalTiming, JobSummary, TravelTiming } from '@core/domain/serviceState';
@@ -18,6 +19,7 @@ import {
   useDesignScale,
   type DesignScale,
 } from '@ui';
+import { callIcon, mapPin } from '@ui/icons/figmaV14Icons';
 
 /**
  * The V14 `Service flow` (`485:4971`) — thirteen renderings of one booking.
@@ -200,8 +202,7 @@ const art = {
   extensionClock: require('@/assets/images/figma-v14/extension-clock.png') as ImageSourcePropType,
   done: require('@/assets/images/figma-v14/done-icon.png') as ImageSourcePropType,
   arrow: require('@/assets/images/figma-v14/arrow-right.png') as ImageSourcePropType,
-  mapPin: require('@/assets/images/figma-v14/map-pin.svg') as ImageSourcePropType,
-  call: require('@/assets/images/figma-v14/call-icon.svg') as ImageSourcePropType,
+
   building: require('@/assets/images/figma-v14/city-buildings.png') as ImageSourcePropType,
   tower: require('@/assets/images/figma-v14/building-icon.png') as ImageSourcePropType,
   floor: require('@/assets/images/figma-v14/stairs-up.png') as ImageSourcePropType,
@@ -360,7 +361,7 @@ function UserDetailsCard({
         {showMap && (
           <ActionButton
             label="Map dekhe"
-            glyph={art.mapPin}
+            glyph={mapPin}
             fill={color.lime600}
             onPress={onMap}
             scale={scale}
@@ -421,7 +422,7 @@ function UserDetailsCard({
         {showCall && (
           <ActionButton
             label="Call kare"
-            glyph={art.call}
+            glyph={callIcon}
             fill={color.lime400}
             onPress={onCall}
             scale={scale}
@@ -448,7 +449,14 @@ function ActionButton({
   testID,
 }: {
   label: string;
-  glyph: ImageSourcePropType;
+  /**
+   * Inlined SVG markup, NOT an image source.
+   *
+   * `map-pin.svg` and `call-icon.svg` were `require()`d and handed to an `<Image>`, which cannot
+   * decode an SVG on Android — both buttons drew their label with an empty space where the glyph
+   * belongs, on every Service frame that has them.
+   */
+  glyph: string;
   fill: string;
   onPress?: (() => void) | undefined;
   scale: DesignScale;
@@ -473,12 +481,7 @@ function ActionButton({
         ]}
         testID={testID}
       >
-        <Image
-          source={glyph}
-          style={{ width: s(DETAILS.actionGlyph), height: s(DETAILS.actionGlyph) }}
-          resizeMode="contain"
-          accessibilityIgnoresInvertColors
-        />
+        <SvgXml xml={glyph} width={s(DETAILS.actionGlyph)} height={s(DETAILS.actionGlyph)} />
         <Text variant="actionChip" color={color.black} align="center">
           {label}
         </Text>

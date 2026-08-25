@@ -7,6 +7,9 @@ import {
   type ImageSourcePropType,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SvgXml } from 'react-native-svg';
+
+import { infoBack } from '@ui/icons/figmaV14Icons';
 
 import { chipLabels, niyamIndexChips, type RuleIcon, type RuleKey, type RuleSheet } from './rules';
 import {
@@ -52,8 +55,15 @@ const SHEET = {
   ctaWidth: 338,
 } as const;
 
-/** `597:1239` — the sheet header: back arrow, title, compact Help pill. */
-const HEADER = { height: 38, glyph: 32, titleLeft: 44, titleWidth: 130 } as const;
+/**
+ * `597:1239` — the sheet header: back arrow, title, compact Help pill.
+ *
+ * `titleWidth` is the room the design leaves, not any one sheet's title box. `Frame 137` is 182
+ * wide with the 32-unit chevron at x=0 and the title at x=44, so the title may run to **138** —
+ * and `Extra hours` uses every unit of it. The old 130 was measured off `597:1243` alone, and it
+ * truncated that title to `Extra` on device.
+ */
+const HEADER = { height: 38, glyph: 32, titleLeft: 44, titleWidth: 138 } as const;
 
 /** `597:1248` — the icon-and-line summary under the header. */
 const BLURB = { icon: 30, gap: 12, radius: 24 } as const;
@@ -98,8 +108,16 @@ const POLICY = {
   footPaddingV: 8,
 } as const;
 
-/** `597:1337` — the cook's own standing. */
-const STANDING = { radius: 15, paddingH: 12, paddingV: 8, valueWidth: 58 } as const;
+/**
+ * `597:1337` — the cook's own standing.
+ *
+ * There is deliberately no `valueWidth`. The design sizes this value to its CONTENT and pins it to
+ * the row's right edge — every one of the five sheets ends it at x=319 inside a 331-wide row, but
+ * the box itself is 58 units on `Aapki rating` (`4.6`), 124 on `Extra hours` (`4 hrs 5 mins`) and
+ * 142 on `Late` (`1 hr 34 mins`). A single fixed 58 was read off the rating sheet and applied to
+ * all five, which wrapped `4 hrs 5 mins` onto three lines and pushed it out of its own row.
+ */
+const STANDING = { radius: 15, paddingH: 12, paddingV: 8 } as const;
 
 /** `597:1237` — `Samajh gyi`. */
 const CTA = { radius: 15, paddingH: 12, paddingV: 8 } as const;
@@ -120,7 +138,14 @@ const INDEX = {
   headingGap: 12,
 } as const;
 
-const backGlyph = require('@/assets/images/figma-v14/info-back.svg') as ImageSourcePropType;
+/*
+ * The back chevron is INLINED MARKUP, not an image source.
+ *
+ * It was `require('...info-back.svg')` handed to an `<Image>`, and React Native cannot decode an
+ * SVG: the chevron simply did not draw on any of the five rule sheets. There is no SVG Metro
+ * transformer in this project — `figmaV13Icons.ts` already says so — so the markup has to reach
+ * the bundle as source and be rendered by `SvgXml`.
+ */
 
 const RULE_ICONS: Readonly<Record<RuleIcon, ImageSourcePropType>> = {
   star: require('@/assets/images/figma-v14/star.png') as ImageSourcePropType,
@@ -377,12 +402,7 @@ export function RuleSheetView({
             style={styles.headerLeft}
             testID={`rule-back-${sheet.key}`}
           >
-            <Image
-              source={backGlyph}
-              style={{ width: s(HEADER.glyph), height: s(HEADER.glyph) }}
-              resizeMode="contain"
-              accessibilityIgnoresInvertColors
-            />
+            <SvgXml xml={infoBack} width={s(HEADER.glyph)} height={s(HEADER.glyph)} />
             <Text
               variant="screenTitle"
               color={color.black}
@@ -446,8 +466,8 @@ export function RuleSheetView({
             <Text
               variant="chipLabel"
               color={color.black}
-              align="center"
-              style={{ width: s(STANDING.valueWidth) }}
+              align="right"
+              numberOfLines={1}
               testID={`rule-standing-${sheet.key}`}
             >
               {standingValue}
@@ -589,6 +609,7 @@ function PolicyBody({
             borderRadius: s(POLICY.pillRadius),
             paddingHorizontal: s(POLICY.pillPaddingH),
             paddingVertical: s(POLICY.pillPaddingV),
+            backgroundColor: body.accent.pill,
           },
         ]}
       >
@@ -623,7 +644,7 @@ function PolicyBody({
                   index === 0 && body.columns!.length === 2
                     ? { width: s(POLICY.tableFirstColumn) }
                     : styles.flexOne,
-                  { backgroundColor: color.yellow600, borderRadius: s(POLICY.cellRadius) },
+                  { backgroundColor: body.accent.chip, borderRadius: s(POLICY.cellRadius) },
                 ]}
               >
                 <Text variant="title" color={color.black} align="center">
@@ -743,6 +764,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    // Overridden per sheet — see `PolicyAccent`. Kept as the penalty fill so a card still draws
+    // something recognisable if a future body ever arrives without an accent.
     backgroundColor: color.yellow600,
   },
   policyTable: { alignSelf: 'stretch', backgroundColor: color.white },
