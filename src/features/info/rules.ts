@@ -65,6 +65,15 @@ export interface RulePolicyBody {
   readonly columns: readonly string[] | null;
   readonly rows: readonly (readonly string[])[];
   readonly rowFill: string;
+  /**
+   * Per-column widths in design units, measured from each sheet's own `matrix` frame.
+   *
+   * They are NOT equal thirds and NOT shared between sheets: `Extra hours` is 87/76/100,
+   * `5+ rating` is 76/86/100, and the two-column sheets are 175/96. Rendering all of them as
+   * `flex: 1` put every cell boundary in the wrong place, which is most of what those four
+   * comparisons were still scoring.
+   */
+  readonly columnWidths: readonly number[];
   /** The pill and header-chip fills. See {@link PolicyAccent}. */
   readonly accent: PolicyAccent;
   readonly footnote: readonly { readonly text: string; readonly strong?: boolean }[];
@@ -151,6 +160,7 @@ export const ruleSheets: Readonly<Record<RuleKey, RuleSheet>> = {
       title: '1 cycle ke NO SHOWS',
       columns: null,
       rowFill: TIER_4,
+      columnWidths: [175, 96],
       accent: PENALTY_ACCENT,
       rows: [
         ['1- pehla', '-₹300'],
@@ -179,6 +189,7 @@ export const ruleSheets: Readonly<Record<RuleKey, RuleSheet>> = {
       title: '7 se zyada ke kaam',
       columns: ['Ghante', 'Din', 'Mahina'],
       rowFill: TIER_4,
+      columnWidths: [87, 76, 100],
       accent: BONUS_ACCENT,
       rows: [
         ['8 hrs', '+₹150', '+₹4,500'],
@@ -207,6 +218,7 @@ export const ruleSheets: Readonly<Record<RuleKey, RuleSheet>> = {
       title: '5+ rating se kamai',
       columns: ['5+', 'Cycle', 'Mahina'],
       rowFill: TIER_4,
+      columnWidths: [76, 86, 100],
       accent: BONUS_ACCENT,
       rows: [
         ['3', '+₹300', '+₹1,200'],
@@ -235,6 +247,7 @@ export const ruleSheets: Readonly<Record<RuleKey, RuleSheet>> = {
       title: 'Kisi job pe late jaana',
       columns: null,
       rowFill: TIER_4,
+      columnWidths: [175, 96],
       accent: PENALTY_ACCENT,
       rows: [
         ['3 mins', '-₹30'],

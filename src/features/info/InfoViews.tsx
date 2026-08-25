@@ -641,9 +641,7 @@ function PolicyBody({
                 key={label}
                 style={[
                   styles.cell,
-                  index === 0 && body.columns!.length === 2
-                    ? { width: s(POLICY.tableFirstColumn) }
-                    : styles.flexOne,
+                  { width: s(body.columnWidths[index] ?? POLICY.tableFirstColumn) },
                   { backgroundColor: body.accent.chip, borderRadius: s(POLICY.cellRadius) },
                 ]}
               >
@@ -668,9 +666,7 @@ function PolicyBody({
                 key={`${row[0]}-${index}`}
                 style={[
                   styles.cell,
-                  index === 0 && row.length === 2
-                    ? { width: s(POLICY.tableFirstColumn) }
-                    : styles.flexOne,
+                  { width: s(body.columnWidths[index] ?? POLICY.tableFirstColumn) },
                   { backgroundColor: body.rowFill, borderRadius: s(POLICY.cellRadius) },
                 ]}
               >
