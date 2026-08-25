@@ -18,6 +18,7 @@
  * contract does not expose are typed `number | null` and render as `—`:
  *
  *   - `workedMinutes`      — no worked-duration field exists on any cook route
+ *   - `lateMinutes`        — the contract counts late EVENTS, never their duration
  *   - `aboveBasePaise`     — would require summing signed categories (see above)
  *   - `perDayBasePaise`    — would require dividing money by a day count
  *   - `noShowCount`/`lateCount` — the SQL computes `event_count` but the projection drops it
@@ -156,6 +157,16 @@ export interface EarningsPeriodView {
    * ledger never agreed to.
    */
   readonly workedMinutes: number | null;
+  /**
+   * Minutes late across the period, which is what the design's `Late` tile draws.
+   *
+   * `575:1744` reads `8 min`, `575:1884` and `575:1922` read `20 min`, `575:2098` reads `2 min`.
+   * The deployed contract exposes only `late.count` — how many times, not for how long — so this
+   * is `null` from every adapter and the tile falls back to the count. The two are NOT the same
+   * number and must not be conflated: a cook who was late twice for one minute each is not
+   * `2 min` late by accident.
+   */
+  readonly lateMinutes: number | null;
   readonly aboveBasePaise: number | null;
   readonly perDayBasePaise: number | null;
   /** `531:1706` — the `1.75` in `1.75 x ₹150 = +₹263`. */

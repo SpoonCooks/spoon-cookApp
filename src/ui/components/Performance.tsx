@@ -557,10 +557,20 @@ export function CycleWorkCard({
   testID?: string;
 }): React.ReactElement {
   const { s } = useDesignScale();
-  // `492:5414` reads `7 hr ke upar kaam`. The contract counts days, so the caption states the
-  // server's unit for the same reason `BonusBar` does — see its note.
+  /*
+   * `7 hr ke upar kaam` — the design's own caption, on all four V14 money frames.
+   *
+   * The NUMBER still comes from the server (`bonus.thresholdDays`), and the unit word is the
+   * design's. That pairing is uncomfortable and it is deliberate: V14 states the threshold in
+   * hours everywhere it appears — `603:1924` is titled `Extra hours`, its blurb reads
+   * `Extra hours: 7 hours se upar` and its table is `8 hrs / 9 hrs / 10 hrs` — while the deployed
+   * earnings policy exposes `thresholdDays`. The two disagree, it is GAP-19, and it needs a
+   * backend ruling. Until then the screen reads what the cook was shown in the design; the app
+   * still never computes a bonus from it, and `BonusBar` keeps the server's own unit on the bar
+   * it draws, where the segment COUNT would otherwise be wrong.
+   */
   const thresholdLabel =
-    bonus === null ? 'Lambe din kaam' : `${bonus.thresholdDays} din se upar kaam`;
+    bonus === null ? 'Lambe din kaam' : `${bonus.thresholdDays} hr ke upar kaam`;
 
   return (
     <Card tone="yellow" gap={CARD.cycleGap} testID={testID}>
@@ -765,7 +775,13 @@ export function MistakesCard({
           title="Late"
           titleVariant="timeStrong"
           caption="Kaam pe LATE gaye"
-          count={view.late.count}
+          /*
+           * V14 draws MINUTES here — `8 min`, `20 min`, `2 min` — not a count of late arrivals.
+           * The deployed contract exposes only the count, so that is what production still shows;
+           * the moment `lateMinutes` appears on the projection the tile reads the way the design
+           * does, with no client release. See `EarningsPeriodView.lateMinutes`.
+           */
+          count={view.lateMinutes === null ? view.late.count : `${view.lateMinutes} min`}
           testID={`${testID}-late`}
         />
       </View>
@@ -1094,7 +1110,8 @@ function StatTile({
   title: string;
   titleVariant?: 'headingLgBold' | 'timeStrong';
   caption: string;
-  count?: number | null;
+  /** A number, or an already-formatted value where the design states a unit (`20 min`). */
+  count?: number | string | null;
   testID?: string;
 }): React.ReactElement {
   const { s } = useDesignScale();
