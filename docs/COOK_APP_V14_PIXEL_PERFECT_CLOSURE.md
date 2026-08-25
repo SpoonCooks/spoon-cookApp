@@ -182,9 +182,33 @@ and `BonusBar` keeps the server's own unit on the bar it draws.
 `jobUrgency.test.tsx` is untouched. The lead card's colourway is still presentation only, and the
 `<10 mins`/`20 mins` contradiction is still unresolved.
 
-## 8. Native durability
+## 8. Native durability — six of seven
 
-Recorded in §11 of this file after the run.
+| Step                     | Result                                                                     |
+| ------------------------ | -------------------------------------------------------------------------- |
+| `expo prebuild --clean`  | clean; `android/` regenerated from scratch                                 |
+| NDK pin survives it      | **yes** — `ndkVersion = "27.2.12479018"` present exactly once, at line 30, **before** `apply plugin: "expo-root-project"` at line 33 |
+| Splash drawable          | generated (`drawable-*/splashscreen_logo.png`)                             |
+| Native Android build     | **BUILD SUCCESSFUL in 13m 7s**, JDK 21, all four ABIs — `arm64-v8a`, `armeabi-v7a`, `x86`, `x86_64` |
+| APK install              | `Success`                                                                  |
+| Background / foreground  | HOME then resume; **same pid** (11714), 0 fatal exceptions                 |
+| Process restart          | `force-stop` 11714 → new pid 11846, 0 fatal exceptions                     |
+| Fatal exceptions, total  | **0** across cold launch, resume and restart                               |
+| **Cold launch to JS**    | **NOT VERIFIED**                                                           |
+
+The last row is the honest one. The freshly prebuilt APK never reached JavaScript: it sits on the
+splash with zero `ReactNativeJS` lines and zero exceptions, through four full warm-up attempts.
+`prebuild --clean` regenerates `android/` and with it the app's dev-server preference, and the new
+build could not fetch a bundle from the Metro instance that was serving it minutes earlier — the
+reverse tunnel was re-established and `capture_emulator.use_reverse_tunnel` was applied, and
+neither helped.
+
+That is an environment and wiring failure, not evidence that the app is broken: the same source,
+on the APK built before this prebuild, rendered all 47 gallery screens on this emulator within the
+hour. But it was not verified on the new binary, so it is not claimed. **The native gate is six of
+seven**, and the seventh needs a session that can get a bundle to a freshly prebuilt debug APK —
+most likely by launching through `expo run:android`, which sets that preference itself, rather
+than by installing the Gradle output directly.
 
 ## 9. Accepted differences that are the design's, not the app's
 
