@@ -1,4 +1,5 @@
-import { render, screen, fireEvent } from '@testing-library/react-native';
+import { render, screen, fireEvent, act } from '@testing-library/react-native';
+import { Keyboard } from 'react-native';
 import type { ImageStyle, StyleProp, TextStyle, ViewStyle } from 'react-native';
 
 import LoginScreen from '@/app/login';
@@ -72,6 +73,43 @@ beforeEach(() => {
   jest.clearAllMocks();
   mockSendLoginOtp.mockResolvedValue(undefined);
 });
+
+/**
+ * Capture what `useKeyboardShift` registers, and drive it directly.
+ *
+ * `Keyboard.emit` is not exposed under the jest preset, so the listeners are intercepted at
+ * `addListener`. The hook's own wiring is still exercised — it has to register the right events
+ * and read `endCoordinates.screenY` for these to move anything.
+ */
+const keyboardListeners = new Map<string, (event: unknown) => void>();
+
+beforeEach(() => {
+  keyboardListeners.clear();
+  jest.spyOn(Keyboard, 'addListener').mockImplementation(((
+    event: string,
+    handler: (payload: unknown) => void,
+  ) => {
+    keyboardListeners.set(event, handler);
+    return { remove: () => keyboardListeners.delete(event) };
+  }) as unknown as typeof Keyboard.addListener);
+});
+
+afterEach(() => {
+  jest.restoreAllMocks();
+});
+
+/** `screenY` is the keyboard's TOP edge in dp. */
+function emitKeyboardShow(screenY: number): void {
+  keyboardListeners.get('keyboardDidShow')?.({
+    endCoordinates: { screenX: 0, screenY, width: 0, height: 0 },
+  });
+}
+
+function emitKeyboardHide(): void {
+  keyboardListeners.get('keyboardDidHide')?.({
+    endCoordinates: { screenX: 0, screenY: 0, width: 0, height: 0 },
+  });
+}
 
 describe('Login renders the V13 composition', () => {
   it('renders the hero photograph and the Spoon wordmark', () => {
@@ -249,5 +287,89 @@ describe('Login behaviour survives the V13 visual rebuild', () => {
     const input = screen.getByTestId('login-phone-input');
     expect(input.props.keyboardType).toBe('phone-pad');
     expect(input.props.inputMode).toBe('numeric');
+  });
+});
+
+/**
+ * The keyboard must not bury the field it belongs to.
+ *
+ * Under Expo SDK 57 / RN 0.86 the activity is edge-to-edge, so the `adjustResize` in the manifest
+ * no longer resizes the window: the app draws behind the IME and has to consume the inset itself.
+ * On the reference device the IME takes `[0,1554][1080,2392]` and nothing moved — a cook saw the
+ * hero, the wordmark and the tagline, and then the keyboard, with `Login`, the `+91` field and
+ * `Next` all behind it, unable to see the number being typed.
+ *
+ * `PhoneView` is an absolutely positioned transcription, so the correction is a translation of the
+ * whole pinned block rather than a scroll or a flow compression — nothing else can move the field
+ * without disturbing the geometry that `434:3280` is verified against.
+ *
+ * These assert the two ends of that: closed keyboard must translate by exactly zero, so the screen
+ * stays pixel-identical to the reference; open keyboard must lift it far enough that `Next` clears
+ * the IME.
+ */
+describe('the login screen yields to the keyboard', () => {
+  function shiftOf(): number {
+    const style = screen.getByTestId('login-content').props.style as StyleProp<ViewStyle>;
+    const flat = ([] as unknown[]).concat(style as unknown[]).filter(Boolean);
+    for (const entry of flat) {
+      const transform = (entry as ViewStyle).transform;
+      if (Array.isArray(transform)) {
+        for (const step of transform) {
+          const y = (step as { translateY?: number }).translateY;
+          // `+ 0` normalises the -0 that `-Math.max(0, ...)` produces, so `toBe(0)` is meaningful.
+          if (typeof y === 'number') return y + 0;
+        }
+      }
+    }
+    return 0;
+  }
+
+  it('does not move at all while the keyboard is down', () => {
+    render(<LoginScreen />);
+    // Any non-zero translation here would take the screen off its verified 434:3280 geometry.
+    expect(shiftOf()).toBe(0);
+  });
+
+  it('lifts the screen when the keyboard covers the CTA', () => {
+    render(<LoginScreen />);
+    act(() => {
+      emitKeyboardShow(400);
+    });
+    // 400dp of visible screen cannot hold a CTA whose bottom is ~730dp down.
+    expect(shiftOf()).toBeLessThan(0);
+  });
+
+  it('lifts by exactly the overlap, and no further', () => {
+    render(<LoginScreen />);
+    act(() => {
+      emitKeyboardShow(400);
+    });
+    const lifted = -shiftOf();
+    act(() => {
+      emitKeyboardShow(300);
+    });
+    // A keyboard 100dp taller must lift the screen exactly 100dp further, never more.
+    expect(-shiftOf() - lifted).toBeCloseTo(100, 5);
+  });
+
+  it('drops back to zero when the keyboard closes', () => {
+    render(<LoginScreen />);
+    act(() => {
+      emitKeyboardShow(400);
+    });
+    expect(shiftOf()).toBeLessThan(0);
+    act(() => {
+      emitKeyboardHide();
+    });
+    expect(shiftOf()).toBe(0);
+  });
+
+  it('stays put when the keyboard is short enough to clear the CTA', () => {
+    render(<LoginScreen />);
+    act(() => {
+      // A keyboard whose top edge is below everything the screen draws.
+      emitKeyboardShow(5000);
+    });
+    expect(shiftOf()).toBe(0);
   });
 });

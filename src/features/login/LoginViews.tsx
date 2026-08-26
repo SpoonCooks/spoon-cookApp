@@ -1,4 +1,5 @@
-import { Image, Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { Image, Keyboard, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { SvgXml } from 'react-native-svg';
@@ -168,6 +169,12 @@ const PHONE = {
   ctaHeight: 34,
   ctaRadius: 16,
 
+  /**
+   * Clear space kept under `Next` when the keyboard pushes the screen up. Not a design value —
+   * the design has no keyboard — just enough that the button does not sit flush on the IME.
+   */
+  keyboardGap: 12,
+
   /** `434:3307` / `434:3309`, Livvic Regular 9/13.5. */
   legalTop: 731.5,
   legalLineHeight: 13.5,
@@ -202,6 +209,54 @@ export interface PhoneViewProps {
  * Behaviour lives in the route. Validation matches the backend contract (10 digits, leading 6-9);
  * `Next` stays inert until the number is valid, so an invalid request is never sent.
  */
+/**
+ * How far `PhoneView` must ride up so the keyboard does not bury the field it belongs to.
+ *
+ * ## Why this is needed at all, when the manifest already says `adjustResize`
+ *
+ * It does, and under Expo SDK 57 / RN 0.86 it no longer means anything: the activity is
+ * **edge-to-edge**, so the window is not resized when the IME appears — the app is expected to
+ * draw behind it and consume the inset itself. Measured on the reference device, the IME takes
+ * `[0,1554][1080,2392]` and the window frame does not move, which is exactly what a cook sees:
+ * the hero, the wordmark and the tagline, and then the keyboard, with `Login`, the `+91` field
+ * and `Next` all behind it. You cannot see the number you are typing.
+ *
+ * ## Why a shift rather than a ScrollView
+ *
+ * `PhoneView` is an absolutely positioned transcription — every element is pinned at its own
+ * design offset (`titleTop`, `fieldTop`, `ctaTop`). Nothing has intrinsic height, so a
+ * `ScrollView` has nothing to scroll and a `KeyboardAvoidingView` has no flow to compress. A
+ * translation is also the only thing that CANNOT disturb the geometry: it moves the whole pinned
+ * block as one, so every element keeps its exact relationship to every other, and the screen is
+ * pixel-identical to `434:3280` whenever the keyboard is down.
+ *
+ * The shift is whatever it takes to get `Next`'s bottom edge above the keyboard, and no more.
+ * With the keyboard closed it is 0.
+ */
+function useKeyboardShift(scale: DesignScale, topInset: number): number {
+  const { s } = scale;
+  const [keyboardTop, setKeyboardTop] = useState<number | null>(null);
+
+  useEffect(() => {
+    // `screenY` is the keyboard's top edge in dp, which is directly comparable to the inset and
+    // to `s()`. `did`-events rather than `will`-events: Android only reports the former.
+    const shown = Keyboard.addListener('keyboardDidShow', (event) => {
+      setKeyboardTop(event.endCoordinates.screenY);
+    });
+    const hidden = Keyboard.addListener('keyboardDidHide', () => {
+      setKeyboardTop(null);
+    });
+    return () => {
+      shown.remove();
+      hidden.remove();
+    };
+  }, []);
+
+  if (keyboardTop === null) return 0;
+  const ctaBottom = topInset + s(PHONE.ctaTop + PHONE.ctaHeight + PHONE.keyboardGap);
+  return Math.max(0, ctaBottom - keyboardTop);
+}
+
 export function PhoneView({
   value,
   onChange,
@@ -213,11 +268,15 @@ export function PhoneView({
   const scale = useDesignScale();
   const insets = useSafeAreaInsets();
   const { s } = scale;
+  const keyboardShift = useKeyboardShift(scale, insets.top);
 
   return (
     <View style={styles.phoneRoot} testID="login-screen">
       <View style={{ height: insets.top }} />
-      <View style={styles.phoneContent}>
+      <View
+        style={[styles.phoneContent, { transform: [{ translateY: -keyboardShift }] }]}
+        testID="login-content"
+      >
         <View style={[styles.clip, { height: s(PHONE.heroHeight) }]}>
           <Image
             source={require('@/assets/images/figma-v13/login-hero.png')}
