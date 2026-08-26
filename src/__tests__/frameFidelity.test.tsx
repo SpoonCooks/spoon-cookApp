@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { jobsV14Fixtures, performanceFixtures } from '@core/fixtures';
-import { ruleSheets } from '@features/info/rules';
+import { buildRuleSheets } from '@features/info/rules';
 import { JobsView } from '@features/jobs/JobViews';
 import { MoneyPeriodView } from '@features/performance/PerformanceViews';
 
@@ -81,6 +81,30 @@ describe('job flow — each frame publishes its own list', () => {
   });
 });
 
+/**
+ * The sheets are built from an explicit policy, because they are no longer a constant.
+ *
+ * These are the values the deployed backend publishes today. Stating them here rather than
+ * importing a fixture is deliberate: this suite asserts the frame's GEOMETRY, and the geometry
+ * must not move when a policy is published. The money assertions below use the same policy so a
+ * derivation error is still caught.
+ */
+const TEST_POLICY = {
+  version: 'earnings-test',
+  cycleLengthDays: 28,
+  presentDayBasePaise: 100_000,
+  fivePlusBonusPaise: 10_000,
+  longHoursThresholdMinutes: 300,
+  longHoursRatePerHourPaise: 15_000,
+  fullCycleBonusPaise: 200_000,
+  twentySevenDayBonusPaise: 100_000,
+  paidLeaveRefundPaise: 100_000,
+  noShowPenaltyPaise: 25_000,
+  lateGraceMinutes: 5,
+  latePenaltyPerMinutePaise: 1_000,
+};
+const ruleSheets = buildRuleSheets(TEST_POLICY);
+
 describe('Info rule sheets — five frames, five sets of overrides', () => {
   /** `597:1247` omits the vertical padding the four policy sheets set. */
   it('gives the rating sheet no blurb padding and the policy sheets six units', () => {
@@ -140,7 +164,8 @@ describe('Info rule sheets — five frames, five sets of overrides', () => {
     expect(strong('bonus-over-7')).toEqual(['1 extra ghante', '₹150 bonus']);
     expect(strong('bonus-5-plus')).toEqual(['5+', '₹100 bonus ']);
     expect(strong('late')).toEqual(['har minute,', '₹10']);
-    expect(strong('no-show')).toEqual(['1 NO SHOW', '₹100']);
+    // The ledger charges one flat amount; the old footnote promised a ₹100 escalation.
+    expect(strong('no-show')).toEqual(['1 NO SHOW', '-₹250']);
   });
 });
 

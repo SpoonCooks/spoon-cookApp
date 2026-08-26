@@ -123,6 +123,43 @@ export const cookProfileSchema = z.object({
 });
 export type CookProfileResponse = z.infer<typeof cookProfileSchema>;
 
+/* ------------------------------------------------------------- policy --- */
+
+/**
+ * `GET /cook/policies/earnings` — the ACTIVE published earnings policy.
+ *
+ * Every figure the five `Niyam` sheets state is here, and none of them is carried by the app any
+ * more. Integer paise throughout, because these are the ledger's own amounts: a rupee float would
+ * reintroduce the rounding the backend deliberately avoids by never leaving paise.
+ *
+ * Two of these are FORMULA inputs and not display values, and the client must apply them the way
+ * the ledger does or it will state a number the cook is not charged:
+ *
+ *   - lateness costs `max(minutes - lateGraceMinutes, 0) * latePenaltyPerMinutePaise`, so arriving
+ *     inside the grace costs nothing at all;
+ *   - the long-hours bonus is PRORATED PER MINUTE —
+ *     `floor(max(minutes - longHoursThresholdMinutes, 0) * longHoursRatePerHourPaise / 60)` —
+ *     not paid per whole hour.
+ *
+ * `version` is the published version the ledger is charging against. It is not decoration: it is
+ * what makes a publication observable, and `policyRules.test.ts` asserts the sheets follow it.
+ */
+export const cookEarningsPolicySchema = z.object({
+  version: z.string(),
+  cycleLengthDays: z.number().int(),
+  presentDayBasePaise: z.number().int(),
+  fivePlusBonusPaise: z.number().int(),
+  longHoursThresholdMinutes: z.number().int(),
+  longHoursRatePerHourPaise: z.number().int(),
+  fullCycleBonusPaise: z.number().int(),
+  twentySevenDayBonusPaise: z.number().int(),
+  paidLeaveRefundPaise: z.number().int(),
+  noShowPenaltyPaise: z.number().int(),
+  lateGraceMinutes: z.number().int(),
+  latePenaltyPerMinutePaise: z.number().int(),
+});
+export type CookEarningsPolicy = z.infer<typeof cookEarningsPolicySchema>;
+
 /* --------------------------------------------------------------- jobs --- */
 
 /**

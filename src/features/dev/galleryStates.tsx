@@ -12,7 +12,8 @@ import {
   type SingleDayLeaveOption,
 } from '@features/leave/LeaveViews';
 import { NiyamIndexView, RuleSheetView } from '@features/info/InfoViews';
-import { ruleSheets, type RuleKey } from '@features/info/rules';
+import { buildRuleSheets, type RuleKey } from '@features/info/rules';
+
 import { JobsView } from '@features/jobs/JobViews';
 import {
   ArrivalView,
@@ -39,6 +40,31 @@ import { screenFor } from '@core/figma/scope';
 import { otpLength } from '@core/domain/otp';
 import { jobsV14Fixtures, performanceFixtures, serviceV14Fixtures } from '@core/fixtures';
 import type { BottomNavTab } from '@ui';
+
+/**
+ * The earnings policy the GALLERY renders its rule sheets against.
+ *
+ * A development fixture, and only reachable from `/dev` — production reads the real projection.
+ * These are the values the deployed backend publishes today, so a gallery capture stays
+ * comparable with the V14 reference renders; if the published policy changes, production follows
+ * it and this does not, which is the correct asymmetry for a fixture.
+ */
+const GALLERY_EARNINGS_POLICY = {
+  version: 'earnings-v1',
+  cycleLengthDays: 28,
+  presentDayBasePaise: 100_000,
+  fivePlusBonusPaise: 10_000,
+  longHoursThresholdMinutes: 300,
+  longHoursRatePerHourPaise: 15_000,
+  fullCycleBonusPaise: 200_000,
+  twentySevenDayBonusPaise: 100_000,
+  paidLeaveRefundPaise: 100_000,
+  noShowPenaltyPaise: 25_000,
+  lateGraceMinutes: 5,
+  latePenaltyPerMinutePaise: 1_000,
+} as const;
+
+const GALLERY_SHEETS = buildRuleSheets(GALLERY_EARNINGS_POLICY);
 
 /**
  * Development-only visual gallery.
@@ -259,7 +285,7 @@ function info(
 /** A rule sheet at a fixed standing, so two runs a day apart produce identical pixels. */
 function ruleSheet(rule: RuleKey, standing: string): () => React.ReactElement {
   return function renderRuleSheet(): React.ReactElement {
-    return <RuleSheetView sheet={ruleSheets[rule]} standingValue={standing} />;
+    return <RuleSheetView sheet={GALLERY_SHEETS[rule]} standingValue={standing} />;
   };
 }
 

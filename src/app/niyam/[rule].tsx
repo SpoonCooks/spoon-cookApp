@@ -1,8 +1,8 @@
 import { router, useLocalSearchParams } from 'expo-router';
 
-import { useCookProfile } from '@core/api/queries';
+import { useCookProfile, useEarningsPolicy } from '@core/api/queries';
 import { RuleSheetView } from '@features/info/InfoViews';
-import { ruleSheets, type RuleKey } from '@features/info/rules';
+import { buildRuleSheets, ruleKeys, type RuleKey } from '@features/info/rules';
 
 /**
  * One V14 rule sheet, presented over the Niyam screen.
@@ -32,8 +32,16 @@ const UNAVAILABLE = '—';
 export default function RuleSheetScreen(): React.ReactElement | null {
   const { rule } = useLocalSearchParams<{ rule?: string }>();
   const profile = useCookProfile();
+  /*
+   * The sheets are built from the ACTIVE published earnings policy, not from a table in the app.
+   * While it is loading, or if the read fails, `policy.data` is undefined and every money cell
+   * renders `—`: this screen tells a cook what they are charged, and a plausible-looking figure
+   * that is not what the ledger takes is worse than an honest blank.
+   */
+  const policy = useEarningsPolicy();
+  const sheets = buildRuleSheets(policy.data ?? null);
 
-  const sheet = rule !== undefined && isRuleKey(rule) ? ruleSheets[rule] : null;
+  const sheet = rule !== undefined && isRuleKey(rule) ? sheets[rule] : null;
   if (sheet === null) {
     // An unknown segment is a broken link, not a screen. Return to Niyam rather than inventing one.
     router.back();
@@ -55,7 +63,7 @@ export default function RuleSheetScreen(): React.ReactElement | null {
 }
 
 function isRuleKey(value: string): value is RuleKey {
-  return Object.prototype.hasOwnProperty.call(ruleSheets, value);
+  return (ruleKeys as readonly string[]).includes(value);
 }
 
 /** `4.6` — one decimal, as `597:1339` draws it. */

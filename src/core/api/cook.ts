@@ -14,6 +14,8 @@
 
 import { request, type RequestOptions } from './client';
 import {
+  cookEarningsPolicySchema,
+  type CookEarningsPolicy,
   authSessionSchema,
   commandAckSchema,
   cookCyclesSchema,
@@ -105,6 +107,19 @@ export async function logout(opts: Opts = {}): Promise<void> {
 /** The cook's operational profile: identity, hub, rating, today's shift, attendance, assignment. */
 export async function getCookProfile(opts: Opts = {}): Promise<CookProfileResponse> {
   return request('/cook/me', cookProfileSchema, opts);
+}
+
+/* --------------------------------------------------------------- policy --- */
+
+/**
+ * The active published earnings policy.
+ *
+ * Read once per session and cached: it changes when an owner publishes, not per request. The
+ * server sends an ETag and a five-minute `max-age`, so a publication reaches a running app
+ * without a release and without polling it hard.
+ */
+export async function getEarningsPolicy(opts: Opts = {}): Promise<CookEarningsPolicy> {
+  return request('/cook/policies/earnings', cookEarningsPolicySchema, opts);
 }
 
 /* ----------------------------------------------------------------- jobs --- */

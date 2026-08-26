@@ -24,6 +24,7 @@ import {
 import * as api from './cook';
 import { isApiError } from './errors';
 import type {
+  CookEarningsPolicy,
   CookAttendanceRangeResponse,
   CookCycleDetailResponse,
   CookCyclesResponse,
@@ -68,9 +69,31 @@ export const queryKeys = {
   earnings: ['cook', 'earnings'] as const,
   cycles: ['cook', 'earnings', 'cycles'] as const,
   cycle: (cycleId: string) => ['cook', 'earnings', 'cycles', cycleId] as const,
+  earningsPolicy: ['cook', 'policies', 'earnings'] as const,
 };
 
 /* ---------------------------------------------------------------- reads --- */
+
+/**
+ * The active published earnings policy.
+ *
+ * Long-lived on purpose. This changes when an owner publishes a policy version, not when a cook
+ * opens a screen, so it is cached for the session and refetched on the server's own five-minute
+ * `max-age` rather than on every mount. A publication still reaches a running app without a
+ * release — that is the whole point of the route — it simply does not cost a request per render.
+ *
+ * There is deliberately **no fallback**. A Niyam sheet with no policy shows that it has no policy;
+ * it does not quietly draw last year's tariff, which is what the hardcoded tables did.
+ */
+export function useEarningsPolicy(enabled = true): UseQueryResult<CookEarningsPolicy> {
+  return useQuery({
+    queryKey: queryKeys.earningsPolicy,
+    queryFn: ({ signal }) => api.getEarningsPolicy({ signal }),
+    enabled,
+    staleTime: 5 * 60_000,
+    gcTime: 60 * 60_000,
+  });
+}
 
 export function useCookProfile(enabled = true): UseQueryResult<CookProfileResponse> {
   return useQuery({
