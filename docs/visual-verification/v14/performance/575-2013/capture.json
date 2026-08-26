@@ -4,17 +4,17 @@
   "targetContentPx": 3089,
   "scrolls": [
     {
-      "movedPx": 1022,
+      "movedPx": 1018,
       "matchCost": 0.0
     },
     {
-      "movedPx": 152,
+      "movedPx": 141,
       "matchCost": 0.0
     }
   ],
   "reachedTarget": true,
   "reachedBottom": false,
-  "contentPx": 3166,
+  "contentPx": 3151,
   "fixedFooterPx": 198,
   "fixedFooterNote": "The V14 bottom nav is chrome that does not scroll. It was excluded from the scrolled region and re-attached once below the assembled content, so the stitch template could not lock onto it."
 }

@@ -31,15 +31,15 @@
     "note": "frame located in render; effect bounds are centred at scale 1",
     "emulatorPx": {
       "width": 1080,
-      "height": 3414
+      "height": 3419
     },
     "emulatorContentPx": {
       "width": 1080,
-      "height": 3212
+      "height": 3217
     },
     "emulatorScaledToPx": {
       "width": 370,
-      "height": 1100
+      "height": 1102
     },
     "comparedAtPx": {
       "width": 370,
@@ -49,7 +49,7 @@
   "anchor": "top",
   "comparedHeightPx": 1084,
   "referenceHeightPx": 1084,
-  "emulatorScaledHeightPx": 1100,
+  "emulatorScaledHeightPx": 1102,
   "uncomparedReferenceRows": 0,
   "uncomparedReferenceInkRows": 0,
   "bandSplit": {
@@ -61,15 +61,15 @@
     "why": "The nav is fixed chrome on the bottom edge in both the design and the app, and the body between them is what the shorter device has to give up. Comparing the whole frame from the top would line the render's nav up against reference body rows and score a correct bar as a total mismatch."
   },
   "antialiasingTolerance": 12,
-  "differingPixelPercent": 7.9775,
-  "rawDifferingPixelPercent": 10.0189,
+  "differingPixelPercent": 7.6521,
+  "rawDifferingPixelPercent": 9.6527,
   "verdictTolerance": 40,
-  "differingPixelPercentAtVerdictTolerance": 5.0526,
-  "meanChannelDelta": 4.771,
+  "differingPixelPercentAtVerdictTolerance": 4.6489,
+  "meanChannelDelta": 4.3138,
   "maxChannelDelta": 255,
   "worstRows": [
     {
-      "row": 701,
+      "row": 353,
       "percent": 85.41
     },
     {
@@ -90,7 +90,7 @@
     },
     {
       "row": 998,
-      "percent": 87.03
+      "percent": 86.49
     },
     {
       "row": 999,
@@ -103,7 +103,7 @@
   ],
   "displacementProbe": {
     "bestVerticalOffsetPx": 0,
-    "percentAtBestOffset": 8.1274,
+    "percentAtBestOffset": 7.7959,
     "note": "0 means the render is on its design row and the residual is rasterisation. A non-zero offset is a real layout error even when the headline percentage is low."
   },
   "verdict": "PENDING_REVIEW",

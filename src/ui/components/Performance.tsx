@@ -114,6 +114,21 @@ const TILE = {
   headGap: 12,
   disc: 28,
   columnGap: 21,
+  /**
+   * `540:279` / `502:180` — `Frame 59`'s own gap between the tile pair and the amount chips. The
+   * card's is 16; this group's is 10.
+   */
+  groupGap: 10,
+  /**
+   * `540:281` / `502:213` — the LEAD tile's stated height.
+   *
+   * The pair is not symmetrical and that is the design's, not a rounding artefact: the `5+` tile
+   * is **113** and the `Ghante` tile **109.77**, both in a 113-unit row. The reference renders
+   * agree on all three money frames — 113 on the left and 109 on the right — while the app drew
+   * both at its own content height of 108. Only the lead tile carries the number, which is why
+   * the row is `flex-start` rather than `stretch`: stretching would take `Ghante` to 113 too.
+   */
+  leadHeight: 113,
 } as const;
 
 /** `434:2875` — the timer and the `8 ghante 45 mins` group. */
@@ -576,32 +591,44 @@ export function CycleWorkCard({
     <Card tone="yellow" gap={CARD.cycleGap} testID={testID}>
       <SectionLabel>{copy.work}</SectionLabel>
 
-      <View style={[styles.tileRow, { gap: s(TILE.columnGap) }]}>
-        <StatTile
-          fill={color.lime300}
-          glyph={<GlyphOnDisc image={images.star} inset={1} size={25} />}
-          title="5+"
-          caption="Bohot accha kaam"
-          count={view.fiveStarDays}
-          testID={`${testID}-rating`}
-        />
-        <StatTile
-          fill={color.lime300}
-          glyph={<GlyphOnDisc image={images.timer} size={28} />}
-          title="Ghante"
-          caption={thresholdLabel}
-          count={view.longHoursDays}
-          testID={`${testID}-hours`}
-        />
-      </View>
+      {/*
+       * `540:279` / `502:180` — `Frame 59` groups the tile pair with the amount chips at **10**,
+       * which is NOT the card's 16. Laid out as siblings of the label they took the card's gap and
+       * put six extra units between the tiles and the chips.
+       *
+       * The two errors were cancelling: the tiles were also five units short, so the chips landed
+       * on their design row with a sixteen-unit gap above a hundred-and-eight-unit tile instead of
+       * a ten-unit gap above a hundred-and-thirteen. Either fix alone moves them off it.
+       */}
+      <View style={{ gap: s(TILE.groupGap) }}>
+        <View style={[styles.tileRow, styles.tileRowTop, { gap: s(TILE.columnGap) }]}>
+          <StatTile
+            fill={color.lime300}
+            glyph={<GlyphOnDisc image={images.star} inset={1} size={25} />}
+            title="5+"
+            caption="Bohot accha kaam"
+            count={view.fiveStarDays}
+            height={TILE.leadHeight}
+            testID={`${testID}-rating`}
+          />
+          <StatTile
+            fill={color.lime300}
+            glyph={<GlyphOnDisc image={images.timer} size={28} />}
+            title="Ghante"
+            caption={thresholdLabel}
+            count={view.longHoursDays}
+            testID={`${testID}-hours`}
+          />
+        </View>
 
-      <View style={[styles.tileRow, { gap: s(TILE.columnGap) }]}>
-        <AmountChip fill={color.lime100} testID={`${testID}-rating-bonus`}>
-          {formatSignedRupees(view.breakdown.ratingBonusPaise)}
-        </AmountChip>
-        <AmountChip fill={color.lime100} testID={`${testID}-hours-bonus`}>
-          {formatSignedRupees(view.breakdown.longHoursPaise)}
-        </AmountChip>
+        <View style={[styles.tileRow, { gap: s(TILE.columnGap) }]}>
+          <AmountChip fill={color.lime100} testID={`${testID}-rating-bonus`}>
+            {formatSignedRupees(view.breakdown.ratingBonusPaise)}
+          </AmountChip>
+          <AmountChip fill={color.lime100} testID={`${testID}-hours-bonus`}>
+            {formatSignedRupees(view.breakdown.longHoursPaise)}
+          </AmountChip>
+        </View>
       </View>
 
       {rating !== null && (
@@ -1103,6 +1130,7 @@ function StatTile({
   titleVariant = 'headingLgBold',
   caption,
   count,
+  height,
   testID,
 }: {
   fill: string;
@@ -1112,6 +1140,8 @@ function StatTile({
   caption: string;
   /** A number, or an already-formatted value where the design states a unit (`20 min`). */
   count?: number | string | null;
+  /** A fixed height, where the frame states one. Omit to size to content. */
+  height?: number;
   testID?: string;
 }): React.ReactElement {
   const { s } = useDesignScale();
@@ -1125,6 +1155,7 @@ function StatTile({
           paddingHorizontal: s(TILE.paddingH),
           paddingVertical: s(TILE.paddingV),
           gap: s(TILE.gap),
+          ...(height === undefined ? {} : { height: s(height) }),
         },
       ]}
       testID={testID}
@@ -1233,7 +1264,7 @@ function MiniStat({
     <View
       style={[
         styles.miniStat,
-        figmaStroke(scale, { width: MINI.stroke, padding: MINI.padding, align: 'inside' }),
+        figmaStroke(scale, { width: MINI.stroke, padding: MINI.padding, align: 'outside' }),
         { borderRadius: scale.s(MINI.radius) },
       ]}
       testID={testID}
@@ -1283,6 +1314,8 @@ const styles = StyleSheet.create({
   formulaCellStretch: { alignSelf: 'stretch' },
 
   tileRow: { flexDirection: 'row', alignItems: 'stretch' },
+  /** The money tile pair, where the design's two tiles are DIFFERENT heights. See `TILE.leadHeight`. */
+  tileRowTop: { alignItems: 'flex-start' },
   tile: { flex: 1 },
   tileCount: { alignItems: 'center', justifyContent: 'center' },
   amountChip: { flex: 1, alignItems: 'center', justifyContent: 'center' },

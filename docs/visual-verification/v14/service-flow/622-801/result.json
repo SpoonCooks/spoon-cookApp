@@ -61,11 +61,11 @@
     "why": "The nav is fixed chrome on the bottom edge in both the design and the app, and the body between them is what the shorter device has to give up. Comparing the whole frame from the top would line the render's nav up against reference body rows and score a correct bar as a total mismatch."
   },
   "antialiasingTolerance": 12,
-  "differingPixelPercent": 13.2549,
-  "rawDifferingPixelPercent": 24.3433,
+  "differingPixelPercent": 9.3977,
+  "rawDifferingPixelPercent": 23.8192,
   "verdictTolerance": 40,
-  "differingPixelPercentAtVerdictTolerance": 10.2643,
-  "meanChannelDelta": 11.4888,
+  "differingPixelPercentAtVerdictTolerance": 6.627,
+  "meanChannelDelta": 6.7362,
   "maxChannelDelta": 255,
   "worstRows": [
     {
@@ -102,8 +102,8 @@
     }
   ],
   "displacementProbe": {
-    "bestVerticalOffsetPx": -1,
-    "percentAtBestOffset": 13.3873,
+    "bestVerticalOffsetPx": 0,
+    "percentAtBestOffset": 9.568,
     "note": "0 means the render is on its design row and the residual is rasterisation. A non-zero offset is a real layout error even when the headline percentage is low."
   },
   "verdict": "PENDING_REVIEW",

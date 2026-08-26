@@ -21,13 +21,13 @@ an artefact on disk; nothing here is asserted by hand except the reviewed verdic
 | `592:639` | leave | long leave selected | — | — | `leave/long-selected` | yes | yes | 7.77 | 5.73 | +0.20 | 96 | 1 | PASS |
 | `592:832` | leave | long leave confirm | — | — | `leave/long-booked` | yes | yes | 8.25 | 6.88 | +0.38 | 0 | 0 | PASS |
 | `592:888` | leave | short leave | — | — | `leave/short-confirm` | yes | yes | 5.11 | 4.08 | +0.20 | 96 | 1 | PASS |
-| `575:1744` | performance | 12- money daily | yes | 11 | `performance/money-daily` | yes | yes | 7.98 | 5.05 | +0.21 | 0 | 0 | PASS |
-| `575:1884` | performance | 13- money weekly | — | — | `performance/money-weekly` | yes | yes | 15.22 | 12.67 | +0.21 | 0 | 0 | OPEN |
+| `575:1744` | performance | 12- money daily | yes | 11 | `performance/money-daily` | yes | yes | 7.65 | 4.65 | +0.21 | 0 | 0 | PASS |
+| `575:1884` | performance | 13- money weekly | — | — | `performance/money-weekly` | yes | yes | 10.31 | 7.36 | +0.21 | 0 | 0 | OPEN |
 | `575:1903` | performance | 14- day history | — | — | `performance/day-history` | yes | yes | 8.97 | 7.34 | +0.23 | 0 | 0 | PASS |
 | `575:1922` | performance | 15- past daily | — | — | `performance/past-daily` | yes | yes | 7.78 | 5.33 | +0.22 | 0 | 0 | PASS |
-| `575:2013` | performance | 16- money monthly | — | — | `performance/money-monthly` | yes | yes | 13.97 | 11.33 | +0.21 | 0 | 0 | OPEN |
+| `575:2013` | performance | 16- money monthly | — | — | `performance/money-monthly` | yes | yes | 8.07 | 5.45 | +0.21 | 0 | 0 | OPEN |
 | `575:2032` | performance | 17- weekly history | — | — | `performance/weekly-history` | yes | yes | 9.17 | 5.90 | +0.23 | 0 | 0 | PASS |
-| `575:2098` | performance | 18- past weekly | — | — | `performance/past-weekly` | yes | yes | 14.78 | 12.35 | +0.22 | 0 | 0 | OPEN |
+| `575:2098` | performance | 18- past weekly | — | — | `performance/past-weekly` | yes | yes | 9.22 | 6.29 | +0.22 | 0 | 0 | OPEN |
 | `583:375` | job flow | 4a- jobs log out | yes | — | `jobs/logged-out` | yes | yes | 8.04 | 5.97 | +0.17 | 0 | 0 | PASS |
 | `583:401` | job flow | 4b- job log in | yes | 2 | `jobs/logged-in` | yes | yes | 9.35 | 7.50 | +0.17 | 0 | 0 | PASS |
 | `583:427` | job flow | 4c- next in <45 mins | yes | — | `jobs/next-45` | yes | yes | 10.34 | 8.69 | +0.17 | 0 | 0 | PASS |
@@ -42,10 +42,10 @@ an artefact on disk; nothing here is asserted by hand except the reviewed verdic
 | `622:597` | Service flow | travel- edge | — | 1 | `service/travel-edge` | yes | yes | 5.87 | 4.63 | +0.18 | 0 | 0 | PASS |
 | `622:664` | Service flow | arrival- on time | — | 2 | `service/arrival-on-time` | yes | yes | 6.65 | 4.85 | +0.18 | 36 | 0 | PASS |
 | `622:733` | Service flow | arrival- late | — | — | `service/arrival-late` | yes | yes | 8.44 | 6.26 | +0.18 | 36 | 0 | PASS |
-| `622:801` | Service flow | Start otp | — | 1 | `service/start-otp` | yes | yes | 13.25 | 10.26 | +0.18 | 0 | 0 | PASS |
+| `622:801` | Service flow | Start otp | — | 1 | `service/start-otp` | yes | yes | 9.40 | 6.63 | +0.18 | 0 | 0 | PASS |
 | `622:913` | Service flow | travel- cancel | — | 1 | `service/travel-cancel` | yes | yes | 10.14 | 8.82 | +0.18 | 25 | 0 | PASS |
 | `628:1249` | Service flow | end otp | — | 1 | `service/end-otp` | yes | yes | 4.32 | 2.09 | +0.18 | 0 | 0 | PASS |
-| `628:1293` | Service flow | End | — | 2 | `service/completed` | yes | yes | 8.48 | 6.05 | +0.18 | 64 | 0 | PASS |
+| `628:1293` | Service flow | End | — | 2 | `service/completed` | yes | yes | 7.61 | 5.18 | +0.18 | 64 | 0 | PASS |
 | `597:1131` | Info | long leave confirm | — | — | `info/leave-rules` | yes | yes | 7.17 | 4.95 | +0.18 | 0 | 0 | PASS |
 | `597:1221` | Info | rating tiers | — | 3 | `info/rating-tiers` | yes | yes | 8.99 | 6.80 | +0.20 | 96 | 1 | PASS |
 | `603:1865` | Info | No Show | — | 1 | `info/no-show` | yes | yes | 10.06 | 7.43 | +0.20 | 96 | 1 | PASS |

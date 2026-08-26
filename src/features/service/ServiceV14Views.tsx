@@ -175,6 +175,22 @@ const PROMO = {
  */
 const CANCEL_ART = { width: 328, height: 214 } as const;
 
+/**
+ * `473:4193` — the drawn height of `622:801`'s art, which its box crops from the BOTTOM only.
+ *
+ * `start-otp-art.png` is 1402x1122 and the box is 314x217, so covering it draws
+ * `314 x 1122 / 1402` = **251.3** units and leaves 34 to crop. `resizeMode="cover"` splits that
+ * 17 above and 17 below; the design's fill takes all 34 off the bottom.
+ *
+ * Measured, not inferred. Fitting the asset to the reference's own art region scores 9.83% when
+ * the image is pinned to the top of the box and 13.10% centred, both locating the box at the same
+ * row — and aligning the two renders directly needs the app's artwork moved **18 units down**,
+ * which takes that region from 24.53% to 8.27%. The other five art frames all measure a best
+ * shift of **0** and keep the centred default: their boxes sit within a few units of the source
+ * aspect, so there is almost no overflow to place.
+ */
+const START_OTP_ART_COVER_HEIGHT = 251.3;
+
 /** `485:4930` — the celebration art on `628:1293`, the tallest of the three `Frame 50`s. */
 const COMPLETED_ART_HEIGHT = 336;
 
@@ -857,12 +873,23 @@ function PromoBlock({
   height,
   captionFirst = false,
   gap = PROMO.gap,
+  coverHeight,
 }: {
   source: ImageSourcePropType;
   caption: string;
   height: number;
   captionFirst?: boolean;
   gap?: number;
+  /**
+   * The height the covering image is DRAWN at, when the design pins it to the top of its box
+   * rather than centring the overflow. Omit for the centred default.
+   *
+   * `resizeMode="cover"` always centres, so on a box whose aspect differs sharply from the
+   * source's it crops equally from both ends. A Figma image fill carries its own transform and
+   * can sit anywhere in the frame, which is not something the CSS dump records — only the render
+   * shows it.
+   */
+  coverHeight?: number;
 }): React.ReactElement {
   const { s } = useDesignScale();
   const image = (
@@ -877,7 +904,7 @@ function PromoBlock({
     >
       <Image
         source={source}
-        style={{ width: s(PROMO.artWidth), height: s(height) }}
+        style={{ width: s(PROMO.artWidth), height: s(coverHeight ?? height) }}
         resizeMode="cover"
         accessibilityIgnoresInvertColors
       />
@@ -947,7 +974,12 @@ export function StartOtpView({
         length={length}
         testID="start-otp"
       />
-      <PromoBlock source={art.startOtp} caption="OTP daalke job start kare" height={217} />
+      <PromoBlock
+        source={art.startOtp}
+        caption="OTP daalke job start kare"
+        height={217}
+        coverHeight={START_OTP_ART_COVER_HEIGHT}
+      />
       {error !== null && <ErrorLine message={error} testID="start-otp-error" />}
     </ServiceShell>
   );
