@@ -23,9 +23,20 @@ function extra(): ExtraShape {
 }
 
 export function appEnv(): AppEnv {
+  return declaredAppEnv() ?? 'development';
+}
+
+/**
+ * The environment the build actually declares, with NO default applied.
+ *
+ * {@link appEnv} resolves anything missing or unrecognised to `development`, which is the right
+ * default for choosing an API host but the wrong one for a safety gate: it fails OPEN. A caller
+ * that must deny by default — {@link areFixturesAvailable} — needs to tell "this build says
+ * development" apart from "this build says nothing", and only this function can.
+ */
+export function declaredAppEnv(): AppEnv | undefined {
   const value = extra().appEnv;
-  const found = appEnvs.find((env) => env === value);
-  return found ?? 'development';
+  return appEnvs.find((env) => env === value);
 }
 
 /** `undefined` when unset — callers decide whether that is fatal. */

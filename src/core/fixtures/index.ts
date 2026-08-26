@@ -6,8 +6,9 @@
  * 1. **Never a fallback.** Nothing here is used when an API call fails. A failed request renders
  *    `ErrorState`. Showing a cook an invented job would make them act on something that does not
  *    exist.
- * 2. **Never in release.** Every accessor is guarded by `__DEV__`, which the Metro/Babel release
- *    build replaces with `false`, so this module's data is dead code in a production bundle.
+ * 2. **Never in production.** Every accessor is guarded by {@link areFixturesAvailable}, which is
+ *    false for the production app. See that function for why the gate is the ENVIRONMENT rather
+ *    than the build type.
  * 3. **Labelled by backend state.** Each fixture names the backend state it represents, so a
  *    screenshot can be traced to the projection it is meant to prove.
  *
@@ -17,6 +18,7 @@
  * threshold shown is the disputed 5-vs-7-hour value recorded in GAP-19.
  */
 
+import { declaredAppEnv } from '../config';
 import type { AttendanceMonth, TodayAttendance } from '../domain/attendance';
 import type { JobCardModel, JobsProjection, JobUrgency } from '../domain/job';
 import type {
@@ -28,15 +30,52 @@ import type {
 import type { ServiceSnapshot } from '../domain/serviceState';
 
 /** Throws in release rather than returning silent placeholder data. */
+/**
+ * Guard every fixture accessor with the SAME gate the gallery routes use.
+ *
+ * This used to test `__DEV__` directly while {@link areFixturesAvailable} tested the environment,
+ * and the two disagreed the moment they differed: a non-production release build rendered the
+ * gallery's routes and then threw here on the first fixture read. One gate, or the gallery is
+ * reachable and broken at the same time.
+ */
 function devOnly<T>(value: T): T {
-  if (!__DEV__) {
-    throw new Error('Fixtures are development-only and must never be read in a release build.');
+  if (!areFixturesAvailable()) {
+    throw new Error('Fixtures are development-only and must never be read in the production app.');
   }
   return value;
 }
 
+/**
+ * Whether the development gallery and its fixtures may render.
+ *
+ * ## Why this is the environment and not `__DEV__`
+ *
+ * It used to be `__DEV__` alone. That is a BUILD-TYPE flag, and it made the gallery reachable
+ * only from a debug build — which in turn can only run its JS from a live Metro instance. A
+ * `__DEV__` bundle cannot be embedded at all: React DevTools throws
+ * `Cannot create devtools websocket connections in embedded environments` the moment the runtime
+ * starts without a dev server. So there was no way to hand anyone the 47 screens without also
+ * handing them a laptop, a USB cable and a Metro process.
+ *
+ * The environment is the honest gate anyway. What must never happen is the PRODUCTION app
+ * rendering invented jobs, earnings or service progress — and production is a different
+ * application entirely: `com.spoonhelp.cookapp` against this build's `com.spoonhelp.cookapp.dev`,
+ * with `appEnv` resolved from its own `extra` block. It returns false here whatever the build
+ * type, which is exactly the guarantee the old flag was standing in for.
+ *
+ * ## Why `declaredAppEnv` and not `appEnv`
+ *
+ * `appEnv()` resolves a missing or unrecognised value to `development`, which is a sensible
+ * default for picking an API host and the wrong one here: it would make a build with a broken
+ * `extra` block fail OPEN and serve fixtures. This gate names the two environments that may have
+ * them, so anything else — `production`, absent, malformed — denies.
+ *
+ * `__DEV__` stays the first term so a debug build works regardless of what `extra` says.
+ */
 export function areFixturesAvailable(): boolean {
-  return __DEV__;
+  if (__DEV__) return true;
+  const declared = declaredAppEnv();
+  return declared === 'development' || declared === 'staging';
 }
 
 const address = {

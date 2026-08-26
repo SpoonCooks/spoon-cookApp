@@ -11,32 +11,100 @@
  * imports it any more, which {@link no screen imports a fixture} asserts directly.
  */
 
-describe('fixtures are unavailable in a release build', () => {
+/**
+ * The mock reads through to a variable in THIS file rather than baking a value into the factory.
+ *
+ * Each case calls `jest.resetModules()` so `@core/fixtures` re-evaluates its `__DEV__` branch, and
+ * that also re-runs this factory — a literal here would be reset to its original value every time
+ * and the environment under test would silently be discarded. The `mock` prefix is what lets jest
+ * hoist the factory above the declaration.
+ */
+let mockExtra: Record<string, unknown> = { appEnv: 'production' };
+
+jest.mock('expo-constants', () => ({
+  __esModule: true,
+  default: {
+    get expoConfig() {
+      return { extra: mockExtra };
+    },
+  },
+}));
+
+function setAppEnv(env: string): void {
+  mockExtra = { appEnv: env };
+}
+
+describe('fixtures are unavailable in the production app', () => {
   const originalDev = (globalThis as { __DEV__?: boolean | undefined }).__DEV__;
 
   afterEach(() => {
     (globalThis as { __DEV__?: boolean | undefined }).__DEV__ = originalDev;
+    setAppEnv('production');
     jest.resetModules();
   });
 
   it('reports fixtures as available in development', () => {
     (globalThis as { __DEV__?: boolean | undefined }).__DEV__ = true;
+    setAppEnv('production');
     jest.resetModules();
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const fixtures = require('@core/fixtures') as typeof import('@core/fixtures');
+    // `__DEV__` alone is enough, whatever the environment says.
     expect(fixtures.areFixturesAvailable()).toBe(true);
   });
 
-  it('reports fixtures as unavailable in release', () => {
+  it('reports fixtures as UNAVAILABLE in a production release build', () => {
     (globalThis as { __DEV__?: boolean | undefined }).__DEV__ = false;
+    setAppEnv('production');
     jest.resetModules();
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const fixtures = require('@core/fixtures') as typeof import('@core/fixtures');
     expect(fixtures.areFixturesAvailable()).toBe(false);
   });
 
-  it('throws rather than returning placeholder data when read in release', () => {
+  it.each(['development', 'staging'])(
+    'reports fixtures as available in a %s release build',
+    (env) => {
+      // This is the deliberate widening: a NON-production release build may carry the gallery, so
+      // the 47 screens can be handed to someone without a laptop and a Metro process. Production
+      // is a different application id and is covered by the test above.
+      (globalThis as { __DEV__?: boolean | undefined }).__DEV__ = false;
+      setAppEnv(env);
+      jest.resetModules();
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const fixtures = require('@core/fixtures') as typeof import('@core/fixtures');
+      expect(fixtures.areFixturesAvailable()).toBe(true);
+    },
+  );
+
+  it.each([{}, { appEnv: 'prod' }, { appEnv: 42 }])(
+    'denies fixtures when the build declares no usable environment (%p)',
+    (extra) => {
+      // The gate names the environments that MAY have fixtures rather than the one that may not,
+      // so a missing or malformed `extra` block fails CLOSED. `appEnv()` would have defaulted
+      // these to `development` and served them.
+      (globalThis as { __DEV__?: boolean | undefined }).__DEV__ = false;
+      mockExtra = extra as Record<string, unknown>;
+      jest.resetModules();
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const fixtures = require('@core/fixtures') as typeof import('@core/fixtures');
+      expect(fixtures.areFixturesAvailable()).toBe(false);
+    },
+  );
+
+  it('still resolves appEnv itself to development when unset', () => {
+    // The default is unchanged for everyone else; only the safety gate refuses to use it.
+    mockExtra = {};
+    jest.resetModules();
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const config = require('@core/config') as typeof import('@core/config');
+    expect(config.appEnv()).toBe('development');
+    expect(config.declaredAppEnv()).toBeUndefined();
+  });
+
+  it('throws rather than returning placeholder data when read in production', () => {
     (globalThis as { __DEV__?: boolean | undefined }).__DEV__ = false;
+    setAppEnv('production');
     jest.resetModules();
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const fixtures = require('@core/fixtures') as typeof import('@core/fixtures');
@@ -44,6 +112,9 @@ describe('fixtures are unavailable in a release build', () => {
     // Every accessor must fail loudly. Returning empty-but-valid data would be worse: the screen
     // would render as though the backend had legitimately reported "no jobs".
     expect(() => fixtures.jobFixtures.singleCurrent()).toThrow(/development-only/);
+    // The gate devOnly() uses must be the same one the routes use, or the gallery renders and
+    // then throws on its first fixture read.
+    expect(fixtures.areFixturesAvailable()).toBe(false);
     expect(() => fixtures.serviceFixtures.travelOnTime()).toThrow(/development-only/);
     expect(() => fixtures.attendanceFixtures.month()).toThrow(/development-only/);
   });
