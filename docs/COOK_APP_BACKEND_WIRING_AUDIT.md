@@ -87,7 +87,7 @@ Worth stating plainly, because most of the app is fine:
 | Profile, rating    | `GET /cook/me` → `cook.rating.average`                                               |
 | Jobs list, current | `GET /cook/jobs`, `/cook/jobs/current`, `/cook/jobs/{id}`                            |
 | Attendance         | `GET /cook/attendance`, `/attendance/month`, `POST /present`                         |
-| Leave              | `GET                                                                                 | POST /cook/leaves` |
+| Leave              | `GET /cook/leaves`, `POST /cook/leaves`                                              |
 | Earnings, cycles   | `GET /cook/earnings`, `/earnings/cycles`, `/cycles/{id}`                             |
 | Service lifecycle  | `start-commute`, `arrive`, `verify-start-otp`, `verify-end-otp`, `acknowledge-alert` |
 | Location           | `POST /cook/location`                                                                |
