@@ -175,6 +175,16 @@ const PROMO = {
  */
 const CANCEL_ART = { width: 328, height: 214 } as const;
 
+/** `622:1023` — the cancelled banner's caption box, and its gap from the art above it. */
+const CANCEL_BANNER = {
+  /** `622:1022` ends at 214 and `622:1023` starts at 220. */
+  gap: 6,
+  captionWidth: 326,
+  captionHeight: 70,
+  /** The text is at y=14 in a 70-unit box holding a 28-unit line: 14 above, 28 below. */
+  captionTop: 14,
+} as const;
+
 /**
  * `473:4193` — the drawn height of `622:801`'s art, which its box crops from the BOTTOM only.
  *
@@ -664,7 +674,16 @@ export function TravelCancelledView({
   return (
     <ServiceShell title="Jaankari" onHelp={onHelp} testID="service-travel-cancelled">
       <Block>
-        <View style={styles.cancelBanner}>
+        {/*
+         * `622:1022` sits 6 units above `622:1023`, and the caption is at y=14 inside that
+         * 70-unit box, NOT centred in it: 14 above the line and 28 below.
+         *
+         * Drawn flush and centred, the two errors cancelled on the caption — 0 + 21 lands within
+         * a unit of the design's 6 + 14 — and then took the whole `Kaam dekhe` CTA six units up
+         * the screen, because the box's own bottom slack fell from 28 to 21. The headline
+         * residual stayed under the rule the entire time; only the displacement probe showed it.
+         */}
+        <View style={[styles.cancelBanner, { gap: s(CANCEL_BANNER.gap) }]}>
           <View style={{ width: s(CANCEL_ART.width), height: s(CANCEL_ART.height) }}>
             <Image
               source={art.cancelled}
@@ -673,7 +692,13 @@ export function TravelCancelledView({
               accessibilityIgnoresInvertColors
             />
           </View>
-          <View style={{ width: s(326), height: s(70), justifyContent: 'center' }}>
+          <View
+            style={{
+              width: s(CANCEL_BANNER.captionWidth),
+              height: s(CANCEL_BANNER.captionHeight),
+              paddingTop: s(CANCEL_BANNER.captionTop),
+            }}
+          >
             <Text variant="travelHeadline" color={color.black} align="center">
               Ye booking CANCEL ho gayi hai
             </Text>
