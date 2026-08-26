@@ -1,5 +1,4 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs';
-import { inflateSync } from 'node:zlib';
 import { join } from 'node:path';
 
 /**
@@ -76,78 +75,80 @@ describe('vector assets reach the bundle as markup, not as image sources', () =>
 });
 
 /**
- * The native splash placeholder must be FULLY TRANSPARENT.
+ * The native splash background must be the BOOT GRADIENT'S TOP, not the brand yellow.
  *
- * `app.config.ts` hands `splash-icon.png` to `expo-splash-screen` and documents it as
- * "a deliberately EMPTY (1x1 transparent) image", because the plugin always writes
- * `windowSplashScreenAnimatedIcon` into `styles.xml` and the Android build fails resource
- * linking without a drawable to point at. The Figma loading page (`434:3330`) is drawn in JS;
- * the native splash only has to hold the brand yellow until the bundle boots.
+ * `434:3330` fills the loading page with `#ffd600 -> #cfff04` at 70% over white. Measured on the
+ * committed reference render that resolves to **#FAE44C** at the first row, and `BootView` draws
+ * **#FBE54C** there — one level apart, which is why `login/boot` scores 0.18%.
  *
- * The committed file was a single pixel of `[0, 0, 255, 127]` — semi-transparent BLUE. Scaled
- * into the splash icon box and composited over `#ffd600` it painted a dark purple square, about
- * 272px across, on every cold launch on both the emulator and a real device. Nothing caught it:
- * `expo export` never links Android resources, the gallery never renders the native splash, and
- * the JS loading page it precedes scores 0.18% against its reference.
+ * The native splash is what the OS paints BEFORE any of that, and `_layout.tsx` holds it up with
+ * `preventAutoHideAsync()` until the fonts resolve. It used to be `#FFD600`, so the boot sequence
+ * showed a saturated brand yellow and then jumped to a soft lemon — 76 levels apart on the blue
+ * channel, which reads as a different screen rather than the same one still loading.
  *
- * A one-pixel PNG is small enough to decode here rather than take on trust.
+ * Android 12+ accepts a single COLOUR for `windowSplashScreenBackground` and cannot render the
+ * gradient, so matching its first row is the closest the native frame can get. These assertions
+ * exist because nothing else can see this: the value only appears in a generated `styles.xml`,
+ * and the JS page that follows it is pixel-verified independently.
  */
-describe('the native splash placeholder', () => {
-  const png = readFileSync(join(SRC, '..', 'assets', 'images', 'splash-icon.png'));
+describe('the native splash background', () => {
+  const config = readFileSync(join(SRC, '..', 'app.config.ts'), 'utf-8');
 
-  /** Minimal PNG reader: enough for a 1x1 image, and no dependency to add. */
-  function decode(buffer: Buffer): {
-    readonly width: number;
-    readonly height: number;
-    readonly colourType: number;
-    readonly pixel: readonly number[];
-  } {
-    expect(buffer.subarray(0, 8).toString('hex')).toBe('89504e470d0a1a0a');
-    let offset = 8;
-    let header: { width: number; height: number; colourType: number } | undefined;
-    const data: Buffer[] = [];
-    while (offset < buffer.length) {
-      const length = buffer.readUInt32BE(offset);
-      const type = buffer.subarray(offset + 4, offset + 8).toString('ascii');
-      const body = buffer.subarray(offset + 8, offset + 8 + length);
-      if (type === 'IHDR') {
-        header = {
-          width: body.readUInt32BE(0),
-          height: body.readUInt32BE(4),
-          colourType: body.readUInt8(9),
-        };
-      } else if (type === 'IDAT') {
-        data.push(body);
-      }
-      offset += length + 12;
-    }
-    if (header === undefined) throw new Error('no IHDR');
-    // Scanline layout for a 1x1 image: one filter byte, then the channels.
-    const raw = inflateSync(Buffer.concat(data));
-    return { ...header, pixel: Array.from(raw.subarray(1)) };
-  }
-
-  it('is a single pixel', () => {
-    const { width, height } = decode(png);
-    expect([width, height]).toEqual([1, 1]);
+  it('is the measured top of the boot gradient', () => {
+    expect(config).toContain("const SPLASH_BACKGROUND = '#FAE44C'");
   });
 
-  it('carries an alpha channel, and that alpha is zero', () => {
-    const { colourType, pixel } = decode(png);
-    // 6 = truecolour with alpha, 4 = greyscale with alpha. Anything else cannot be transparent.
-    expect([4, 6]).toContain(colourType);
-    const alpha = pixel[pixel.length - 1];
-    expect(alpha).toBe(0);
+  it('is not the brand yellow, which is 76 levels away on blue', () => {
+    expect(config).not.toContain("const SPLASH_BACKGROUND = '#FFD600'");
   });
 
-  it('paints nothing over the brand yellow it sits on', () => {
-    // Compositing src-over with zero alpha must leave the background exactly as it was.
-    const { pixel } = decode(png);
-    const alpha = (pixel[pixel.length - 1] ?? 0) / 255;
-    const background = [0xff, 0xd6, 0x00];
-    const composited = background.map((channel, i) =>
-      Math.round((pixel[i] ?? 0) * alpha + channel * (1 - alpha)),
-    );
-    expect(composited).toEqual(background);
+  it('leaves the app icon on the brand yellow', () => {
+    // The icon is brand furniture and does NOT follow the gradient.
+    expect(config).toContain("const BRAND_YELLOW = '#FFD600'");
+    expect(config).toContain('adaptiveIcon: { backgroundColor: BRAND_YELLOW }');
+  });
+
+  it('hands that colour to expo-splash-screen', () => {
+    expect(config).toContain('backgroundColor: SPLASH_BACKGROUND');
+  });
+});
+
+/**
+ * The native splash draws the design's own mark, at the size the design draws it.
+ *
+ * `434:3330` is the spoon wordmark on the boot gradient, and `BootView` reproduces it exactly —
+ * 0.18% against the reference, the best of all 47 screens. On a release build nobody sees it:
+ * `BootScreen` restores the session and redirects in milliseconds, so the gradient cross-fades
+ * into Login and the mark never lands. The first second a cook actually looks at is the NATIVE
+ * splash, and it drew nothing at all.
+ *
+ * Worse, before that it drew something wrong. `splash-icon.png` was documented as "1x1
+ * transparent" and was actually one pixel of `[0, 0, 255, 127]` — semi-transparent blue — which
+ * `expo-splash-screen` scaled to its default `imageWidth` of 100dp and composited over the
+ * background as a dark purple square, about 275px across, on every cold launch.
+ *
+ * Nothing else can see any of this: the values live only in a generated `styles.xml` and
+ * `colors.xml`, `expo export` never links Android resources, and the dev gallery renders the JS
+ * page rather than the native frame that precedes it.
+ */
+describe('the native splash icon', () => {
+  const config = readFileSync(join(SRC, '..', 'app.config.ts'), 'utf-8');
+
+  it('is the same asset BootView renders, not a placeholder', () => {
+    expect(config).toContain("image: './assets/images/figma-v13/spoon-brand-logo.png'");
+    // The 1x1 blue pixel that painted the purple square must never come back.
+    expect(config).not.toContain('splash-icon.png');
+  });
+
+  it('is drawn at 288dp, the largest the drawable canvas holds uncropped', () => {
+    // A wider box is CROPPED, not scaled: at 393dp the fork handle and the wordmark's right edge
+    expect(config).toContain('imageWidth: 288');
+  });
+
+  it('keeps an image configured at all', () => {
+    // `expo-splash-screen` always writes `windowSplashScreenAnimatedIcon` into styles.xml.
+    // Without a drawable to point at, the Android build fails resource linking — and `expo
+    // export` cannot surface that, because export never links Android resources.
+    expect(config).toMatch(/image:\s*'\.\/assets\/images\/[^']+'/);
   });
 });

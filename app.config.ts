@@ -57,8 +57,26 @@ const BUNDLE_SUFFIX: Record<AppEnv, string> = {
  */
 const ANDROID_NDK_VERSION = '27.2.12479018';
 
-/** Brand yellow. Figma `#ffd600` — the Cook App's splash/background anchor. */
-const SPLASH_BACKGROUND = '#FFD600';
+/** Brand yellow. Figma `#ffd600` — the app icon's background. */
+const BRAND_YELLOW = '#FFD600';
+
+/**
+ * The native splash background: the TOP of the boot gradient, not the brand yellow.
+ *
+ * `434:3330` fills the loading page with `#ffd600 -> #cfff04` at **70% over white**, which
+ * resolves to `#FAE44C` at the top. `BootView` draws exactly that — its render measures
+ * `#FBE54C` against the reference's `#FAE44C`, one level.
+ *
+ * The native splash is what the OS shows BEFORE that, and `_layout.tsx` holds it up with
+ * `preventAutoHideAsync()` until the fonts resolve. Painting it brand yellow meant the boot
+ * sequence went saturated `#FFD600` and then jumped to a soft lemon — 76 levels apart on blue,
+ * which reads as a different screen rather than the same one loading.
+ *
+ * Android 12+ takes a single COLOUR here (`windowSplashScreenBackground`); it cannot render the
+ * gradient itself. Matching the gradient's first row is therefore the closest the native frame
+ * can get, and it makes the handoff continuous at the top edge instead of a colour flash.
+ */
+const SPLASH_BACKGROUND = '#FAE44C';
 
 /** Deployed API used when no `EXPO_PUBLIC_API_BASE_URL` is supplied outside production. */
 const DEV_FALLBACK_API_BASE_URL = 'https://spoon-api-kalc.onrender.com';
@@ -84,7 +102,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   assetBundlePatterns: ['**/*'],
   android: {
     package: BUNDLE_ID,
-    adaptiveIcon: { backgroundColor: SPLASH_BACKGROUND },
+    adaptiveIcon: { backgroundColor: BRAND_YELLOW },
     permissions: [
       'ACCESS_COARSE_LOCATION',
       'ACCESS_FINE_LOCATION',
@@ -103,21 +121,46 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       'expo-splash-screen',
       {
         backgroundColor: SPLASH_BACKGROUND,
-        // A deliberately EMPTY (1x1 transparent) image, not a missing one.
-        //
-        // `expo-splash-screen` always writes
-        // `<item name="windowSplashScreenAnimatedIcon">@drawable/splashscreen_logo</item>` into
-        // `styles.xml`, but only generates that drawable when an `image` is configured. Omitting
-        // it therefore produces an Android project that fails resource linking:
-        //   `error: resource drawable/splashscreen_logo not found`
-        // — a native-build break that `expo export` cannot surface, because export never links
-        // Android resources.
-        //
-        // The Figma splash (`434:3330`) is the "Spoon Partner" wordmark on brand yellow, and that
-        // is drawn in JS by `app/index.tsx` as soon as the bundle boots. The native splash only
-        // has to hold the yellow until then, so a transparent icon is the correct content rather
-        // than invented artwork.
-        image: './assets/images/splash-icon.png',
+        /*
+         * The native splash draws the SAME mark the Figma loading page does.
+         *
+         * `434:3330` is the spoon wordmark on the boot gradient, and `BootView` reproduces it
+         * exactly — it scores 0.18% against the reference, the best of all 47 screens. But on a
+         * release build nobody sees it: `BootScreen` restores the session and redirects in
+         * milliseconds, so the gradient cross-fades straight into Login and the mark never lands.
+         * What a cook actually looks at for the first second is this native frame, and it was
+         * empty.
+         *
+         * `spoon-brand-logo.png` is the asset `BootView` itself renders, so this is the design's
+         * own artwork rather than something invented for the splash.
+         *
+         * `imageWidth` is **288**, which is the largest the generated drawable can hold. The
+         * generator rasterises into a fixed canvas — 1152px at xxxhdpi, i.e. 288dp — and anything
+         * wider is CROPPED rather than scaled: at 393dp (the 370-unit box `BootView` gives the
+         * mark) the fork handle lost its top and the wordmark ran off the right edge, taking the
+         * ink's aspect from 1.309 to 1.504. At 288 the whole mark fits with its aspect intact.
+         *
+         * Two things Android will not do, and they are limits of the platform rather than
+         * choices:
+         *
+         *   - `windowSplashScreenBackground` takes a COLOUR, so the native frame cannot carry the
+         *     gradient. It gets the gradient's first row (see `SPLASH_BACKGROUND`), which makes
+         *     the handoff continuous at the top edge.
+         *   - The icon is CENTRED, and its canvas is capped. The design pins the mark's ink centre
+         *     at 42% of the viewport height and draws 258dp of ink; the 288dp canvas holds 189dp
+         *     of ink at 50%. Both are the platform's limits, not choices — a larger box crops.
+         *
+         * So the native frame is the design's mark, in the design's colour, at 73% of the design's
+         * size. The full-size mark on the full gradient is `BootView`, one frame later.
+         *
+         * The image must never be removed: `expo-splash-screen` always writes
+         * `windowSplashScreenAnimatedIcon` into `styles.xml`, and without a drawable to point at
+         * the Android build fails resource linking with
+         * `error: resource drawable/splashscreen_logo not found` — a break `expo export` cannot
+         * surface, because export never links Android resources.
+         */
+        image: './assets/images/figma-v13/spoon-brand-logo.png',
+        imageWidth: 288,
         resizeMode: 'contain',
       },
     ],
