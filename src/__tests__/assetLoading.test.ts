@@ -1,4 +1,5 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { inflateSync } from 'node:zlib';
 import { join } from 'node:path';
 
 /**
@@ -71,5 +72,82 @@ describe('vector assets reach the bundle as markup, not as image sources', () =>
       expect(source).toContain('<svg');
       expect(code(source)).not.toMatch(/require\(/);
     }
+  });
+});
+
+/**
+ * The native splash placeholder must be FULLY TRANSPARENT.
+ *
+ * `app.config.ts` hands `splash-icon.png` to `expo-splash-screen` and documents it as
+ * "a deliberately EMPTY (1x1 transparent) image", because the plugin always writes
+ * `windowSplashScreenAnimatedIcon` into `styles.xml` and the Android build fails resource
+ * linking without a drawable to point at. The Figma loading page (`434:3330`) is drawn in JS;
+ * the native splash only has to hold the brand yellow until the bundle boots.
+ *
+ * The committed file was a single pixel of `[0, 0, 255, 127]` — semi-transparent BLUE. Scaled
+ * into the splash icon box and composited over `#ffd600` it painted a dark purple square, about
+ * 272px across, on every cold launch on both the emulator and a real device. Nothing caught it:
+ * `expo export` never links Android resources, the gallery never renders the native splash, and
+ * the JS loading page it precedes scores 0.18% against its reference.
+ *
+ * A one-pixel PNG is small enough to decode here rather than take on trust.
+ */
+describe('the native splash placeholder', () => {
+  const png = readFileSync(join(SRC, '..', 'assets', 'images', 'splash-icon.png'));
+
+  /** Minimal PNG reader: enough for a 1x1 image, and no dependency to add. */
+  function decode(buffer: Buffer): {
+    readonly width: number;
+    readonly height: number;
+    readonly colourType: number;
+    readonly pixel: readonly number[];
+  } {
+    expect(buffer.subarray(0, 8).toString('hex')).toBe('89504e470d0a1a0a');
+    let offset = 8;
+    let header: { width: number; height: number; colourType: number } | undefined;
+    const data: Buffer[] = [];
+    while (offset < buffer.length) {
+      const length = buffer.readUInt32BE(offset);
+      const type = buffer.subarray(offset + 4, offset + 8).toString('ascii');
+      const body = buffer.subarray(offset + 8, offset + 8 + length);
+      if (type === 'IHDR') {
+        header = {
+          width: body.readUInt32BE(0),
+          height: body.readUInt32BE(4),
+          colourType: body.readUInt8(9),
+        };
+      } else if (type === 'IDAT') {
+        data.push(body);
+      }
+      offset += length + 12;
+    }
+    if (header === undefined) throw new Error('no IHDR');
+    // Scanline layout for a 1x1 image: one filter byte, then the channels.
+    const raw = inflateSync(Buffer.concat(data));
+    return { ...header, pixel: Array.from(raw.subarray(1)) };
+  }
+
+  it('is a single pixel', () => {
+    const { width, height } = decode(png);
+    expect([width, height]).toEqual([1, 1]);
+  });
+
+  it('carries an alpha channel, and that alpha is zero', () => {
+    const { colourType, pixel } = decode(png);
+    // 6 = truecolour with alpha, 4 = greyscale with alpha. Anything else cannot be transparent.
+    expect([4, 6]).toContain(colourType);
+    const alpha = pixel[pixel.length - 1];
+    expect(alpha).toBe(0);
+  });
+
+  it('paints nothing over the brand yellow it sits on', () => {
+    // Compositing src-over with zero alpha must leave the background exactly as it was.
+    const { pixel } = decode(png);
+    const alpha = (pixel[pixel.length - 1] ?? 0) / 255;
+    const background = [0xff, 0xd6, 0x00];
+    const composited = background.map((channel, i) =>
+      Math.round((pixel[i] ?? 0) * alpha + channel * (1 - alpha)),
+    );
+    expect(composited).toEqual(background);
   });
 });
