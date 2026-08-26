@@ -13,7 +13,7 @@
   },
   "viewportCropPx": {
     "left": 2,
-    "top": 1,
+    "top": 0,
     "width": 370,
     "height": 1067
   },
@@ -27,7 +27,7 @@
   },
   "scalingTransform": {
     "figmaRenderScale": 1.0,
-    "figmaRenderOriginYPx": 1.48,
+    "figmaRenderOriginYPx": 0.0,
     "note": "frame located in render; effect bounds are centred at scale 1",
     "emulatorPx": {
       "width": 1080,
@@ -61,56 +61,56 @@
     "why": "The nav is fixed chrome on the bottom edge in both the design and the app, and the body between them is what the shorter device has to give up. Comparing the whole frame from the top would line the render's nav up against reference body rows and score a correct bar as a total mismatch."
   },
   "antialiasingTolerance": 12,
-  "differingPixelPercent": 12.9085,
-  "rawDifferingPixelPercent": 14.7711,
+  "differingPixelPercent": 10.3403,
+  "rawDifferingPixelPercent": 12.6069,
   "verdictTolerance": 40,
-  "differingPixelPercentAtVerdictTolerance": 11.2613,
-  "meanChannelDelta": 12.4795,
+  "differingPixelPercentAtVerdictTolerance": 8.6925,
+  "meanChannelDelta": 8.8517,
   "maxChannelDelta": 255,
   "worstRows": [
     {
-      "row": 333,
-      "percent": 84.32
+      "row": 174,
+      "percent": 83.78
     },
     {
       "row": 351,
-      "percent": 85.14
+      "percent": 84.59
+    },
+    {
+      "row": 472,
+      "percent": 83.78
     },
     {
       "row": 473,
-      "percent": 85.41
+      "percent": 84.59
+    },
+    {
+      "row": 594,
+      "percent": 83.78
     },
     {
       "row": 595,
-      "percent": 85.41
+      "percent": 84.59
     },
     {
       "row": 717,
-      "percent": 85.41
-    },
-    {
-      "row": 821,
-      "percent": 84.32
+      "percent": 84.59
     },
     {
       "row": 839,
-      "percent": 85.41
-    },
-    {
-      "row": 1034,
-      "percent": 100.0
+      "percent": 84.59
     }
   ],
   "displacementProbe": {
-    "bestVerticalOffsetPx": 2,
-    "percentAtBestOffset": 8.7155,
+    "bestVerticalOffsetPx": 1,
+    "percentAtBestOffset": 8.0865,
     "note": "0 means the render is on its design row and the residual is rasterisation. A non-zero offset is a real layout error even when the headline percentage is low."
   },
   "verdict": "PENDING_REVIEW",
   "topAlignment": {
-    "referenceFirstInkUnits": 5.0,
+    "referenceFirstInkUnits": 6.0,
     "renderFirstInkUnits": 6.17,
-    "deltaUnits": 1.17,
+    "deltaUnits": 0.17,
     "note": "Design units between each side's first painted row and the first row the application owns. Read WITH displacementProbe, never instead of it: the probe optimises over the whole frame and drifts to a neighbouring element on a repetitive layout, so a non-zero probe offset with a delta near zero means the screen is placed correctly and differs in its content."
   }
 }

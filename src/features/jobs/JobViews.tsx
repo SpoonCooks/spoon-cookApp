@@ -504,7 +504,11 @@ function BreakCell({
     <View
       style={[
         styles.breakCell,
-        figmaStroke(scale, { width: BREAK.cellBorderWidth, padding: BREAK.cellPadding }),
+        figmaStroke(scale, {
+          width: BREAK.cellBorderWidth,
+          padding: BREAK.cellPadding,
+          align: 'outside',
+        }),
         {
           borderRadius: s(BREAK.cellRadius),
           borderColor: border,

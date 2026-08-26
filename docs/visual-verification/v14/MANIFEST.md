@@ -10,43 +10,43 @@ an artefact on disk; nothing here is asserted by hand except the reviewed verdic
 | `434:3224` | Login flow | Page 2a- Login OTP | — | — | `login/otp-countdown` | yes | yes | 2.15 | 1.17 | n/a | 0 | 0 | PASS |
 | `434:3280` | Login flow | Page 1- Login No. | yes | — | `login/phone` | yes | yes | 4.80 | 1.68 | n/a | 17 | 12 | PASS |
 | `434:3330` | Login flow | Page 0- loading page | — | — | `login/boot` | yes | yes | 0.55 | 0.18 | n/a | 17 | 12 | PASS |
-| `575:2135` | log in flow | 3a- daily log in | — | — | `login-flow/daily` | yes | yes | 5.95 | 4.17 | +0.82 | 0 | 0 | PASS |
-| `575:2136` | log in flow | 3d- log out | — | — | `login-flow/logout` | yes | yes | 10.29 | 4.78 | +0.82 | 39 | 1 | PASS |
-| `575:2137` | log in flow | 3b- present | — | — | `login-flow/present` | yes | yes | 5.27 | 4.07 | +0.82 | 39 | 1 | PASS |
-| `575:2138` | log in flow | 3c- absent | — | — | `login-flow/absent` | yes | yes | 4.52 | 3.33 | +0.82 | 0 | 0 | PASS |
-| `592:1008` | leave | long leave confirm | — | — | `leave/applied-and-booked` | yes | yes | 13.88 | 12.26 | +1.38 | 162 | 1 | OPEN |
-| `592:488` | leave | Leave present | yes | 3 | `leave/present` | yes | yes | 13.52 | 10.59 | +1.38 | 26 | 1 | OPEN |
-| `592:489` | leave | Leave absent | — | — | `leave/absent` | yes | yes | 9.58 | 8.35 | +1.38 | 0 | 0 | PASS |
+| `575:2135` | log in flow | 3a- daily log in | — | — | `login-flow/daily` | yes | yes | 5.40 | 4.09 | -0.18 | 0 | 0 | PASS |
+| `575:2136` | log in flow | 3d- log out | — | — | `login-flow/logout` | yes | yes | 5.08 | 1.87 | -0.18 | 39 | 1 | PASS |
+| `575:2137` | log in flow | 3b- present | — | — | `login-flow/present` | yes | yes | 5.17 | 3.96 | -0.18 | 39 | 1 | PASS |
+| `575:2138` | log in flow | 3c- absent | — | — | `login-flow/absent` | yes | yes | 4.04 | 2.84 | -0.18 | 0 | 0 | PASS |
+| `592:1008` | leave | long leave confirm | — | — | `leave/applied-and-booked` | yes | yes | 10.86 | 8.84 | +0.38 | 162 | 1 | PASS |
+| `592:488` | leave | Leave present | yes | 3 | `leave/present` | yes | yes | 12.52 | 9.44 | +0.38 | 26 | 1 | PASS |
+| `592:489` | leave | Leave absent | — | — | `leave/absent` | yes | yes | 9.12 | 7.87 | +0.38 | 0 | 0 | PASS |
 | `592:563` | leave | long leave | — | — | `leave/long-empty` | yes | yes | 8.95 | 6.03 | +0.20 | 94 | 1 | PASS |
 | `592:639` | leave | long leave selected | — | — | `leave/long-selected` | yes | yes | 9.29 | 7.35 | +0.20 | 94 | 1 | PASS |
-| `592:832` | leave | long leave confirm | — | — | `leave/long-booked` | yes | yes | 8.52 | 7.18 | +0.38 | 0 | 0 | PASS |
+| `592:832` | leave | long leave confirm | — | — | `leave/long-booked` | yes | yes | 8.49 | 7.29 | +0.38 | 0 | 0 | PASS |
 | `592:888` | leave | short leave | — | — | `leave/short-confirm` | yes | yes | 6.34 | 5.23 | +0.20 | 94 | 1 | PASS |
-| `575:1744` | performance | 12- money daily | yes | 11 | `performance/money-daily` | yes | yes | 8.77 | 5.94 | +1.21 | 0 | 0 | PASS |
-| `575:1884` | performance | 13- money weekly | — | — | `performance/money-weekly` | yes | yes | 17.24 | 14.72 | +1.21 | 0 | 0 | OPEN |
-| `575:1903` | performance | 14- day history | — | — | `performance/day-history` | yes | yes | 7.47 | 5.69 | +1.23 | 0 | 0 | PASS |
-| `575:1922` | performance | 15- past daily | — | — | `performance/past-daily` | yes | yes | 9.39 | 6.72 | +1.22 | 0 | 0 | PASS |
-| `575:2013` | performance | 16- money monthly | — | — | `performance/money-monthly` | yes | yes | 15.94 | 13.30 | +1.21 | 0 | 0 | OPEN |
-| `575:2032` | performance | 17- weekly history | — | — | `performance/weekly-history` | yes | yes | 11.96 | 9.05 | +1.23 | 0 | 0 | PASS |
-| `575:2098` | performance | 18- past weekly | — | — | `performance/past-weekly` | yes | yes | 16.70 | 14.27 | +1.22 | 0 | 0 | OPEN |
-| `583:375` | job flow | 4a- jobs log out | yes | — | `jobs/logged-out` | yes | yes | 11.34 | 9.56 | +1.17 | 0 | 0 | PASS |
-| `583:401` | job flow | 4b- job log in | yes | 2 | `jobs/logged-in` | yes | yes | 12.57 | 10.87 | +1.17 | 0 | 0 | OPEN |
-| `583:427` | job flow | 4c- next in <45 mins | yes | — | `jobs/next-45` | yes | yes | 12.91 | 11.26 | +1.17 | 0 | 0 | OPEN |
-| `583:453` | job flow | 4d- next <10 mins | yes | — | `jobs/next-10` | yes | yes | 12.93 | 11.28 | +1.17 | 0 | 0 | OPEN |
-| `583:479` | job flow | 4e- next <5 mins | yes | — | `jobs/next-5` | yes | yes | 12.91 | 11.24 | +1.17 | 0 | 0 | OPEN |
-| `614:453` | Service flow | travel- on time | yes | 7 | `service/travel-on-time` | yes | yes | 8.78 | 7.32 | +1.18 | 0 | 0 | PASS |
-| `622:1036` | Service flow |  timer (hr + mins) | — | — | `service/timer-hours` | yes | yes | 14.55 | 9.71 | +1.18 | 61 | 0 | PASS |
-| `622:1085` | Service flow | timer (mins) | yes | — | `service/timer-minutes` | yes | yes | 14.35 | 9.56 | +1.18 | 61 | 0 | PASS |
-| `622:1125` | Service flow | timer (<7 mins) | — | 1 | `service/timer-ending` | yes | yes | 11.78 | 7.85 | +1.18 | 61 | 0 | PASS |
-| `622:1163` | Service flow | timer- extension | yes | 8 | `service/timer-extension` | yes | yes | 15.47 | 11.02 | +1.18 | 0 | 0 | OPEN |
-| `622:530` | Service flow | travel- late | — | 1 | `service/travel-late` | yes | yes | 8.38 | 7.07 | +1.18 | 0 | 0 | PASS |
-| `622:597` | Service flow | travel- edge | — | 1 | `service/travel-edge` | yes | yes | 8.14 | 6.86 | +1.18 | 0 | 0 | PASS |
-| `622:664` | Service flow | arrival- on time | — | 2 | `service/arrival-on-time` | yes | yes | 10.30 | 8.45 | +1.18 | 34 | 0 | PASS |
-| `622:733` | Service flow | arrival- late | — | — | `service/arrival-late` | yes | yes | 11.47 | 9.42 | +1.18 | 34 | 0 | PASS |
-| `622:801` | Service flow | Start otp | — | 1 | `service/start-otp` | yes | yes | 13.25 | 10.17 | +1.18 | 0 | 0 | OPEN |
-| `622:913` | Service flow | travel- cancel | — | 1 | `service/travel-cancel` | yes | yes | 9.74 | 8.30 | +1.18 | 23 | 0 | PASS |
-| `628:1249` | Service flow | end otp | — | 1 | `service/end-otp` | yes | yes | 10.08 | 6.61 | +1.18 | 0 | 0 | PASS |
-| `628:1293` | Service flow | End | — | 2 | `service/completed` | yes | yes | 14.19 | 10.64 | +1.18 | 62 | 0 | OPEN |
-| `597:1131` | Info | long leave confirm | — | — | `info/leave-rules` | yes | yes | 10.43 | 8.25 | +1.18 | 0 | 0 | PASS |
+| `575:1744` | performance | 12- money daily | yes | 11 | `performance/money-daily` | yes | yes | 7.98 | 5.05 | +0.21 | 0 | 0 | PASS |
+| `575:1884` | performance | 13- money weekly | — | — | `performance/money-weekly` | yes | yes | 15.22 | 12.67 | +0.21 | 0 | 0 | OPEN |
+| `575:1903` | performance | 14- day history | — | — | `performance/day-history` | yes | yes | 8.97 | 7.34 | +0.23 | 0 | 0 | PASS |
+| `575:1922` | performance | 15- past daily | — | — | `performance/past-daily` | yes | yes | 7.78 | 5.33 | +0.22 | 0 | 0 | PASS |
+| `575:2013` | performance | 16- money monthly | — | — | `performance/money-monthly` | yes | yes | 13.97 | 11.33 | +0.21 | 0 | 0 | OPEN |
+| `575:2032` | performance | 17- weekly history | — | — | `performance/weekly-history` | yes | yes | 9.17 | 5.90 | +0.23 | 0 | 0 | PASS |
+| `575:2098` | performance | 18- past weekly | — | — | `performance/past-weekly` | yes | yes | 14.78 | 12.35 | +0.22 | 0 | 0 | OPEN |
+| `583:375` | job flow | 4a- jobs log out | yes | — | `jobs/logged-out` | yes | yes | 8.04 | 5.97 | +0.17 | 0 | 0 | PASS |
+| `583:401` | job flow | 4b- job log in | yes | 2 | `jobs/logged-in` | yes | yes | 9.35 | 7.50 | +0.17 | 0 | 0 | PASS |
+| `583:427` | job flow | 4c- next in <45 mins | yes | — | `jobs/next-45` | yes | yes | 10.34 | 8.69 | +0.17 | 0 | 0 | PASS |
+| `583:453` | job flow | 4d- next <10 mins | yes | — | `jobs/next-10` | yes | yes | 10.36 | 8.71 | +0.17 | 0 | 0 | PASS |
+| `583:479` | job flow | 4e- next <5 mins | yes | — | `jobs/next-5` | yes | yes | 10.34 | 8.67 | +0.17 | 0 | 0 | PASS |
+| `614:453` | Service flow | travel- on time | yes | 7 | `service/travel-on-time` | yes | yes | 6.91 | 5.58 | +0.18 | 0 | 0 | PASS |
+| `622:1036` | Service flow |  timer (hr + mins) | — | — | `service/timer-hours` | yes | yes | 12.19 | 7.35 | +0.18 | 61 | 0 | PASS |
+| `622:1085` | Service flow | timer (mins) | yes | — | `service/timer-minutes` | yes | yes | 12.03 | 7.24 | +0.18 | 61 | 0 | PASS |
+| `622:1125` | Service flow | timer (<7 mins) | — | 1 | `service/timer-ending` | yes | yes | 9.76 | 6.05 | +0.18 | 61 | 0 | PASS |
+| `622:1163` | Service flow | timer- extension | yes | 8 | `service/timer-extension` | yes | yes | 13.36 | 8.85 | +0.18 | 0 | 0 | PASS |
+| `622:530` | Service flow | travel- late | — | 1 | `service/travel-late` | yes | yes | 6.62 | 5.44 | +0.18 | 0 | 0 | PASS |
+| `622:597` | Service flow | travel- edge | — | 1 | `service/travel-edge` | yes | yes | 6.38 | 5.22 | +0.18 | 0 | 0 | PASS |
+| `622:664` | Service flow | arrival- on time | — | 2 | `service/arrival-on-time` | yes | yes | 8.19 | 6.48 | +0.18 | 34 | 0 | PASS |
+| `622:733` | Service flow | arrival- late | — | — | `service/arrival-late` | yes | yes | 9.62 | 7.60 | +0.18 | 34 | 0 | PASS |
+| `622:801` | Service flow | Start otp | — | 1 | `service/start-otp` | yes | yes | 12.24 | 9.32 | +0.18 | 0 | 0 | PASS |
+| `622:913` | Service flow | travel- cancel | — | 1 | `service/travel-cancel` | yes | yes | 9.60 | 8.33 | +0.18 | 23 | 0 | PASS |
+| `628:1249` | Service flow | end otp | — | 1 | `service/end-otp` | yes | yes | 7.54 | 4.51 | +0.18 | 0 | 0 | PASS |
+| `628:1293` | Service flow | End | — | 2 | `service/completed` | yes | yes | 11.53 | 8.50 | +0.18 | 62 | 0 | PASS |
+| `597:1131` | Info | long leave confirm | — | — | `info/leave-rules` | yes | yes | 8.67 | 6.59 | +0.18 | 0 | 0 | PASS |
 | `597:1221` | Info | rating tiers | — | 3 | `info/rating-tiers` | yes | yes | 11.58 | 9.29 | +0.20 | 94 | 1 | PASS |
 | `603:1865` | Info | No Show | — | 1 | `info/no-show` | yes | yes | 12.33 | 9.95 | +0.20 | 94 | 1 | PASS |
 | `603:1924` | Info | >7 bonus | — | 1 | `info/bonus-over-7` | yes | yes | 13.70 | 10.89 | +0.20 | 94 | 1 | OPEN |
@@ -63,5 +63,5 @@ an artefact on disk; nothing here is asserted by hand except the reviewed verdic
 - SCREENS_PLACED_WITHIN_2_UNITS: 47
 - SCREENS_WITH_UNMATCHED_REFERENCE_ROWS: 21
 - SCREENS_WITH_UNSEEN_REFERENCE_INK: 14
-- SCREENS_PIXEL_VERIFIED: 32
-- SCREENS_STILL_MISMATCHING: 15
+- SCREENS_PIXEL_VERIFIED: 41
+- SCREENS_STILL_MISMATCHING: 6

@@ -201,22 +201,47 @@ def figma_viewport_crop(
     # six-card job list it reddens every glyph in the frame, and it is most of what the V14 run
     # was still scoring on the twenty-five screens it could not close.
     #
-    # The margin is MEASURED from the arithmetic that actually holds rather than assumed:
-    # `(render - frame) / 2` predicts the left edge of the bottom nav's active cell to within a
-    # pixel on `575:2137`, `575:1744`, `583:375`, `614:453`, `592:488` and `597:1131` -- six
-    # frames across five sections, three different render widths -- and the vertical half of it
-    # reproduces the +0.2 to +0.8 unit top-alignment deltas the run measured and could not
-    # explain.
+    # HORIZONTALLY the margin is centred, and that is measured: `(render - frame) / 2` predicts
+    # the left edge of the bottom nav's active cell to within a pixel on `575:2137`, `575:1744`,
+    # `583:375`, `614:453`, `592:488` and `597:1131` -- six frames across five sections, three
+    # different render widths.
+    #
+    # VERTICALLY IT IS NOT. The overhang sits entirely BELOW the frame, and centring it took one
+    # row off the top of every direct reference.
+    #
+    # The physical reason is that a direct frame's only shadowed full-width element is the bottom
+    # nav (`drop-shadow 0 0 1`, `0 -1 1` on `leave`), and it is flush with the frame's bottom
+    # edge. Its blur therefore spills past the frame on the left, the right and the BOTTOM, and
+    # nowhere near the top: the status mock carries no effect, and the Help pill's `0 0 2` sits
+    # six units inside the frame, so nothing reaches back over the top edge.
+    #
+    # This is settled by the design's own `bottom nav ... py 8`, which puts the nav's 52-unit cell
+    # grid exactly 8 units above the frame's bottom edge. Measuring
+    # `reference_height - (cell_bottom + 8)` over every direct frame in the inventory that carries
+    # a nav gives **1 on all 27** with the centred margin and **0 on all 27** with the origin at
+    # the top -- across five sections and render excesses of 0.8, 1.0, 1.6, 1.94, 2.0 and 2.95,
+    # which is not a number a coincidence produces twenty-seven times.
+    #
+    # The Help pill agrees independently and from the other end of the frame: at this origin it
+    # lands on row 6 of `583:375`, `583:427`, `614:453`, `622:801` and `597:1131`, which is what
+    # `banner py 6` states and what the app draws. Centred, the reference put it on row 5 and the
+    # app was scored a unit late on all forty-two direct screens.
+    #
+    # The previous run read the +0.2 to +0.8 unit top-alignment deltas as evidence FOR the centred
+    # margin. They were evidence against it: applying it moved the measured deltas to +1.17..+1.38
+    # rather than to zero.
     margin_x = (img_w - frame_w) / 2.0
-    margin_y = (img_h - frame_h) / 2.0
+    margin_y = 0.0
     scale = 1.0
     note = "frame located in render; effect bounds are centred at scale 1"
-    if margin_x < -0.5 or margin_y < -0.5:
-        # The renderer caps the longer edge on a very tall frame. Then the frame IS scaled, and
-        # the margin has to be solved against that scale rather than read off the difference.
+    # The renderer caps the longer edge on a very tall frame, which makes the render SMALLER than
+    # the frame it holds. Detect that from the image against the frame directly: the vertical
+    # margin is pinned to the top now and can no longer go negative to signal it.
+    if img_w < frame_w - 0.5 or img_h < frame_h - 0.5:
         scale = min(img_w / frame_w, img_h / frame_h)
         margin_x = (img_w - frame_w * scale) / 2.0
-        margin_y = (img_h - frame_h * scale) / 2.0
+        # Still the top: capping scales the effect bounds, it does not move the overhang.
+        margin_y = 0.0
         note = f"render capped to {scale:.4f}; margin solved against the capped scale"
 
     left = _nearest(margin_x)

@@ -36,7 +36,12 @@ describe('formatDurationHours', () => {
     [90, '1.5 hrs'],
     [60, '1 hr'],
     [120, '2 hrs'],
-    [45, '0.8 hrs'],
+    // Below an hour the design writes minutes. `583:375` publishes `30 mins` and `45 mins` in its
+    // own chips; the app used to draw `0.5 hrs` and `0.8 hrs` there, and this row asserted it.
+    [45, '45 mins'],
+    [30, '30 mins'],
+    [59, '59 mins'],
+    [1, '1 min'],
   ])('formats %i minutes as %s', (minutes, expected) => {
     expect(formatDurationHours(minutes)).toBe(expected);
   });

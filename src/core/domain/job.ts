@@ -74,8 +74,20 @@ export interface JobsProjection {
   readonly serverNowIso: string;
 }
 
-/** `90` → `1.5 hrs`, `60` → `1 hr`. Display formatting only. */
+/**
+ * `90` → `1.5 hrs`, `60` → `1 hr`, `30` → `30 mins`. Display formatting only.
+ *
+ * Below an hour the design states the duration in MINUTES, not in a fraction of an hour. Every
+ * `job flow` frame says so in its own chips: `583:375` publishes `5:30 PM · 30 mins` and
+ * `3:30 PM · 45 mins`, and `583:427`/`453`/`479` repeat `30 mins` and `45 mins` in their lists.
+ * The app divided unconditionally and drew `0.5 hrs` and `0.8 hrs` on all five frames — a value
+ * a cook has to convert back, and one the design never writes.
+ *
+ * The hour form is kept for a whole or fractional hour, which is what the same chips use above
+ * the boundary (`1.5 hrs`). Only the sub-hour branch is new.
+ */
 export function formatDurationHours(minutes: number): string {
+  if (Math.abs(minutes) < 60) return formatMinutes(minutes);
   const hours = minutes / 60;
   const rounded = Math.round(hours * 10) / 10;
   const text = Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);

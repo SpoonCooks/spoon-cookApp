@@ -184,17 +184,17 @@ and `BonusBar` keeps the server's own unit on the bar it draws.
 
 ## 8. Native durability — six of seven
 
-| Step                     | Result                                                                     |
-| ------------------------ | -------------------------------------------------------------------------- |
-| `expo prebuild --clean`  | clean; `android/` regenerated from scratch                                 |
-| NDK pin survives it      | **yes** — `ndkVersion = "27.2.12479018"` present exactly once, at line 30, **before** `apply plugin: "expo-root-project"` at line 33 |
-| Splash drawable          | generated (`drawable-*/splashscreen_logo.png`)                             |
-| Native Android build     | **BUILD SUCCESSFUL in 13m 7s**, JDK 21, all four ABIs — `arm64-v8a`, `armeabi-v7a`, `x86`, `x86_64` |
-| APK install              | `Success`                                                                  |
-| Background / foreground  | HOME then resume; **same pid** (11714), 0 fatal exceptions                 |
-| Process restart          | `force-stop` 11714 → new pid 11846, 0 fatal exceptions                     |
-| Fatal exceptions, total  | **0** across cold launch, resume and restart                               |
-| **Cold launch to JS**    | **NOT VERIFIED**                                                           |
+| Step                    | Result                                                                                                                               |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `expo prebuild --clean` | clean; `android/` regenerated from scratch                                                                                           |
+| NDK pin survives it     | **yes** — `ndkVersion = "27.2.12479018"` present exactly once, at line 30, **before** `apply plugin: "expo-root-project"` at line 33 |
+| Splash drawable         | generated (`drawable-*/splashscreen_logo.png`)                                                                                       |
+| Native Android build    | **BUILD SUCCESSFUL in 13m 7s**, JDK 21, all four ABIs — `arm64-v8a`, `armeabi-v7a`, `x86`, `x86_64`                                  |
+| APK install             | `Success`                                                                                                                            |
+| Background / foreground | HOME then resume; **same pid** (11714), 0 fatal exceptions                                                                           |
+| Process restart         | `force-stop` 11714 → new pid 11846, 0 fatal exceptions                                                                               |
+| Fatal exceptions, total | **0** across cold launch, resume and restart                                                                                         |
+| **Cold launch to JS**   | **NOT VERIFIED**                                                                                                                     |
 
 The last row is the honest one. The freshly prebuilt APK never reached JavaScript: it sits on the
 splash with zero `ReactNativeJS` lines and zero exceptions, through four full warm-up attempts.

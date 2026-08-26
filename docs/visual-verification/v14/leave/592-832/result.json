@@ -27,7 +27,7 @@
   },
   "scalingTransform": {
     "figmaRenderScale": 1.0,
-    "figmaRenderOriginYPx": 0.4,
+    "figmaRenderOriginYPx": 0.0,
     "note": "frame located in render; effect bounds are centred at scale 1",
     "emulatorPx": {
       "width": 1080,
@@ -57,11 +57,11 @@
     "navBandPx": 0
   },
   "antialiasingTolerance": 12,
-  "differingPixelPercent": 8.5227,
-  "rawDifferingPixelPercent": 10.3283,
+  "differingPixelPercent": 8.4902,
+  "rawDifferingPixelPercent": 10.2525,
   "verdictTolerance": 40,
-  "differingPixelPercentAtVerdictTolerance": 7.1766,
-  "meanChannelDelta": 7.0776,
+  "differingPixelPercentAtVerdictTolerance": 7.2859,
+  "meanChannelDelta": 7.2643,
   "maxChannelDelta": 255,
   "worstRows": [
     {
@@ -98,8 +98,8 @@
     }
   ],
   "displacementProbe": {
-    "bestVerticalOffsetPx": 0,
-    "percentAtBestOffset": 8.6756,
+    "bestVerticalOffsetPx": 1,
+    "percentAtBestOffset": 8.4814,
     "note": "0 means the render is on its design row and the residual is rasterisation. A non-zero offset is a real layout error even when the headline percentage is low."
   },
   "verdict": "PENDING_REVIEW",

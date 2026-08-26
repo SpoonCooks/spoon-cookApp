@@ -358,7 +358,11 @@ function BreakTime({ label, testID }: { label: string; testID: string }): React.
       style={[
         styles.breakCell,
         styles.breakTimeCell,
-        figmaStroke(scale, { width: BREAK.cellBorderWidth, padding: BREAK.cellPadding }),
+        figmaStroke(scale, {
+          width: BREAK.cellBorderWidth,
+          padding: BREAK.cellPadding,
+          align: 'outside',
+        }),
         { borderRadius: s(BREAK.cellRadius) },
       ]}
       testID={testID}
@@ -404,6 +408,7 @@ function DayRow({
                 width: DAY_ROW.borderWidth,
                 paddingH: DAY_ROW.paddingH,
                 paddingV: DAY_ROW.paddingV,
+                align: 'outside',
               }),
               borderColor: color.yellow600,
             },
@@ -476,6 +481,7 @@ function LongLeaveBlock({
               width: LONG_ROW.borderWidth,
               paddingH: LONG_ROW.paddingH,
               paddingV: LONG_ROW.paddingV,
+              align: 'outside',
             }),
             { borderRadius: s(LONG_ROW.radius), gap: s(LONG_ROW.gap) },
           ]}
