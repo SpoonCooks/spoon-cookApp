@@ -23,6 +23,23 @@ is wrong, which is why no test caught any of them.
 
 Nothing was reset, stashed or discarded.
 
+### The Figma identity this session actually had
+
+**No fresh Figma fetch was made in this run, and none was needed.** Every design fact used here came
+from artefacts already committed under the correct identity in earlier sessions:
+
+- the persisted design contexts in `docs/design-context/v14/`,
+- the committed canvas dump `docs/.figma-canvas-v14-434-2401.xml`, which is where `540:276`'s tile
+  and kamai geometry was read,
+- and the 47 committed reference renders (`figma.png`), which are what every measurement in
+  sections 3 and 4 was taken against.
+
+That is recorded because the Figma MCP attached to this session authenticates as
+**`admin@spoonhelp.com` on a View seat**, not the `lakshay58csea24@bpitindia.edu.in` Full seat the
+brief requires. A run that needs to fetch a node that is not already persisted will have to
+re-establish that identity first — most reliably through the desktop app's local MCP server, which
+does not go through the seat check.
+
 ## 2. The native gate - the seventh row, closed
 
 The previous run recorded the native gate at six of seven and left `Cold launch to JS` unverified:
