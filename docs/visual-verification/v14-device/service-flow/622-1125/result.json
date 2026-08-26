@@ -1,0 +1,110 @@
+{
+  "section": "Service flow",
+  "screenName": "timer (<7 mins)",
+  "figmaNodeId": "622:1125",
+  "route": "",
+  "figmaFrameDp": {
+    "width": 371.0,
+    "height": 863.0
+  },
+  "figmaRenderPx": {
+    "width": 375,
+    "height": 865
+  },
+  "viewportCropPx": {
+    "left": 2,
+    "top": 0,
+    "width": 370,
+    "height": 863
+  },
+  "systemChromeExcluded": {
+    "profile": "statusBand=32.0 homeIndicator=0.0",
+    "designStatusBandPx": 32,
+    "designHomeIndicatorPx": 0,
+    "emulatorStatusBarPx": 110,
+    "emulatorNavigationBarPx": 49,
+    "note": "Both sides are cropped to the application-owned region before comparison. The app is forbidden from drawing the design's status-bar mock or home indicator, and the emulator's own bars are a different size, so those rows are excluded from the denominator rather than scored."
+  },
+  "scalingTransform": {
+    "figmaRenderScale": 1.0,
+    "figmaRenderOriginYPx": 0.0,
+    "note": "frame located in render; effect bounds are centred at scale 1",
+    "emulatorPx": {
+      "width": 1080,
+      "height": 2392
+    },
+    "emulatorContentPx": {
+      "width": 1080,
+      "height": 2233
+    },
+    "emulatorScaledToPx": {
+      "width": 370,
+      "height": 765
+    },
+    "comparedAtPx": {
+      "width": 370,
+      "height": 765
+    }
+  },
+  "anchor": "top",
+  "comparedHeightPx": 765,
+  "referenceHeightPx": 831,
+  "emulatorScaledHeightPx": 765,
+  "uncomparedReferenceRows": 66,
+  "uncomparedReferenceInkRows": 0,
+  "bandSplit": {
+    "mode": "body top-anchored, nav bottom-anchored",
+    "navBandPx": 68,
+    "bodyComparedPx": 697,
+    "bodyReferencePx": 763,
+    "bodyUncomparedPx": 66,
+    "why": "The nav is fixed chrome on the bottom edge in both the design and the app, and the body between them is what the shorter device has to give up. Comparing the whole frame from the top would line the render's nav up against reference body rows and score a correct bar as a total mismatch."
+  },
+  "antialiasingTolerance": 12,
+  "differingPixelPercent": 7.3598,
+  "rawDifferingPixelPercent": 32.7073,
+  "verdictTolerance": 40,
+  "differingPixelPercentAtVerdictTolerance": 3.893,
+  "meanChannelDelta": 5.0696,
+  "maxChannelDelta": 255,
+  "worstRows": [
+    {
+      "row": 139,
+      "percent": 76.76
+    },
+    {
+      "row": 305,
+      "percent": 70.54
+    },
+    {
+      "row": 316,
+      "percent": 77.84
+    },
+    {
+      "row": 317,
+      "percent": 76.22
+    },
+    {
+      "row": 375,
+      "percent": 58.65
+    },
+    {
+      "row": 381,
+      "percent": 61.08
+    },
+    {
+      "row": 383,
+      "percent": 61.35
+    },
+    {
+      "row": 678,
+      "percent": 75.68
+    }
+  ],
+  "displacementProbe": {
+    "bestVerticalOffsetPx": 0,
+    "percentAtBestOffset": 7.5186,
+    "note": "0 means the render is on its design row and the residual is rasterisation. A non-zero offset is a real layout error even when the headline percentage is low."
+  },
+  "verdict": "PENDING_REVIEW"
+}

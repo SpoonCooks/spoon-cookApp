@@ -1,0 +1,14 @@
+{
+  "segments": 1,
+  "viewportContentPx": 2233,
+  "targetContentPx": 2469,
+  "scrolls": [
+    {
+      "movedPx": 0,
+      "matchCost": 0.0
+    }
+  ],
+  "reachedTarget": false,
+  "reachedBottom": true,
+  "contentPx": 2233
+}
