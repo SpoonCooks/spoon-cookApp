@@ -228,11 +228,13 @@ export const cookJobSchema = z.object({
     /**
      * When the backend settled the extension — the origin of the five-minute banner window.
      *
-     * `.optional()` because the deployed cook read model does NOT send it yet: the column exists
-     * (`booking_extensions.settled_at`) but `src/cooks/projections.ts` selects only `state`,
-     * `minutes` and `new_expected_end`. Parsing it as optional means the app keeps working
-     * against today's API and starts honouring the window the moment the field appears, with no
-     * client release. It is never defaulted to a value — absent stays absent.
+     * `src/cooks/projections.ts` now selects `booking_extensions.settled_at` and the contract
+     * marks it required, so this arrives on every assignment snapshot. It stays `.optional()`
+     * because a cook may still be running a build that talks to an older deployment, and the
+     * optional parse is what let the projection land with no client release at all.
+     *
+     * It is never defaulted to a value — absent stays absent. The banner's five-minute window is
+     * measured from this server instant, never from the device clock.
      */
     confirmedAt: isoString.nullable().optional(),
   }),
