@@ -14,7 +14,7 @@
   "viewportCropPx": {
     "left": 2,
     "top": 0,
-    "width": 371,
+    "width": 370,
     "height": 795
   },
   "systemChromeExcluded": {
@@ -38,18 +38,18 @@
       "height": 2250
     },
     "emulatorScaledToPx": {
-      "width": 371,
-      "height": 773
+      "width": 370,
+      "height": 771
     },
     "comparedAtPx": {
-      "width": 371,
+      "width": 370,
       "height": 763
     }
   },
   "anchor": "top",
   "comparedHeightPx": 763,
   "referenceHeightPx": 763,
-  "emulatorScaledHeightPx": 773,
+  "emulatorScaledHeightPx": 771,
   "uncomparedReferenceRows": 0,
   "uncomparedReferenceInkRows": 0,
   "bandSplit": {
@@ -61,49 +61,49 @@
     "why": "The nav is fixed chrome on the bottom edge in both the design and the app, and the body between them is what the shorter device has to give up. Comparing the whole frame from the top would line the render's nav up against reference body rows and score a correct bar as a total mismatch."
   },
   "antialiasingTolerance": 12,
-  "differingPixelPercent": 6.9141,
-  "rawDifferingPixelPercent": 9.0422,
+  "differingPixelPercent": 5.9902,
+  "rawDifferingPixelPercent": 8.2356,
   "verdictTolerance": 40,
-  "differingPixelPercentAtVerdictTolerance": 5.5774,
-  "meanChannelDelta": 5.1544,
+  "differingPixelPercentAtVerdictTolerance": 4.5988,
+  "meanChannelDelta": 3.9297,
   "maxChannelDelta": 255,
   "worstRows": [
     {
       "row": 116,
-      "percent": 54.45
+      "percent": 54.32
     },
     {
       "row": 219,
-      "percent": 50.94
+      "percent": 50.0
     },
     {
-      "row": 220,
-      "percent": 48.79
+      "row": 264,
+      "percent": 38.38
     },
     {
-      "row": 252,
-      "percent": 80.32
+      "row": 299,
+      "percent": 38.11
     },
     {
-      "row": 253,
-      "percent": 81.94
-    },
-    {
-      "row": 571,
-      "percent": 39.08
+      "row": 582,
+      "percent": 82.16
     },
     {
       "row": 583,
-      "percent": 81.4
+      "percent": 80.54
     },
     {
-      "row": 584,
-      "percent": 79.78
+      "row": 741,
+      "percent": 38.38
+    },
+    {
+      "row": 747,
+      "percent": 40.0
     }
   ],
   "displacementProbe": {
-    "bestVerticalOffsetPx": 1,
-    "percentAtBestOffset": 6.9812,
+    "bestVerticalOffsetPx": 0,
+    "percentAtBestOffset": 6.1125,
     "note": "0 means the render is on its design row and the residual is rasterisation. A non-zero offset is a real layout error even when the headline percentage is low."
   },
   "verdict": "PENDING_REVIEW",

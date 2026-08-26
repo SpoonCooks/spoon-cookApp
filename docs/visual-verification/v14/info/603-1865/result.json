@@ -14,7 +14,7 @@
   "viewportCropPx": {
     "left": 0,
     "top": 0,
-    "width": 371,
+    "width": 370,
     "height": 882
   },
   "systemChromeExcluded": {
@@ -38,68 +38,68 @@
       "height": 2190
     },
     "emulatorScaledToPx": {
-      "width": 371,
-      "height": 752
+      "width": 370,
+      "height": 750
     },
     "comparedAtPx": {
-      "width": 371,
-      "height": 752
+      "width": 370,
+      "height": 750
     }
   },
   "anchor": "bottom",
-  "comparedHeightPx": 752,
+  "comparedHeightPx": 750,
   "referenceHeightPx": 846,
-  "emulatorScaledHeightPx": 752,
-  "uncomparedReferenceRows": 94,
+  "emulatorScaledHeightPx": 750,
+  "uncomparedReferenceRows": 96,
   "uncomparedReferenceInkRows": 1,
   "bandSplit": {
     "mode": "single band",
     "navBandPx": 0
   },
   "antialiasingTolerance": 12,
-  "differingPixelPercent": 12.3308,
-  "rawDifferingPixelPercent": 28.6101,
+  "differingPixelPercent": 10.0609,
+  "rawDifferingPixelPercent": 26.551,
   "verdictTolerance": 40,
-  "differingPixelPercentAtVerdictTolerance": 9.9465,
-  "meanChannelDelta": 9.5785,
+  "differingPixelPercentAtVerdictTolerance": 7.4292,
+  "meanChannelDelta": 7.2988,
   "maxChannelDelta": 255,
   "worstRows": [
     {
       "row": 107,
-      "percent": 90.84
+      "percent": 92.7
     },
     {
-      "row": 108,
-      "percent": 92.45
-    },
-    {
-      "row": 109,
-      "percent": 94.07
-    },
-    {
-      "row": 244,
-      "percent": 86.52
+      "row": 543,
+      "percent": 85.95
     },
     {
       "row": 544,
-      "percent": 86.79
+      "percent": 85.68
     },
     {
-      "row": 575,
-      "percent": 85.98
+      "row": 572,
+      "percent": 84.86
     },
     {
-      "row": 576,
-      "percent": 86.52
+      "row": 573,
+      "percent": 85.41
     },
     {
-      "row": 614,
-      "percent": 85.98
+      "row": 574,
+      "percent": 86.49
+    },
+    {
+      "row": 612,
+      "percent": 86.22
+    },
+    {
+      "row": 613,
+      "percent": 85.68
     }
   ],
   "displacementProbe": {
-    "bestVerticalOffsetPx": -2,
-    "percentAtBestOffset": 8.3922,
+    "bestVerticalOffsetPx": -1,
+    "percentAtBestOffset": 9.2684,
     "note": "0 means the render is on its design row and the residual is rasterisation. A non-zero offset is a real layout error even when the headline percentage is low."
   },
   "verdict": "PENDING_REVIEW",

@@ -246,10 +246,26 @@ def figma_viewport_crop(
 
     left = _nearest(margin_x)
     top = _nearest(margin_y)
+
+    # The viewport is the 370-unit CONTENT COLUMN, which is not always the whole frame.
+    #
+    # `leave`, `Service flow` and `Info` are authored on **371**-wide frames, and the extra unit is
+    # empty bleed on the RIGHT: every one of those frames puts its CTA at x 20..350, which is
+    # `370 - 2 x 20` measured from the frame's left edge, not `371 - 20 - 21`. The content is
+    # left-anchored on a 370 grid and the frame simply runs one unit past it. (`job flow` and two
+    # `performance` frames are 370.44 and already round to 370.)
+    #
+    # Reading the whole 371 as the column then scales the emulator's 370-unit render UP by 371/370
+    # to match it, and that stretch lands on the VERTICAL axis too: 750 units of app content are
+    # resampled to 752 rows. On the five bottom-anchored rule sheets — compared by their last row —
+    # it made the app's 643-unit sheet measure 645 and walked every element above the CTA two units
+    # up the screen. The sheet is `s(643)` in the app and `h 643` in the design; the two units were
+    # entirely the comparison's.
+    column = min(frame_w, CONTENT_WIDTH_DP)
     return Crop(
         left=left,
         top=top,
-        right=min(img_w, left + _nearest(frame_w * scale)),
+        right=min(img_w, left + _nearest(column * scale)),
         bottom=min(img_h, top + _nearest(frame_h * scale)),
         scale=scale,
         margin=margin_y,
