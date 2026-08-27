@@ -261,6 +261,32 @@ describe('592:563 / 592:639 — the Lambi Chutti sheet', () => {
     expect(screen.getByTestId('leave-range-total-value')).toHaveTextContent('10');
   });
 
+  it('keeps growing the range when days are tapped one by one', () => {
+    // The regression this guards: a third tap used to throw the selection away, so a cook tapping
+    // consecutive days could never choose more than two.
+    render(<RangeLeaveScreen />);
+    for (const day of [16, 17, 18, 19]) {
+      fireEvent.press(screen.getByTestId(`leave-calendar-day-${day}`));
+    }
+    expect(screen.getByTestId('leave-range-total-value')).toHaveTextContent('4');
+  });
+
+  it('extends a closed range backwards when an earlier open day is tapped', () => {
+    render(<RangeLeaveScreen />);
+    fireEvent.press(screen.getByTestId('leave-calendar-day-16'));
+    fireEvent.press(screen.getByTestId('leave-calendar-day-18'));
+    fireEvent.press(screen.getByTestId('leave-calendar-day-10'));
+    expect(screen.getByTestId('leave-range-total-value')).toHaveTextContent('9');
+  });
+
+  it('starts over when a day inside the closed range is tapped', () => {
+    render(<RangeLeaveScreen />);
+    fireEvent.press(screen.getByTestId('leave-calendar-day-16'));
+    fireEvent.press(screen.getByTestId('leave-calendar-day-25'));
+    fireEvent.press(screen.getByTestId('leave-calendar-day-20'));
+    expect(screen.getByTestId('leave-range-total-value')).toHaveTextContent('1');
+  });
+
   it('marks the two endpoints and everything between them as chosen', () => {
     render(<RangeLeaveScreen />);
     fireEvent.press(screen.getByTestId('leave-calendar-day-16'));

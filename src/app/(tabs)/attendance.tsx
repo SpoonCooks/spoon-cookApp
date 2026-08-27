@@ -57,12 +57,35 @@ import { color, ErrorState, LoadingState, spacing, Text } from '@ui';
  * button is shown in that state, so the copy is never rendered.
  */
 const checkInBlockedCopy: Record<
-  'READY' | 'NO_SHIFT' | 'APPROVED_LEAVE' | 'ALREADY_CHECKED_IN' | 'ATTENDANCE_RECORDED',
+  | 'READY'
+  | 'NO_SHIFT'
+  | 'OUTSIDE_SHIFT'
+  | 'APPROVED_LEAVE'
+  | 'MARKED_ABSENT'
+  | 'MARKED_PRESENT_BY_ADMIN'
+  | 'COOK_CHECKED_IN'
+  | 'ALREADY_CHECKED_IN'
+  | 'ATTENDANCE_RECORDED',
   string
 > = {
   READY: '',
   NO_SHIFT: 'Aaj aapki koi shift nahi hai.',
+  OUTSIDE_SHIFT: 'Abhi aapki shift ka time nahi hai.',
   APPROVED_LEAVE: 'Aaj aapki chutti approve hai.',
+  MARKED_ABSENT: 'Aaj aapko absent mark kiya gaya hai.',
+  /*
+   * Empty on purpose, and this is the point of the whole change.
+   *
+   * An Admin recording attendance is not the Cook arriving. The old copy said "Aaj aap
+   * already present ho" and the control was hidden, so a Cook who had not checked in was
+   * told they had — and given no way to correct it. The server now offers `canCheckIn` in
+   * this state, so the screen must show the button rather than a blocking message.
+   */
+  MARKED_PRESENT_BY_ADMIN: '',
+  COOK_CHECKED_IN: 'Aaj aap check-in kar chuke ho.',
+  // The pre-split code the deployed backend still sends. It cannot distinguish an Admin's
+  // marking from the Cook's own check-in, so it keeps the old blocking copy until the server
+  // starts sending the split codes above.
   ALREADY_CHECKED_IN: 'Aaj aap already present ho.',
   ATTENDANCE_RECORDED: 'Aaj ki attendance already darj ho chuki hai.',
 };

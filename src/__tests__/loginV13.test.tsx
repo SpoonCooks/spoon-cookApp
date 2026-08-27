@@ -223,6 +223,18 @@ describe('Login renders the V13 composition', () => {
     expect(screen.getByText('Terms of use & Privacy policy')).toBeTruthy();
   });
 
+  it('opens each legal document from its own span of the legal line', () => {
+    render(<LoginScreen />);
+
+    // One rendered line, two press targets: the pixels stay the design's single underlined
+    // string, but each document name routes to its own bundled document.
+    fireEvent.press(screen.getByTestId('login-terms-link'));
+    expect(mockPush).toHaveBeenLastCalledWith('/legal/terms');
+
+    fireEvent.press(screen.getByTestId('login-privacy-link'));
+    expect(mockPush).toHaveBeenLastCalledWith('/legal/privacy');
+  });
+
   it('places the form column at the V13 asymmetric gutter', () => {
     render(<LoginScreen />);
     // `434:3291` puts the column at viewport x=20 with width 325 on a 370 viewport, so the right

@@ -192,6 +192,10 @@ export interface PhoneViewProps {
   readonly canSubmit: boolean;
   readonly isSending: boolean;
   readonly error: string | null;
+  /** Opens the Terms of use document. Optional so the `/dev` gallery can render without a router. */
+  readonly onOpenTerms?: (() => void) | undefined;
+  /** Opens the Privacy policy document. */
+  readonly onOpenPrivacy?: (() => void) | undefined;
 }
 
 /**
@@ -264,6 +268,8 @@ export function PhoneView({
   canSubmit,
   isSending,
   error,
+  onOpenTerms,
+  onOpenPrivacy,
 }: PhoneViewProps): React.ReactElement {
   const scale = useDesignScale();
   const insets = useSafeAreaInsets();
@@ -432,6 +438,12 @@ export function PhoneView({
         >
           By continuing, I accept the
         </Text>
+        {/*
+          One rendered line, two press targets. The design draws a single underlined string, so the
+          pixels stay exactly that — a centred Text with the whole line underlined — but the two
+          document names are separate nested spans with their own `onPress`, which is what lets
+          "Terms of use" and "Privacy policy" open their own documents without changing the UI.
+        */}
         <Text
           align="center"
           color={color.black}
@@ -442,7 +454,25 @@ export function PhoneView({
             { top: s(PHONE.legalTop + PHONE.legalLineHeight + PHONE.legalGap) },
           ]}
         >
-          Terms of use &amp; Privacy policy
+          <Text
+            color={color.black}
+            style={[legalStyle(scale), styles.underline]}
+            onPress={onOpenTerms}
+            accessibilityRole="link"
+            testID="login-terms-link"
+          >
+            Terms of use
+          </Text>
+          {' & '}
+          <Text
+            color={color.black}
+            style={[legalStyle(scale), styles.underline]}
+            onPress={onOpenPrivacy}
+            accessibilityRole="link"
+            testID="login-privacy-link"
+          >
+            Privacy policy
+          </Text>
         </Text>
 
         {error !== null && (

@@ -20,6 +20,8 @@ import { ErrorState, LoadingState } from '@ui';
  *
  * Selection is a first-and-last tap producing an inclusive range, which is what `Total din` counts
  * and what the grid paints: the two endpoints in `#cfff04`, everything between them in `#ecff9b`.
+ * Once a range is closed, a tap outside it EXTENDS the nearer edge — so day-by-day tapping keeps
+ * growing the chutti — and a tap on or inside it starts a fresh selection.
  *
  * ## The grid is anchored to the SERVER's month
  *
@@ -74,18 +76,34 @@ export default function RangeLeaveScreen(): React.ReactElement {
 
   const onPickDay = (day: number): void => {
     if (submitted) return;
-    // First tap sets the start; the second closes the range. A third starts over, which is what
-    // lets a cook correct a mis-tap without leaving the sheet.
-    if (fromDay === null || toDay !== null) {
+    // First tap sets the start; the second closes the range.
+    if (fromDay === null) {
       setFromDay(day);
       setToDay(null);
       return;
     }
+    if (toDay === null) {
+      if (day < fromDay) {
+        setFromDay(day);
+        return;
+      }
+      setToDay(day);
+      return;
+    }
+    // The range is closed: a tap OUTSIDE it moves the nearer edge, so tapping days one by one
+    // (27, 28, 29…) keeps growing the chutti instead of throwing it away after two taps. A tap on
+    // or inside the range starts over, which is what lets a cook correct a mis-tap without
+    // leaving the sheet.
     if (day < fromDay) {
       setFromDay(day);
       return;
     }
-    setToDay(day);
+    if (day > toDay) {
+      setToDay(day);
+      return;
+    }
+    setFromDay(day);
+    setToDay(null);
   };
 
   const submit = (): void => {

@@ -51,6 +51,9 @@ export default function LoginScreen(): React.ReactElement {
       canSubmit={normalised !== null}
       isSending={sending}
       error={error}
+      // The legal line's two spans each open their own bundled document — see `app/legal/[doc]`.
+      onOpenTerms={() => router.push('/legal/terms')}
+      onOpenPrivacy={() => router.push('/legal/privacy')}
     />
   );
 }

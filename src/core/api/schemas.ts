@@ -105,7 +105,18 @@ export const cookProfileSchema = z.object({
     reason: z.enum([
       'READY',
       'NO_SHIFT',
+      'OUTSIDE_SHIFT',
       'APPROVED_LEAVE',
+      'MARKED_ABSENT',
+      // An Admin recorded the Cook present; the Cook has not physically checked in. These
+      // were one code until the server started reading `check_in_at`, and collapsing them
+      // told a Cook they had arrived when they had not.
+      'MARKED_PRESENT_BY_ADMIN',
+      'COOK_CHECKED_IN',
+      // The pre-split code the DEPLOYED backend still sends (verified live 2026-08-27: the
+      // seeded cook's `/cook/me` answers `ALREADY_CHECKED_IN`). Dropping it from this enum
+      // makes every profile read a contract failure and locks every cook out at login, so it
+      // stays accepted until the split backend is actually deployed.
       'ALREADY_CHECKED_IN',
       'ATTENDANCE_RECORDED',
     ]),

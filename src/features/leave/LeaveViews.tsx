@@ -564,7 +564,15 @@ function SheetHeader({
   );
 }
 
-/** `528:662` / `528:607` — `Pakka`, in its enabled and disabled fills. */
+/**
+ * `528:662` / `528:607` — `Pakka`, in its enabled and disabled fills.
+ *
+ * Anchored to the sheet's bottom edge through normal flow (`marginTop: 'auto'`) rather than
+ * absolute positioning. At the design height the pixels are identical — the button's bottom edge
+ * sits `bottom` units above the sheet's edge — but when a short or display-zoomed screen forces
+ * the sheet below its design height, a flow child stays inside the sheet where an absolutely
+ * pinned one was carried past the screen edge and clipped.
+ */
 function PakkaButton({
   enabled,
   bottom,
@@ -578,7 +586,10 @@ function PakkaButton({
 }): React.ReactElement {
   const { s } = useDesignScale();
   return (
-    <View style={[styles.ctaHost, { bottom: s(bottom) }]} pointerEvents="box-none">
+    <View
+      style={[styles.ctaHost, { marginBottom: s(Math.max(0, bottom - SHEET.padding)) }]}
+      pointerEvents="box-none"
+    >
       <View
         style={{
           width: s(SHEET.ctaWidth),
@@ -886,7 +897,18 @@ const styles = StyleSheet.create({
    */
   scrim: { flex: 1, backgroundColor: color.scrim },
   scrimFill: { flex: 1 },
-  sheet: { alignSelf: 'stretch', alignItems: 'flex-start', backgroundColor: color.white },
+  /**
+   * `flexShrink: 1` lets the sheet give up height when the screen offers less than the design
+   * height (16:9 handsets, display zoom). Without it the fixed-height sheet overflows past the
+   * window's bottom edge and takes the `Pakka` button with it. When there is room — every
+   * verified device — the shrink never engages and the sheet keeps its exact design height.
+   */
+  sheet: {
+    alignSelf: 'stretch',
+    alignItems: 'flex-start',
+    flexShrink: 1,
+    backgroundColor: color.white,
+  },
   sheetCentred: { alignItems: 'center' },
   totalRow: {
     flexDirection: 'row',
@@ -903,11 +925,9 @@ const styles = StyleSheet.create({
     backgroundColor: color.lime300,
   },
   ctaHost: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
+    marginTop: 'auto',
+    alignSelf: 'stretch',
     alignItems: 'center',
-    zIndex: 4,
   },
   ctaButton: {
     flexDirection: 'row',
