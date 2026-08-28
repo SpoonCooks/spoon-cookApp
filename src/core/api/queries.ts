@@ -29,6 +29,7 @@ import type {
   CookCycleDetailResponse,
   CookCyclesResponse,
   CookEarningsResponse,
+  CookEarningsPeriodResponse,
   CookJobResponse,
   CookJobsListResponse,
   CookLeaveRequestResponse,
@@ -67,6 +68,7 @@ export const queryKeys = {
   attendanceRange: (from: string, to: string) => ['cook', 'attendance', 'range', from, to] as const,
   leaves: (from?: string, to?: string) => ['cook', 'leaves', from ?? null, to ?? null] as const,
   earnings: ['cook', 'earnings'] as const,
+  earningsDay: (serviceDate: string) => ['cook', 'earnings', 'day', serviceDate] as const,
   cycles: ['cook', 'earnings', 'cycles'] as const,
   cycle: (cycleId: string) => ['cook', 'earnings', 'cycles', cycleId] as const,
   earningsPolicy: ['cook', 'policies', 'earnings'] as const,
@@ -191,6 +193,24 @@ export function useEarnings(enabled = true): UseQueryResult<CookEarningsResponse
     queryKey: queryKeys.earnings,
     queryFn: ({ signal }) => api.getEarnings({}, { signal }),
     enabled,
+  });
+}
+
+/**
+ * One past service day.
+ *
+ * A finished day does not change, so this is cached far longer than the live `useEarnings`
+ * window. It is still refetched on mount for today, because today is not finished.
+ */
+export function useEarningsDay(
+  serviceDate: string,
+  enabled = true,
+): UseQueryResult<CookEarningsPeriodResponse> {
+  return useQuery({
+    queryKey: queryKeys.earningsDay(serviceDate),
+    queryFn: ({ signal }) => api.getEarningsDay(serviceDate, { signal }),
+    enabled: enabled && serviceDate.length === 10,
+    staleTime: 5 * 60_000,
   });
 }
 

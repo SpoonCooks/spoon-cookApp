@@ -692,12 +692,18 @@ export function RatingStrip({
 }): React.ReactElement {
   const { s } = useDesignScale();
   const disc = s(RATING.disc);
+  // `cook_profiles.rating_avg` defaults to 0, so an unrated cook arrives here as `{average: 0,
+  // count: 0}`. Printing that as `0.0` beside a star tells a cook on her first day that she is
+  // rated the worst possible score. `count` is what separates "rated 0" from "never rated", and
+  // only the second is representable — so below one rating this shows `—`, the same figure every
+  // other unavailable value in this file uses.
+  const rated = rating.count > 0;
   return (
     <View style={[styles.row, { gap: s(RATING.headGap) }]} testID={testID}>
       <View style={styles.ratingText}>
         <SectionLabel>rating</SectionLabel>
         <Text variant="captionMuted" color={color.black80}>
-          {`Last ${rating.count} kaam`}
+          {rated ? `Last ${rating.count} kaam` : 'Abhi koi rating nahi'}
         </Text>
       </View>
       <View style={[styles.ratingValue, { width: s(RATING.valueWidth), gap: s(RATING.gap) }]}>
@@ -712,9 +718,13 @@ export function RatingStrip({
             resizeMode="contain"
           />
         </View>
-        <Text variant="display" testID={`${testID}-average`}>
-          {rating.average.toFixed(1)}
-        </Text>
+        {rated ? (
+          <Text variant="display" testID={`${testID}-average`}>
+            {rating.average.toFixed(1)}
+          </Text>
+        ) : (
+          <Unavailable variant="display" testID={`${testID}-average`} />
+        )}
       </View>
     </View>
   );

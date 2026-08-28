@@ -1,4 +1,9 @@
-import { LocationTracker, type TrackerDependencies } from '@core/location/tracker';
+import {
+  LocationTracker,
+  processBackgroundLocations,
+  type BackgroundTaskDependencies,
+  type TrackerDependencies,
+} from '@core/location/tracker';
 import { ApiError } from '@core/api/errors';
 
 /**
@@ -98,6 +103,75 @@ function harness(
 }
 
 const target = { bookingId: 'b1', assignmentVersion: 3 };
+
+describe('background permission is asked for, never required', () => {
+  /*
+   * The blocker this pins.
+   *
+   * `prepare` used to treat a denied ACCESS_BACKGROUND_LOCATION as fatal. On Android 11+ that
+   * permission cannot be granted from an in-app dialog at all — the OS refuses to prompt for it
+   * alongside the foreground request and sends the user to Settings. So on every modern device
+   * Start Travel was unreachable: tap, refusal, booking never leaves `assigned`.
+   *
+   * It is also the wrong permission to demand. The foreground service declares
+   * `foregroundServiceType="location"`, and Android counts an app with such a service running as
+   * in use, so ACCESS_FINE_LOCATION alone keeps updates flowing while backgrounded.
+   */
+  const nativeDeps = () => ({
+    startBackgroundUpdates: jest.fn(async () => undefined),
+    hasStartedBackgroundUpdates: jest.fn(async () => true),
+    stopBackgroundUpdates: jest.fn(async () => undefined),
+  });
+
+  it('still becomes ready when the OS refuses background location', async () => {
+    const native = nativeDeps();
+    const { tracker } = harness({
+      ...native,
+      requestBackgroundPermissions: async () => ({ granted: false }),
+    });
+
+    const state = await tracker.prepare(target);
+
+    expect(state.status).toBe('ready');
+    // The native task is what actually matters, and it was started.
+    expect(native.startBackgroundUpdates).toHaveBeenCalledTimes(1);
+  });
+
+  it('still becomes ready when the request throws, as some OEM builds do', async () => {
+    const native = nativeDeps();
+    const { tracker } = harness({
+      ...native,
+      requestBackgroundPermissions: async () => {
+        throw new Error('OEM refused to prompt');
+      },
+    });
+
+    expect((await tracker.prepare(target)).status).toBe('ready');
+    expect(native.startBackgroundUpdates).toHaveBeenCalledTimes(1);
+  });
+
+  it('DOES fail when the native task will not register, which is the real gate', async () => {
+    const { tracker } = harness({
+      startBackgroundUpdates: async () => undefined,
+      // Registration silently did not take: tracking would be a promise the app cannot keep.
+      hasStartedBackgroundUpdates: async () => false,
+      stopBackgroundUpdates: async () => undefined,
+      requestBackgroundPermissions: async () => ({ granted: true }),
+    });
+
+    expect((await tracker.prepare(target)).status).not.toBe('ready');
+  });
+
+  it('still refuses when FOREGROUND permission is denied', async () => {
+    // The one location permission that is genuinely required stays required.
+    const { tracker } = harness({
+      ...nativeDeps(),
+      requestForegroundPermissions: async () => ({ granted: false }),
+    });
+
+    expect((await tracker.prepare(target)).status).toBe('permission_denied');
+  });
+});
 
 describe('permission and service gates', () => {
   it('does not report when foreground permission is denied', async () => {
@@ -323,5 +397,78 @@ describe('one session at a time', () => {
     await h.tick();
     // A reassignment must not leave the previous booking's samples in flight.
     expect(h.report.mock.calls[0]?.[0]).toMatchObject({ bookingId: 'b2' });
+  });
+});
+
+describe('native background callback', () => {
+  const location = {
+    coords: {
+      latitude: 28.4595,
+      longitude: 77.0266,
+      accuracy: 8,
+      altitude: null,
+      heading: null,
+      speed: null,
+      altitudeAccuracy: null,
+    },
+    timestamp: 1_700_000_000_000,
+    mocked: false,
+  };
+
+  function backgroundHarness(arrived = false) {
+    const record = {
+      target,
+      enabled: true,
+      nextReportAtMs: 0,
+      lastLocationTimestampMs: null,
+    } as const;
+    const report = jest.fn(async () => ({
+      accepted: true,
+      reason: null,
+      confidence: 'high' as const,
+      persisted: true,
+      etaRevised: false,
+      arrived,
+      nextReportAfterSeconds: 30,
+    }));
+    const save = jest.fn(async () => undefined);
+    const clear = jest.fn(async () => undefined);
+    const stop = jest.fn(async () => undefined);
+    const deps: BackgroundTaskDependencies = {
+      load: async () => record,
+      save,
+      clear,
+      report: report as unknown as BackgroundTaskDependencies['report'],
+      stop,
+      now: () => 1_700_000_000_000,
+    };
+    return { deps, report, save, clear, stop };
+  }
+
+  it('uses the persisted assignment and stores the server cadence', async () => {
+    const h = backgroundHarness();
+    await processBackgroundLocations({ locations: [location] }, h.deps);
+
+    expect(h.report).toHaveBeenCalledWith(
+      expect.objectContaining({ bookingId: 'b1', assignmentVersion: 3, accuracyMetres: 8 }),
+    );
+    expect(h.save).toHaveBeenCalledWith(
+      expect.objectContaining({
+        target,
+        enabled: true,
+        lastLocationTimestampMs: location.timestamp,
+        nextReportAtMs: 1_700_000_030_000,
+      }),
+    );
+    expect(h.clear).not.toHaveBeenCalled();
+  });
+
+  it('clears the persisted target only after the backend commits arrival', async () => {
+    const h = backgroundHarness(true);
+    await processBackgroundLocations({ locations: [location] }, h.deps);
+
+    expect(h.clear).toHaveBeenCalledTimes(1);
+    expect(h.stop).toHaveBeenCalledTimes(1);
+    expect(h.save).not.toHaveBeenCalled();
   });
 });

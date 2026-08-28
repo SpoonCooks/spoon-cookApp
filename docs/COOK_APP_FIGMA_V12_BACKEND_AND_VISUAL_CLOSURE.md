@@ -342,11 +342,11 @@ empty body that the route rejects at validation before touching data.
 | 18- past weekly                  | settled cycle detail      | `GET /v1/cook/earnings/cycles/:id`                    | `DEPLOYED_AND_VERIFIED` | connected                         |
 | 14- day history                  | dates in a cycle          | derived from cycle `startDate`/`endDate`              | n/a — dates, not money  | connected                         |
 | 15- past daily (today)           | today's breakdown         | `GET /v1/cook/earnings` `.daily`                      | `DEPLOYED_AND_VERIFIED` | connected                         |
-| **15- past daily (a past date)** | that day's breakdown      | **none**                                              | **`MISSING`**           | honest empty state — `GAP-V12-01` |
+| **15- past daily (a past date)** | that day's breakdown      | `GET /v1/cook/earnings/day/:date`                     | `BUILT_NOT_DEPLOYED`    | connected — `GAP-V12-01` closed   |
 | worked duration                  | `8 ghante 45 mins`        | **none**                                              | **`MISSING`**           | `—` — `GAP-V12-02`                |
 | extra-kaam multiplier / rate     | `1.75 × ₹150`             | **none**                                              | **`MISSING`**           | `—` — `GAP-V12-03`                |
-| no-show / late counts            | `1`, `2`                  | **computed then discarded**                           | **`MISSING`**           | `—` — `GAP-V12-04`                |
-| `5+` and long-hours counts       | tile numerals             | **none**                                              | **`MISSING`**           | `—` — `GAP-V12-05`                |
+| no-show / late counts            | `1`, `2`                  | `breakdown.counts.{noShowEvents,lateEvents}`          | `BUILT_NOT_DEPLOYED`    | connected — `GAP-V12-04` closed   |
+| `5+` and long-hours counts       | tile numerals             | `breakdown.counts.{ratingBonusDays,longHoursDays}`    | `BUILT_NOT_DEPLOYED`    | connected — `GAP-V12-05` closed   |
 | base ke upar ki kamai            | `+₹63`                    | **not reversal-safe to derive**                       | **`MISSING`**           | `—` — `GAP-V12-06`                |
 | cycle base prati din             | `₹1075`                   | **none**                                              | **`MISSING`**           | `—` — `GAP-V12-07`                |
 
@@ -626,17 +626,29 @@ which is stated here as render coverage, not device verification.
 
 | ID           | Gap                                                                 | Evidence                                                                                |
 | ------------ | ------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| `GAP-V12-01` | No per-day earnings endpoint. `15- past daily` works for today only | routes are `/earnings`, `/earnings/cycles`, `/earnings/cycles/:id` — nothing per date   |
+| ~~`GAP-V12-01`~~ | **CLOSED.** `GET /cook/earnings/day/:date` runs the same server-side breakdown `daily` runs, against the requested IST service date | `getCookEarningsForDate` in `src/earnings/financial-service.ts`; 8 cases in `phase10-cook-leave-earnings.test.ts` |
 | `GAP-V12-02` | Worked duration not exposed                                         | no `workedMinutes` on any cook route                                                    |
 | `GAP-V12-03` | Extra-kaam multiplier and rate not exposed                          | only the resulting `longHoursEarningsPaise`                                             |
-| `GAP-V12-04` | **Per-category counts computed then thrown away**                   | `buildBreakdown()` reads `row.event_count` and never writes it to the result            |
-| `GAP-V12-05` | `5+` and long-hours day counts not exposed                          | same root cause                                                                         |
+| ~~`GAP-V12-04`~~ | **CLOSED.** `breakdown.counts` publishes per-category occurrences, excluding events a reversal cancelled | `CookEarningsCounts` in `src/earnings/financial-service.ts`; reversal case in `phase10-cook-leave-earnings.test.ts` |
+| ~~`GAP-V12-05`~~ | **CLOSED.** Same field: `counts.ratingBonusDays` and `counts.longHoursDays` | same commit                                                                             |
 | `GAP-V12-06` | No reversal-safe "above base" figure                                | `gross − base` omits reversals, which keep their own signed bucket                      |
 | `GAP-V12-07` | No per-day base rate                                                | would require dividing money by a day count                                             |
 | `GAP-V12-08` | **OpenAPI does not describe Cook responses**                        | every cook route declares a generic `Ok`; and the deployed API serves no OpenAPI at all |
 | `GAP-V12-09` | No version/build endpoint                                           | deployment identity had to be inferred from route registration                          |
 
-`GAP-V12-04` is the cheapest and highest-value fix: the SQL already computes the counts.
+`GAP-V12-01` is closed. The endpoint does not re-bucket anything: it reuses `readBreakdown`, so
+reversals stay in their own signed category exactly as they do for today, and a future date is
+refused rather than answered with an empty day.
+
+`GAP-V12-04` and `GAP-V12-05` are closed by the same field. The counts were never missing from
+the database — `readBreakdown` had always selected `COUNT(*)` and `buildBreakdown` dropped it —
+so the only real work was deciding what a count MEANS when an event has been reversed. A plain
+`COUNT(*)` would have reported a late penalty that was later reversed as a late occurrence, and
+told a cook she was late a time the ledger had already decided she was not. The published counts
+therefore exclude any event with a reversal pointing at it, so the count and the money agree.
+
+The app treats the field as optional: on a deployment that predates it the tiles render `—`, never
+`0`, because zero would assert the cook was never late rather than admit the figure is unknown.
 
 **The frontend was not weakened to match the stale OpenAPI.** Schemas are transcribed from backend
 runtime source and stay strict; a response that stops matching fails as a `contract` error rather

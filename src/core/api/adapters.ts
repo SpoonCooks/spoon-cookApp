@@ -324,31 +324,43 @@ export function toEarningsBreakdown(breakdown: CookEarningsBreakdownResponse): E
 /**
  * One Performance period.
  *
- * The four `null`s are the deployed contract's gaps, not omissions here: worked duration, the
- * "above base" figure, the per-day base rate and the mistake COUNTS have no field on any cook
- * route. They are deliberately not reconstructed — see the header of `domain/money.ts`.
+ * The remaining `null`s are the deployed contract's gaps, not omissions here: worked duration,
+ * the "above base" figure and the per-day base rate have no field on any cook route. They are
+ * deliberately not reconstructed — see the header of `domain/money.ts`.
+ *
+ * The four COUNTS are no longer among them. `breakdown.counts` carries them, excluding events a
+ * reversal cancelled, so a penalty that was reversed is not reported as an occurrence. When the
+ * field is absent — an older deployment — every count stays `null` and the tiles render `—`,
+ * because `0` would assert the cook was never late rather than admit the figure is unknown.
  */
 export function toEarningsPeriodView(
   period: EarningsPeriod,
   response: CookEarningsPeriodResponse,
 ): EarningsPeriodView {
   const breakdown = toEarningsBreakdown(response.breakdown);
+  const counts = response.breakdown.counts;
   return {
     period,
     startDateIso: response.startDate,
     endDateIso: response.endDate,
     eventCount: response.eventCount,
     breakdown,
-    noShow: { count: null, amountPaise: breakdown.noShowDeductionsPaise },
-    late: { count: null, amountPaise: breakdown.lateDeductionsPaise },
+    noShow: {
+      count: counts === undefined ? null : counts.noShowEvents,
+      amountPaise: breakdown.noShowDeductionsPaise,
+    },
+    late: {
+      count: counts === undefined ? null : counts.lateEvents,
+      amountPaise: breakdown.lateDeductionsPaise,
+    },
     workedMinutes: null,
     lateMinutes: null,
     aboveBasePaise: null,
     perDayBasePaise: null,
     extraKaamMultiplier: null,
     extraKaamRatePaise: null,
-    fiveStarDays: null,
-    longHoursDays: null,
+    fiveStarDays: counts === undefined ? null : counts.ratingBonusDays,
+    longHoursDays: counts === undefined ? null : counts.longHoursDays,
   };
 }
 
@@ -370,22 +382,29 @@ export function periodResponseFor(
  */
 export function toCycleDetailView(detail: CookCycleDetailResponse): EarningsPeriodView {
   const breakdown = toEarningsBreakdown(detail.summary);
+  const counts = detail.summary.counts;
   return {
     period: 'cycle',
     startDateIso: detail.startDate,
     endDateIso: detail.endDate,
     eventCount: detail.events.length,
     breakdown,
-    noShow: { count: null, amountPaise: breakdown.noShowDeductionsPaise },
-    late: { count: null, amountPaise: breakdown.lateDeductionsPaise },
+    noShow: {
+      count: counts === undefined ? null : counts.noShowEvents,
+      amountPaise: breakdown.noShowDeductionsPaise,
+    },
+    late: {
+      count: counts === undefined ? null : counts.lateEvents,
+      amountPaise: breakdown.lateDeductionsPaise,
+    },
     workedMinutes: null,
     lateMinutes: null,
     aboveBasePaise: null,
     perDayBasePaise: null,
     extraKaamMultiplier: null,
     extraKaamRatePaise: null,
-    fiveStarDays: null,
-    longHoursDays: null,
+    fiveStarDays: counts === undefined ? null : counts.ratingBonusDays,
+    longHoursDays: counts === undefined ? null : counts.longHoursDays,
   };
 }
 

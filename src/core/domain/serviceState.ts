@@ -264,7 +264,7 @@ export interface ServiceSnapshot {
  * Note the ordering: an interruption outranks everything, because a cancelled booking must never
  * keep rendering a live service screen.
  */
-export function projectServiceState(snapshot: ServiceSnapshot): ServiceState {
+export function projectServiceState(snapshot: ServiceSnapshot): ServiceState | null {
   if (snapshot.interruption !== null) {
     return { kind: 'interrupted', reason: snapshot.interruption, job: snapshot.job };
   }
@@ -321,10 +321,27 @@ export function projectServiceState(snapshot: ServiceSnapshot): ServiceState {
       return { kind: 'interrupted', reason: 'cancelled', job };
 
     default: {
-      // Exhaustiveness guard: a new backend status must be handled explicitly, not fall through
-      // into a live service screen.
-      const never: never = snapshot.status;
-      throw new Error(`Unhandled booking status: ${String(never)}`);
+      /*
+       * A status this build has never heard of.
+       *
+       * The COMPILE-TIME guard is kept: assigning to `never` means adding a status to the shared
+       * union without handling it here fails the build, which is the point — a new state must be
+       * designed for, not fall through into a live service screen.
+       *
+       * The RUNTIME behaviour used to be `throw`, and that was wrong in a way only a deployed
+       * cook would discover. This runs inside a `useMemo` during render, and the app has no error
+       * boundary, so an unrecognised status unmounted the tree: a cook mid-job got a blank screen
+       * with no way out but force-stopping the app. The trigger is not exotic — it is any backend
+       * deploy that adds a status before every sideloaded APK has been replaced, which is exactly
+       * the situation this app is always in.
+       *
+       * Returning null routes into the route's existing `ErrorState`, which tells the cook the
+       * service could not be loaded and offers a way back to Jobs. The Customer app already
+       * degrades this way (`UNKNOWN_BOOKING_VIEW`); this makes the two agree.
+       */
+      const unhandledStatus: never = snapshot.status;
+      console.warn('[serviceState] unhandled booking status', { status: unhandledStatus });
+      return null;
     }
   }
 }

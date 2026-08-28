@@ -48,7 +48,12 @@ export default function RuleSheetScreen(): React.ReactElement | null {
     return null;
   }
 
-  const average = profile.data?.cook.rating.average ?? null;
+  // `rating_avg` defaults to 0 in the database, so a cook with no ratings yet has an average of
+  // `0` — which `toFixed(1)` would print as `0.0`, the WORST possible score, to someone who has
+  // simply never been rated. `count` is the only field that distinguishes the two, and
+  // `src/core/session/auth.ts` already gates on it. Below zero ratings this shows `—`.
+  const rated = profile.data !== undefined && profile.data.cook.rating.count > 0;
+  const average = rated ? profile.data.cook.rating.average : null;
   const standingValue =
     sheet.key === 'rating-tiers' && average !== null ? formatRating(average) : UNAVAILABLE;
 

@@ -156,6 +156,8 @@ export interface JobsViewProps {
   readonly jobs: readonly JobCardModel[];
   readonly breakWindow: BreakWindowModel | null;
   readonly onStartTravel?: ((bookingId: string) => void) | undefined;
+  /** Opens authoritative job details independently of CTA eligibility. */
+  readonly onOpenJob?: ((bookingId: string) => void) | undefined;
   readonly submittingId?: string | null | undefined;
   readonly onHelp?: (() => void) | undefined;
   /** Rendered between the nav and the list — command errors, refresh controls. */
@@ -170,6 +172,7 @@ export function JobsView({
   jobs,
   breakWindow,
   onStartTravel,
+  onOpenJob,
   submittingId,
   onHelp,
   banner,
@@ -231,11 +234,12 @@ export function JobsView({
               urgency={leadUrgency}
               scale={scale}
               onStartTravel={onStartTravel}
+              onOpenJob={onOpenJob}
               isSubmitting={submittingId === leadJob.bookingId}
             />
           )}
           {jobs.map((job) => (
-            <JobTile key={job.bookingId} job={job} scale={scale} />
+            <JobTile key={job.bookingId} job={job} scale={scale} onOpenJob={onOpenJob} />
           ))}
         </View>
       </ScrollView>
@@ -244,10 +248,21 @@ export function JobsView({
 }
 
 /** `572:819` — a job the cook cannot act on yet: start time, duration, building. */
-function JobTile({ job, scale }: { job: JobCardModel; scale: DesignScale }): React.ReactElement {
+function JobTile({
+  job,
+  scale,
+  onOpenJob,
+}: {
+  job: JobCardModel;
+  scale: DesignScale;
+  onOpenJob?: ((bookingId: string) => void) | undefined;
+}): React.ReactElement {
   const { s } = scale;
   return (
-    <View
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`${job.societyOrBuilding} job details`}
+      onPress={onOpenJob === undefined ? undefined : () => onOpenJob(job.bookingId)}
       style={[
         styles.card,
         /*
@@ -288,7 +303,7 @@ function JobTile({ job, scale }: { job: JobCardModel; scale: DesignScale }): Rea
           {job.societyOrBuilding}
         </Text>
       </View>
-    </View>
+    </Pressable>
   );
 }
 
@@ -298,19 +313,24 @@ function LeadJobCard({
   urgency,
   scale,
   onStartTravel,
+  onOpenJob,
   isSubmitting,
 }: {
   job: JobCardModel;
   urgency: JobUrgency;
   scale: DesignScale;
   onStartTravel?: ((bookingId: string) => void) | undefined;
+  onOpenJob?: ((bookingId: string) => void) | undefined;
   isSubmitting: boolean;
 }): React.ReactElement {
   const { s } = scale;
   const tier = TIER[urgency];
 
   return (
-    <View
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`${job.societyOrBuilding} job details`}
+      onPress={onOpenJob === undefined ? undefined : () => onOpenJob(job.bookingId)}
       style={[
         styles.card,
         figmaStroke(scale, {
@@ -365,7 +385,7 @@ function LeadJobCard({
           </Text>
         </Pressable>
       </View>
-    </View>
+    </Pressable>
   );
 }
 

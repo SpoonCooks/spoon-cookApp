@@ -182,9 +182,11 @@ describe('travel ruling', () => {
     );
     expect(snapshot?.minutesToDeadline).toBe(-2);
 
-    const state = projectServiceState(snapshot!);
-    expect(state.kind).toBe('travelling');
-    if (state.kind === 'travelling') {
+    const state = projectServiceState(snapshot!)!;
+    // Null now means "a status this build does not recognise", which a known status never is.
+    expect(state).not.toBeNull();
+    expect(state?.kind).toBe('travelling');
+    if (state?.kind === 'travelling') {
       expect(state.minutesToDeadline).toBe(-2);
       expect(state.timing).toBe('late');
     }
@@ -227,12 +229,12 @@ describe('interruption precedence', () => {
       Date.now(),
     );
     expect(snapshot?.interruption).toBe('reassigned');
-    expect(projectServiceState(snapshot!).kind).toBe('interrupted');
+    expect(projectServiceState(snapshot!)?.kind).toBe('interrupted');
   });
 
   it('outranks an otherwise-renderable cooking state', () => {
     const snapshot = toServiceSnapshot(job({ status: 'cancelled' }), Date.now());
-    expect(projectServiceState(snapshot!).kind).toBe('interrupted');
+    expect(projectServiceState(snapshot!)?.kind).toBe('interrupted');
   });
 });
 
@@ -240,7 +242,7 @@ describe('cooking timer', () => {
   it('refuses to render a timer without server timestamps', () => {
     const snapshot = toServiceSnapshot(job({ status: 'cooking' }), Date.now());
     // No serviceStartedAt/expectedEnd → must not present itself as a live cooking screen.
-    expect(projectServiceState(snapshot!).kind).toBe('assigned');
+    expect(projectServiceState(snapshot!)?.kind).toBe('assigned');
   });
 
   it('converts remaining seconds without clamping a negative remainder', () => {

@@ -11,6 +11,7 @@ import { SvgXml } from 'react-native-svg';
 import { formatDurationHours } from '@core/domain/job';
 import type { ArrivalTiming, JobSummary, TravelTiming } from '@core/domain/serviceState';
 import {
+  Button,
   color,
   figmaStroke,
   HelpPill,
@@ -484,6 +485,44 @@ function UserDetailsCard({
         )}
       </View>
     </Block>
+  );
+}
+
+/**
+ * Assigned/created recovery surface. Opening a job never starts travel; the CTA remains the only
+ * command and is disabled unless the server's `canStartTravel` flag allows it.
+ */
+export function AssignedJobView({
+  job,
+  canStartTravel,
+  onStartTravel,
+  isSubmitting = false,
+  error = null,
+}: {
+  readonly job: JobSummary;
+  readonly canStartTravel: boolean;
+  readonly onStartTravel?: (() => void) | undefined;
+  readonly isSubmitting?: boolean;
+  readonly error?: string | null;
+}): React.ReactElement {
+  return (
+    <ServiceShell title="Job details" testID="service-assigned">
+      <UserDetailsCard job={job} showCall={false} showMap={false} />
+      <Block>
+        {error === null ? null : (
+          <Text variant="caption" color={color.danger} testID="service-start-travel-error">
+            {error}
+          </Text>
+        )}
+        <Button
+          label="Start travel"
+          onPress={onStartTravel}
+          disabled={!canStartTravel}
+          loading={isSubmitting}
+          testID="service-start-travel"
+        />
+      </Block>
+    </ServiceShell>
   );
 }
 

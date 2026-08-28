@@ -325,7 +325,23 @@ export const cookLeaveSchema = z.object({
   status: z.string(),
   reason: z.string().nullable(),
   requestedAt: isoString,
-  decidedAt: isoString.nullable(),
+  /**
+   * Absent on create, present on the list. `.nullish()` rather than `.nullable()` for that reason.
+   *
+   * This schema is shared by two responses. `GET /cook/leaves` sends `decidedAt` on every row
+   * (`operations.ts:913`); the `POST` create result has no such field at all, because a leave that
+   * was just requested has not been decided by anyone.
+   *
+   * `.nullable()` still REQUIRES the key, so the create response failed validation and the app
+   * reported `contract` — "App update chahiye. Support se baat kare." — for a request the backend
+   * had already committed with 201. The cook saw a failure, retried, and every retry then hit the
+   * overlap check with 409 `INVALID_BOOKING_STATE` ("Yeh abhi nahi ho sakta"). Leave became
+   * impossible to book and the pending request she already held was invisible to her.
+   *
+   * Reported from a real device on 2026-08-28. Absent stays absent — it is never defaulted to a
+   * timestamp, because "not yet decided" and "decided at some instant" are different facts.
+   */
+  decidedAt: isoString.nullish(),
 });
 export type CookLeaveResponse = z.infer<typeof cookLeaveSchema>;
 
@@ -391,10 +407,37 @@ export const cookEarningsBreakdownSchema = z.object({
   grossEarningsPaise: z.number().int(),
   totalDeductionsPaise: z.number().int(),
   netEarningsPaise: z.number().int(),
+  /**
+   * How many times each category occurred, with reversed events excluded by the backend.
+   *
+   * `.optional()` on purpose: a cook may be running a build that talks to a deployment older than
+   * the one that added these, and a required field would fail every money read on that pairing.
+   * Absent stays absent — the tiles render `—` exactly as they did before the field existed, and
+   * are never defaulted to `0`, which would claim the cook was never late rather than admitting
+   * the figure is unknown.
+   *
+   * These are NOT derivable in the app. A count taken from `events[]` would include penalties
+   * that were later reversed, and so would contradict the money in the same response.
+   */
+  counts: z
+    .object({
+      presentDays: z.number().int(),
+      ratingBonusDays: z.number().int(),
+      longHoursDays: z.number().int(),
+      attendanceBonuses: z.number().int(),
+      paidLeaveDays: z.number().int(),
+      tips: z.number().int(),
+      lateEvents: z.number().int(),
+      noShowEvents: z.number().int(),
+      adjustments: z.number().int(),
+      reversals: z.number().int(),
+      other: z.number().int(),
+    })
+    .optional(),
 });
 export type CookEarningsBreakdownResponse = z.infer<typeof cookEarningsBreakdownSchema>;
 
-const earningsPeriodSchema = z.object({
+export const earningsPeriodSchema = z.object({
   startDate: serviceDate,
   endDate: serviceDate,
   totalPaise: z.number().int(),

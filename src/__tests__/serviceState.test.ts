@@ -44,13 +44,51 @@ const base: ServiceSnapshot = {
   interruption: null,
 };
 
+describe('a status this build has never heard of', () => {
+  /*
+   * The Cook APK is sideloaded onto cooks' phones, so it is ALWAYS possible for the backend to
+   * be ahead of the app. This used to `throw` — inside a `useMemo`, in an app with no error
+   * boundary — so a single unrecognised status unmounted the tree and left a cook mid-job staring
+   * at a blank screen with no way out but force-stopping the app.
+   *
+   * The compile-time exhaustiveness check is deliberately kept (a new status in the shared union
+   * still fails the build). What changed is that the runtime degrades instead of crashing, which
+   * is what the Customer app has always done via `UNKNOWN_BOOKING_VIEW`.
+   */
+  it('returns null rather than throwing, so the screen can degrade', () => {
+    const unknown = { ...base, status: 'awaiting_cutlery' } as unknown as Parameters<
+      typeof projectServiceState
+    >[0];
+
+    expect(() => projectServiceState(unknown)).not.toThrow();
+    expect(projectServiceState(unknown)).toBeNull();
+  });
+
+  it('still resolves every status this build DOES know', () => {
+    // Null must mean "unrecognised" and nothing else, or the degraded screen would start hiding
+    // real states.
+    for (const status of [
+      'created',
+      'assigned',
+      'cook_en_route',
+      'cook_arrived',
+      'cooking',
+      'completed',
+      'cancelled',
+    ]) {
+      const state = projectServiceState({ ...base, status } as typeof base);
+      expect({ status, isNull: state === null }).toEqual({ status, isNull: false });
+    }
+  });
+});
+
 describe('projectServiceState', () => {
   it('returns idle when there is no job', () => {
-    expect(projectServiceState({ ...base, job: null })).toEqual({ kind: 'idle' });
+    expect(projectServiceState({ ...base, job: null }))!.toEqual({ kind: 'idle' });
   });
 
   it('maps assigned to the actionable job state', () => {
-    const state = projectServiceState(base);
+    const state = projectServiceState(base)!;
     expect(state.kind).toBe('assigned');
   });
 
@@ -65,7 +103,7 @@ describe('projectServiceState', () => {
         status: 'cook_en_route',
         travelTiming: timing,
         minutesToDeadline: minutes,
-      });
+      })!;
       expect(state).toMatchObject({ kind: 'travelling', timing, minutesToDeadline: minutes });
     });
 
@@ -75,13 +113,13 @@ describe('projectServiceState', () => {
         status: 'cook_en_route',
         travelTiming: 'late',
         minutesToDeadline: -12,
-      });
+      })!;
       // Clamping would erase the distinction between "may be late" and "is late".
       expect(state).toMatchObject({ minutesToDeadline: -12 });
     });
 
     it('degrades a missing server ruling to on_time, never to late', () => {
-      const state = projectServiceState({ ...base, status: 'cook_en_route', travelTiming: null });
+      const state = projectServiceState({ ...base, status: 'cook_en_route', travelTiming: null })!;
       expect(state).toMatchObject({ kind: 'travelling', timing: 'on_time' });
     });
   });
@@ -93,7 +131,7 @@ describe('projectServiceState', () => {
         status: 'cook_arrived',
         arrivalTiming: 'on_time',
         startOtpReady: false,
-      });
+      })!;
       expect(state.kind).toBe('arrived');
     });
 
@@ -103,7 +141,7 @@ describe('projectServiceState', () => {
         status: 'cook_arrived',
         arrivalTiming: 'late',
         startOtpReady: true,
-      });
+      })!;
       expect(state).toMatchObject({ kind: 'awaiting_start_otp', timing: 'late' });
     });
   });
@@ -118,7 +156,7 @@ describe('projectServiceState', () => {
     };
 
     it('renders the timer from server timestamps', () => {
-      expect(projectServiceState(cooking)).toMatchObject({
+      expect(projectServiceState(cooking))!.toMatchObject({
         kind: 'cooking',
         minutesRemaining: 37,
         isEndingSoon: false,
@@ -134,23 +172,23 @@ describe('projectServiceState', () => {
           newExpectedEndIso: '2026-08-21T14:00:00+05:30',
           confirmedAtIso: null,
         },
-      });
+      })!;
       expect(state).toMatchObject({ expectedEndIso: '2026-08-21T14:00:00+05:30' });
     });
 
     it('refuses to render a timer without server timestamps', () => {
       // A cooking status with no start time would otherwise produce a timer counting from nothing.
-      const state = projectServiceState({ ...cooking, actualStartIso: null });
+      const state = projectServiceState({ ...cooking, actualStartIso: null })!;
       expect(state.kind).not.toBe('cooking');
     });
 
     it('moves to End OTP on the server flag', () => {
-      expect(projectServiceState({ ...cooking, endOtpReady: true }).kind).toBe('awaiting_end_otp');
+      expect(projectServiceState({ ...cooking, endOtpReady: true })!.kind).toBe('awaiting_end_otp');
     });
   });
 
   it('maps completed', () => {
-    expect(projectServiceState({ ...base, status: 'completed' }).kind).toBe('completed');
+    expect(projectServiceState({ ...base, status: 'completed' })!.kind).toBe('completed');
   });
 
   describe('interruption outranks every other state', () => {
@@ -161,12 +199,12 @@ describe('projectServiceState', () => {
         actualStartIso: '2026-08-21T12:00:00+05:30',
         expectedEndIso: '2026-08-21T13:30:00+05:30',
         interruption: 'cancelled_while_travelling',
-      });
+      })!;
       expect(state).toMatchObject({ kind: 'interrupted', reason: 'cancelled_while_travelling' });
     });
 
     it('maps a cancelled booking to interrupted', () => {
-      expect(projectServiceState({ ...base, status: 'cancelled' })).toMatchObject({
+      expect(projectServiceState({ ...base, status: 'cancelled' }))!.toMatchObject({
         kind: 'interrupted',
         reason: 'cancelled',
       });

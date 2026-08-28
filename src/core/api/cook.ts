@@ -30,9 +30,11 @@ import {
   cookPresentSchema,
   cookProfileSchema,
   currentCookJobSchema,
+  earningsPeriodSchema,
   monthlyAttendanceSchema,
   otpSendSchema,
   type AuthSessionResponse,
+  type CookEarningsPeriodResponse,
   type CookCyclesResponse,
   type CookEarningsResponse,
   type CookJobResponse,
@@ -422,6 +424,21 @@ export async function getEarnings(
     query: { ...(params.limit === undefined ? {} : { limit: params.limit }) },
     ...opts,
   });
+}
+
+/**
+ * One past service day's earnings.
+ *
+ * The same server-side breakdown `/cook/earnings` uses for its `daily` window, asked about a
+ * different IST service date. It is deliberately NOT a client-side filter of the cycle's
+ * `events[]`: reversals are their own signed category, so re-bucketing raw ledger rows here would
+ * show a base figure the payout will not honour. The server refuses a future date.
+ */
+export async function getEarningsDay(
+  serviceDate: string,
+  opts: Opts = {},
+): Promise<CookEarningsPeriodResponse> {
+  return request(`/cook/earnings/day/${serviceDate}`, earningsPeriodSchema, opts);
 }
 
 export async function listEarningsCycles(

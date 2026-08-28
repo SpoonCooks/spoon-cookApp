@@ -7,6 +7,7 @@ import { newIdempotencyKey } from '@core/api/cook';
 import { apiErrorMessage, isAssignmentChanged, isSessionExpired } from '@core/api/errors';
 import { useCookProfile, useJobs, useStartCommute } from '@core/api/queries';
 import type { JobCardModel } from '@core/domain/job';
+import { locationTracker, type TrackingState } from '@core/location/tracker';
 import { useSession } from '@core/session/store';
 import { formatLocalTime } from '@features/leave/leaveModel';
 import { JobsView, type BreakWindowModel } from '@features/jobs/JobViews';
@@ -72,23 +73,39 @@ export default function JobsScreen(): React.ReactElement {
 
     setSubmittingId(bookingId);
     setCommandError(null);
-    startCommute.mutate(
-      { bookingId, assignmentVersion: card.assignmentVersion, idempotencyKey: key },
-      {
-        onSuccess: () => {
-          router.push({ pathname: '/service/[bookingId]', params: { bookingId } });
+    const target = { bookingId, assignmentVersion: card.assignmentVersion };
+    void locationTracker.prepare(target).then((prepared) => {
+      if (prepared.status !== 'ready') {
+        setCommandError(locationSetupError(prepared));
+        setSubmittingId(null);
+        return;
+      }
+
+      startCommute.mutate(
+        { bookingId, assignmentVersion: card.assignmentVersion, idempotencyKey: key },
+        {
+          onSuccess: () => {
+            void locationTracker.activate(target).finally(() => {
+              router.push({ pathname: '/service/[bookingId]', params: { bookingId } });
+            });
+          },
+          onError: (error: unknown) => {
+            // A stale assignment is not a failure to retry — the list must be re-read first.
+            locationTracker.stop();
+            if (isAssignmentChanged(error)) commuteKeys.current.delete(bookingId);
+            setCommandError(apiErrorMessage(error));
+            void jobs.refetch();
+          },
+          onSettled: () => {
+            setSubmittingId(null);
+          },
         },
-        onError: (error: unknown) => {
-          // A stale assignment is not a failure to retry — the list must be re-read first.
-          if (isAssignmentChanged(error)) commuteKeys.current.delete(bookingId);
-          setCommandError(apiErrorMessage(error));
-          void jobs.refetch();
-        },
-        onSettled: () => {
-          setSubmittingId(null);
-        },
-      },
-    );
+      );
+    });
+  };
+
+  const openJob = (bookingId: string): void => {
+    router.push({ pathname: '/service/[bookingId]', params: { bookingId } });
   };
 
   if (jobs.isPending || profile.isPending) return <LoadingState testID="jobs-loading" />;
@@ -133,6 +150,7 @@ export default function JobsScreen(): React.ReactElement {
       jobs={rest}
       breakWindow={breakWindow}
       onStartTravel={startTravel}
+      onOpenJob={openJob}
       submittingId={submittingId}
       banner={
         commandError !== null ? (
@@ -152,6 +170,17 @@ export default function JobsScreen(): React.ReactElement {
       }}
     />
   );
+}
+
+function locationSetupError(state: TrackingState): string {
+  switch (state.status) {
+    case 'permission_denied':
+      return 'Location permission is required before travel can start.';
+    case 'services_disabled':
+      return 'Turn on location services and try again.';
+    default:
+      return 'Location tracking could not start. Please try again.';
+  }
 }
 
 /**

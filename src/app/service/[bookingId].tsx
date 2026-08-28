@@ -6,7 +6,13 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { toServiceSnapshot } from '@core/api/adapters';
 import { newIdempotencyKey } from '@core/api/cook';
 import { apiErrorMessage, isSessionExpired } from '@core/api/errors';
-import { useJob, useMarkArrived, useVerifyEndOtp, useVerifyStartOtp } from '@core/api/queries';
+import {
+  useJob,
+  useMarkArrived,
+  useStartCommute,
+  useVerifyEndOtp,
+  useVerifyStartOtp,
+} from '@core/api/queries';
 import { isNavigableGate, openGateNavigation } from '@core/location/navigation';
 import { locationTracker } from '@core/location/tracker';
 import { otpLength } from '@core/domain/otp';
@@ -16,6 +22,7 @@ import { BottomNav, ErrorState, LoadingState } from '@ui';
 import { InterruptedView } from '@features/service/ServiceViews';
 import {
   ArrivalView,
+  AssignedJobView,
   CompletedView,
   CookingView,
   EndOtpView,
@@ -66,10 +73,13 @@ export default function ServiceScreen(): React.ReactElement {
   const verifyStartOtp = useVerifyStartOtp();
   const verifyEndOtp = useVerifyEndOtp();
   const markArrived = useMarkArrived();
+  const startCommute = useStartCommute();
 
   const [startCode, setStartCode] = useState('');
   const [endCode, setEndCode] = useState('');
   const [otpError, setOtpError] = useState<string | null>(null);
+  const [startTravelError, setStartTravelError] = useState<string | null>(null);
+  const [startingTravel, setStartingTravel] = useState(false);
 
   /**
    * One key per command per booking, held for the life of the screen.
@@ -157,40 +167,46 @@ export default function ServiceScreen(): React.ReactElement {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
-  /* --------------------------------------------------- location lifecycle --- */
-
-  const isTravelling = state?.kind === 'travelling';
-  const assignmentVersion =
-    state !== null && 'job' in state ? (state.job?.assignmentVersion ?? 0) : 0;
-
-  useEffect(() => {
-    if (!isTravelling || id.length === 0) {
-      // Covers arrival, completion, interruption AND leaving the screen: no eligible active job
-      // means no collection.
-      locationTracker.stop();
-      return;
-    }
-
-    void locationTracker.start(
-      { bookingId: id, assignmentVersion },
-      {
-        onArrived: () => {
-          // The BACKEND committed the arrival. Re-read so the screen moves because the projection
-          // moved, not because the device decided it had arrived.
-          void job.refetch();
-        },
-      },
-    );
-
-    return () => {
-      locationTracker.stop();
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isTravelling, id, assignmentVersion]);
-
   /* ------------------------------------------------------------ commands --- */
 
   const goToJobs = (): void => router.replace('/jobs');
+
+  const startTravel = (): void => {
+    if (state?.kind !== 'assigned' || !state.canStartTravel || startingTravel) return;
+    const target = { bookingId: id, assignmentVersion: state.job.assignmentVersion };
+    setStartTravelError(null);
+    setStartingTravel(true);
+
+    void locationTracker.prepare(target).then((prepared) => {
+      if (prepared.status !== 'ready') {
+        setStartTravelError('Location tracking could not start. Please try again.');
+        setStartingTravel(false);
+        return;
+      }
+
+      startCommute.mutate(
+        {
+          bookingId: id,
+          assignmentVersion: target.assignmentVersion,
+          idempotencyKey: keyFor('start-travel'),
+        },
+        {
+          onSuccess: () => {
+            void locationTracker.activate(target).finally(() => {
+              setStartingTravel(false);
+              void job.refetch();
+            });
+          },
+          onError: (error: unknown) => {
+            locationTracker.stop();
+            setStartTravelError(apiErrorMessage(error));
+            setStartingTravel(false);
+            void job.refetch();
+          },
+        },
+      );
+    });
+  };
 
   const submitStartOtp = (): void => {
     if (state?.kind !== 'awaiting_start_otp' || verifyStartOtp.isPending) return;
@@ -291,8 +307,18 @@ export default function ServiceScreen(): React.ReactElement {
   const body = ((): React.ReactElement => {
     switch (state.kind) {
       case 'idle':
-      case 'assigned':
         return <ErrorState message="Yeh job abhi shuru nahi hui." onRetry={goToJobs} />;
+
+      case 'assigned':
+        return (
+          <AssignedJobView
+            job={state.job}
+            canStartTravel={state.canStartTravel}
+            onStartTravel={startTravel}
+            isSubmitting={startingTravel}
+            error={startTravelError}
+          />
+        );
 
       case 'travelling':
         return (

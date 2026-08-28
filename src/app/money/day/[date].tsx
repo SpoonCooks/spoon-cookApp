@@ -2,44 +2,42 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useMemo } from 'react';
 import { toBonusProgress, toEarningsPeriodView } from '@core/api/adapters';
 import { apiErrorMessage } from '@core/api/errors';
-import { useCookProfile, useEarnings } from '@core/api/queries';
+import { useCookProfile, useEarnings, useEarningsDay } from '@core/api/queries';
 import { formatOrdinalDate, type RatingView } from '@core/domain/money';
 import { PastDayView } from '@features/performance/PerformanceViews';
-import { EmptyState, ErrorState, LoadingState } from '@ui';
+import { ErrorState, LoadingState } from '@ui';
 
 /**
  * `15- past daily` (`575:1922`) — `Din ki kamai`.
  *
- * ## The one screen in this section without a full contract
+ * ## Why this reads a dedicated endpoint
  *
- * The deployed API exposes exactly three earnings windows — `daily`, `sevenDay`, `monthly` — all
- * anchored to TODAY's IST service date, plus per-cycle detail. There is no
- * `GET /cook/earnings/day/:date`, so a breakdown for an arbitrary past date cannot be read.
- *
- * It could be faked by filtering the cycle's `events[]` on `createdAt`, and that is exactly what
- * this screen refuses to do: reversals live in their own signed category, so re-bucketing raw
+ * The obvious shortcut is to filter the cycle's `events[]` on `createdAt` in the client, and this
+ * screen has always refused to: reversals live in their own signed category, so re-bucketing raw
  * ledger rows by date would show a cook a base figure the payout will not honour.
  *
- * So the screen renders in full for TODAY, where `earnings.daily` is authoritative, and states the
- * gap plainly for any other date. Recorded as `GAP-V12-01`.
+ * For a long time that left no honest option — the API only exposed `daily`, `sevenDay` and
+ * `monthly`, all anchored to TODAY — so every other date rendered a plain statement of the gap
+ * (`GAP-V12-01`). `GET /cook/earnings/day/:date` closes it: the server runs the SAME breakdown it
+ * runs for `daily`, against the requested IST service date, so every signed category stays in its
+ * own bucket and nothing is recomputed here.
+ *
+ * A day with no ledger rows is a real answer — a cook who did not work — not an error, so it
+ * renders as a zeroed day rather than an empty state.
  */
 export default function PastDayScreen(): React.ReactElement {
   const { date } = useLocalSearchParams<{ date?: string }>();
   const dateIso = date ?? '';
+  const valid = dateIso.length === 10;
 
-  const earnings = useEarnings();
+  const day = useEarningsDay(dateIso, valid);
+  // Only for bonus progress, which is a cycle-level figure and has no per-day equivalent.
+  const earnings = useEarnings(valid);
   const profile = useCookProfile();
 
-  // The server's own service date for the daily window — never the device clock.
-  const todayIso = earnings.data?.daily.startDate ?? null;
-  const isToday = todayIso !== null && dateIso === todayIso;
-
   const view = useMemo(
-    () =>
-      earnings.data === undefined || !isToday
-        ? null
-        : toEarningsPeriodView('day', earnings.data.daily),
-    [earnings.data, isToday],
+    () => (day.data === undefined ? null : toEarningsPeriodView('day', day.data)),
+    [day.data],
   );
 
   const bonus = useMemo(
@@ -55,25 +53,16 @@ export default function PastDayScreen(): React.ReactElement {
     [profile.data],
   );
 
-  if (dateIso.length !== 10) {
+  if (!valid) {
     return <ErrorState message="Din nahi mila." onRetry={() => router.back()} />;
   }
-  if (earnings.isPending) return <LoadingState testID="day-loading" />;
-  if (earnings.isError) {
+  if (day.isPending) return <LoadingState testID="day-loading" />;
+  if (day.isError || view === null) {
     return (
       <ErrorState
-        message={apiErrorMessage(earnings.error)}
-        onRetry={() => void earnings.refetch()}
+        message={day.isError ? apiErrorMessage(day.error) : 'Din ka hisaab nahi mila.'}
+        onRetry={() => void day.refetch()}
         testID="day-error"
-      />
-    );
-  }
-
-  if (view === null) {
-    return (
-      <EmptyState
-        message="Purane din ka hisaab abhi nahi dikh sakta. Poore cycle ka hisaab dekhein."
-        testID="day-unavailable"
       />
     );
   }

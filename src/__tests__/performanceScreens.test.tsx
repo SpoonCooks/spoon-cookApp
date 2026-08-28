@@ -145,10 +145,48 @@ describe('12- money daily (575:1744)', () => {
     expect(screen.getByTestId('bonus-bar-hint')).toHaveTextContent(/27 se zyada/);
   });
 
-  it('shows — for mistake counts but the real deduction amounts', () => {
+  it('shows — for mistake counts a deployment without `counts` cannot supply', () => {
+    // The fixture's breakdown carries no `counts`, which is what an older deployment sends. The
+    // amounts are still real; only the occurrence counts are unknown, and `0` would assert the
+    // cook was never late rather than admit that.
     render(<MoneyScreen />);
     expect(screen.getByTestId('mistakes-card-no-show-count')).toHaveTextContent('—');
     expect(screen.getByTestId('mistakes-card-late-count')).toHaveTextContent('—');
+    expect(screen.getByTestId('mistakes-card-no-show-amount')).toHaveTextContent('-₹250');
+    expect(screen.getByTestId('mistakes-card-late-amount')).toHaveTextContent('-₹50');
+  });
+
+  it('renders the real occurrence counts once the backend supplies them', () => {
+    // `breakdown.counts` closes GAP-V12-04/05. The backend excludes reversed events from these,
+    // so they are not derivable from `events[]` here and must not be recomputed.
+    const withCounts = {
+      ...breakdown(),
+      counts: {
+        presentDays: 8,
+        ratingBonusDays: 3,
+        longHoursDays: 2,
+        attendanceBonuses: 0,
+        paidLeaveDays: 0,
+        tips: 4,
+        lateEvents: 1,
+        noShowEvents: 2,
+        adjustments: 0,
+        reversals: 1,
+        other: 0,
+      },
+    };
+    const data = mockEarnings.data as Record<string, unknown>;
+    mockEarnings = {
+      ...mockEarnings,
+      data: {
+        ...data,
+        daily: { ...(data.daily as Record<string, unknown>), breakdown: withCounts },
+      },
+    };
+    render(<MoneyScreen />);
+    expect(screen.getByTestId('mistakes-card-no-show-count')).toHaveTextContent('2');
+    expect(screen.getByTestId('mistakes-card-late-count')).toHaveTextContent('1');
+    // The amounts are untouched by the counts — they still come from the signed money fields.
     expect(screen.getByTestId('mistakes-card-no-show-amount')).toHaveTextContent('-₹250');
     expect(screen.getByTestId('mistakes-card-late-amount')).toHaveTextContent('-₹50');
   });

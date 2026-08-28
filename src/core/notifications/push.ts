@@ -113,9 +113,10 @@ export function deepLinkForPush(payload: CookPushPayload): string {
     case 'booking.cancelled':
     case 'booking.completed':
     case 'booking.reassigned':
+      return '/jobs';
     case 'assignment.committed':
     case 'booking.assigned':
-      return '/jobs';
+      return `/service/${payload.bookingId}`;
     case 'booking.cook_arrived':
     case 'service.started':
     case 'booking.extension.confirmed':

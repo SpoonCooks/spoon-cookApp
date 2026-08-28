@@ -17,7 +17,9 @@ import ServiceScreen from '@/app/service/[bookingId]';
 const mockStartOtp = jest.fn();
 const mockEndOtp = jest.fn();
 const mockArrive = jest.fn();
-const mockTrackerStart = jest.fn(async (_target: unknown, _callbacks?: unknown) => ({}));
+const mockStartTravel = jest.fn();
+const mockTrackerPrepare = jest.fn(async (_target: unknown) => ({ status: 'ready' }));
+const mockTrackerActivate = jest.fn(async (_target: unknown) => ({ status: 'reporting' }));
 const mockTrackerStop = jest.fn();
 const mockRefetch = jest.fn();
 
@@ -28,11 +30,13 @@ jest.mock('@core/api/queries', () => ({
   useVerifyStartOtp: () => ({ mutate: mockStartOtp, isPending: false }),
   useVerifyEndOtp: () => ({ mutate: mockEndOtp, isPending: false }),
   useMarkArrived: () => ({ mutate: mockArrive, isPending: false }),
+  useStartCommute: () => ({ mutate: mockStartTravel, isPending: false }),
 }));
 
 jest.mock('@core/location/tracker', () => ({
   locationTracker: {
-    start: (target: unknown, callbacks: unknown) => mockTrackerStart(target, callbacks),
+    prepare: (target: unknown) => mockTrackerPrepare(target),
+    activate: (target: unknown) => mockTrackerActivate(target),
     stop: () => mockTrackerStop(),
   },
 }));
@@ -110,7 +114,9 @@ beforeEach(() => {
   mockStartOtp.mockClear();
   mockEndOtp.mockClear();
   mockArrive.mockClear();
-  mockTrackerStart.mockClear();
+  mockStartTravel.mockClear();
+  mockTrackerPrepare.mockClear();
+  mockTrackerActivate.mockClear();
   mockTrackerStop.mockClear();
   mockRefetch.mockClear();
   setJob();
@@ -229,47 +235,23 @@ describe('commands do not advance state locally', () => {
 });
 
 describe('location reporting lifecycle', () => {
-  it('starts reporting for cook_en_route with the current assignment version', () => {
+  it('does not own app-lifetime tracking from the service screen', () => {
     render(<ServiceScreen />);
-    expect(mockTrackerStart).toHaveBeenCalledTimes(1);
-    expect(mockTrackerStart.mock.calls[0]?.[0]).toMatchObject({
-      bookingId: 'b1',
-      assignmentVersion: 3,
-    });
+    expect(mockTrackerPrepare).not.toHaveBeenCalled();
+    expect(mockTrackerActivate).not.toHaveBeenCalled();
+    expect(mockTrackerStop).not.toHaveBeenCalled();
   });
 
-  it('does not report once the cook has arrived', () => {
-    setJob({ status: 'cook_arrived' });
-    render(<ServiceScreen />);
-    expect(mockTrackerStart).not.toHaveBeenCalled();
-    expect(mockTrackerStop).toHaveBeenCalled();
-  });
-
-  it('does not report while cooking', () => {
-    setJob({
-      status: 'cooking',
-      timer: {
-        serviceStartedAt: '2026-08-21T12:00:00.000Z',
-        expectedEnd: '2026-08-21T13:30:00.000Z',
-        remainingSeconds: 3600,
-        tenMinuteState: 'normal',
-      },
-    });
-    render(<ServiceScreen />);
-    expect(mockTrackerStart).not.toHaveBeenCalled();
-  });
-
-  it('does not report for a cancelled booking', () => {
-    setJob({ status: 'cancelled' });
-    render(<ServiceScreen />);
-    expect(mockTrackerStart).not.toHaveBeenCalled();
-    expect(mockTrackerStop).toHaveBeenCalled();
-  });
-
-  it('stops reporting when the screen unmounts', () => {
+  it('does not stop app-lifetime tracking when details unmounts', () => {
     const view = render(<ServiceScreen />);
-    mockTrackerStop.mockClear();
     view.unmount();
-    expect(mockTrackerStop).toHaveBeenCalled();
+    expect(mockTrackerStop).not.toHaveBeenCalled();
+  });
+
+  it('renders an independent Start Travel action for an assigned job', () => {
+    setJob({ status: 'assigned' });
+    render(<ServiceScreen />);
+    expect(screen.getByTestId('service-assigned')).toBeTruthy();
+    expect(screen.getByTestId('service-start-travel')).toBeTruthy();
   });
 });

@@ -83,6 +83,27 @@ const DEV_FALLBACK_API_BASE_URL = 'https://spoon-api-kalc.onrender.com';
 
 const BUNDLE_ID = `com.spoonhelp.cookapp${BUNDLE_SUFFIX[APP_ENV]}`;
 
+const BUILD_PROVENANCE_RELEASE_SHA =
+  process.env.SPOON_RELEASE_SHA ?? process.env.GIT_COMMIT_SHA ?? 'unknown';
+const BUILD_PROVENANCE_TIMESTAMP = process.env.SPOON_BUILD_TIMESTAMP ?? new Date().toISOString();
+
+function runtimeVersionLabel(value: ExpoConfig['runtimeVersion']): string {
+  if (typeof value === 'string') return value;
+  if (value === undefined) return 'not-configured';
+  return JSON.stringify(value);
+}
+
+function buildProvenance(runtimeVersion: ExpoConfig['runtimeVersion']) {
+  return {
+    releaseSha: BUILD_PROVENANCE_RELEASE_SHA,
+    buildTimestamp: BUILD_PROVENANCE_TIMESTAMP,
+    environment: APP_ENV,
+    apiBaseUrlLabel: process.env.SPOON_API_BASE_URL_LABEL ?? APP_ENV,
+    expoRuntimeVersion: process.env.EXPO_RUNTIME_VERSION ?? runtimeVersionLabel(runtimeVersion),
+    expoUpdateId: process.env.EXPO_UPDATE_ID ?? 'not-applicable',
+  } as const;
+}
+
 function resolveApiBaseUrl(): string | undefined {
   const explicit = process.env.EXPO_PUBLIC_API_BASE_URL;
   if (explicit !== undefined && explicit.length > 0) return explicit;
@@ -171,6 +192,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
         // Hinglish, matching the app's UI language.
         locationWhenInUsePermission:
           'Spoon aapki location use karta hai taaki customer ko aapka pahauchne ka time pata chale.',
+        isAndroidBackgroundLocationEnabled: true,
+        isAndroidForegroundServiceEnabled: true,
       },
     ],
     // Remote delivery additionally needs the Cook App's own `google-services.json` / FCM sender
@@ -181,11 +204,15 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     // Must stay in the list: `android/` is gitignored and regenerated, so this is the only thing
     // that survives `expo prebuild --clean`.
     ['./plugins/withAndroidNdkVersion', { ndkVersion: ANDROID_NDK_VERSION }],
+    './plugins/withStagingSigning',
   ],
   experiments: { typedRoutes: true },
   extra: {
+    ...config.extra,
     appEnv: APP_ENV,
     apiBaseUrl: resolveApiBaseUrl(),
+    buildProvenance: buildProvenance(config.runtimeVersion),
+    androidPackage: BUNDLE_ID,
     // eas.projectId intentionally absent — PENDING_FOUNDER.
   },
 });

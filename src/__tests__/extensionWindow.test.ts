@@ -141,7 +141,7 @@ describe('the cooking projection', () => {
   });
 
   it('carries the remaining window onto the cooking state', () => {
-    const state = projectServiceState(cookingSnapshot(serverTimeAfter(60_000), extended()));
+    const state = projectServiceState(cookingSnapshot(serverTimeAfter(60_000), extended()))!;
     expect(state.kind).toBe('cooking');
     if (state.kind !== 'cooking') throw new Error('expected cooking');
     expect(state.extensionBannerMsRemaining).toBe(4 * 60_000);
@@ -151,7 +151,7 @@ describe('the cooking projection', () => {
     // Losing the banner is not losing the extension: the timer must still run to the extended end.
     const state = projectServiceState(
       cookingSnapshot(serverTimeAfter(EXTENSION_BANNER_MS + 1_000), extended()),
-    );
+    )!;
     if (state.kind !== 'cooking') throw new Error('expected cooking');
     expect(state.extensionBannerMsRemaining).toBe(0);
     expect(state.expectedEndIso).toBe('2026-08-25T08:28:00.000Z');
@@ -161,8 +161,8 @@ describe('the cooking projection', () => {
   it('reconstructs the same window from a rebuilt snapshot', () => {
     // An app restart re-reads the projection and rebuilds the state from scratch. Same server
     // instants in, same window out — nothing is carried across the restart.
-    const first = projectServiceState(cookingSnapshot(serverTimeAfter(90_000), extended()));
-    const afterRestart = projectServiceState(cookingSnapshot(serverTimeAfter(90_000), extended()));
+    const first = projectServiceState(cookingSnapshot(serverTimeAfter(90_000), extended()))!;
+    const afterRestart = projectServiceState(cookingSnapshot(serverTimeAfter(90_000), extended()))!;
     if (first.kind !== 'cooking' || afterRestart.kind !== 'cooking')
       throw new Error('expected cooking');
     expect(afterRestart.extensionBannerMsRemaining).toBe(first.extensionBannerMsRemaining);
@@ -172,7 +172,7 @@ describe('the cooking projection', () => {
     // The deployed cook read model omits `confirmedAt`, so the adapter sets null.
     const state = projectServiceState(
       cookingSnapshot(serverTimeAfter(60_000), extended({ confirmedAtIso: null })),
-    );
+    )!;
     if (state.kind !== 'cooking') throw new Error('expected cooking');
     expect(state.extensionBannerMsRemaining).toBe(0);
   });
@@ -183,11 +183,11 @@ describe('the cooking projection', () => {
       ...cookingSnapshot(serverTimeAfter(60_000), extended()),
       interruption: 'cancelled' as const,
     };
-    expect(projectServiceState(snapshot).kind).toBe('interrupted');
+    expect(projectServiceState(snapshot)?.kind).toBe('interrupted');
   });
 
   it('drops the banner when the End OTP becomes available during the window', () => {
     const snapshot = { ...cookingSnapshot(serverTimeAfter(60_000), extended()), endOtpReady: true };
-    expect(projectServiceState(snapshot).kind).toBe('awaiting_end_otp');
+    expect(projectServiceState(snapshot)?.kind).toBe('awaiting_end_otp');
   });
 });
