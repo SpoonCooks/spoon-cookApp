@@ -92,7 +92,13 @@ export function singleDayOptions(
   return [0, 1].map((index) => {
     const offset = firstOffset + index;
     const dateIso = addDays(todayIso, offset);
-    const booked = leaves.find((record) => covers(record, dateIso));
+    // Only a LIVE request occupies a day. A cancelled or rejected one must free it again —
+    // otherwise a cook whose request was cancelled sees `Cancel ho gyi` in a filled row and has
+    // no way to take that day off, which is the opposite of what cancellation means.
+    const booked = leaves.find((record) => {
+      const status = toLeaveRequestStatus(record.status);
+      return (status === 'approved' || status === 'pending') && covers(record, dateIso);
+    });
     return booked === undefined
       ? {
           dateIso,
@@ -141,6 +147,7 @@ export function breakDurationLabel(start: string, end: string): string {
   const minutes = toMinutes(end) - toMinutes(start);
   if (Number.isNaN(minutes) || minutes <= 0) return '—';
   const hours = minutes / 60;
+  if (hours === 1) return '1 hr';
   return Number.isInteger(hours)
     ? `${hours} hrs`
     : `${(Math.round(hours * 10) / 10).toFixed(1)} hrs`;

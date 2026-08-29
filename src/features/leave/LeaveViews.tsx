@@ -1,4 +1,4 @@
-import { Image, Pressable, StyleSheet, View } from 'react-native';
+import { Image, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { SvgXml } from 'react-native-svg';
@@ -266,7 +266,13 @@ export function ChuttiView({
     <View style={styles.screen} testID="chutti-screen">
       <View style={{ height: insets.top }} />
       <TopNavBar title={title} onHelp={onHelp} testID="chutti-nav" />
-      <View style={[styles.content, { padding: s(PAGE.padding), gap: s(PAGE.gap) }]}>
+      {/* Scrollable like the jobs body: with two booked rows the wrapped status copy makes the
+          column taller than the frame, and a fixed View buried `Aane wali chutti` behind the
+          bottom nav with no way to reach it. */}
+      <ScrollView
+        contentContainerStyle={[styles.content, { padding: s(PAGE.padding), gap: s(PAGE.gap) }]}
+        testID="chutti-scroll"
+      >
         {breakWindow !== null && (
           <Block>
             <BreakCard window={breakWindow} />
@@ -307,7 +313,7 @@ export function ChuttiView({
             <LongLeaveBlock card={longCard} onPress={onOpenLongLeave} />
           </Block>
         )}
-      </View>
+      </ScrollView>
     </View>
   );
 }
@@ -391,9 +397,13 @@ function DayRow({
       accessibilityRole="button"
       accessibilityLabel={`${option.dayLabel} ${option.relativeLabel}`}
       accessibilityState={{ disabled: booked, selected: booked }}
-      disabled={booked}
       android_ripple={null}
-      onPress={() => onPress?.(option.dateIso)}
+      // Guarded rather than `disabled`: on this device (vivo I2403, Fabric, release) a disabled
+      // Pressable laid out its children but painted none of them — the booked row drew as a
+      // blank yellow slab. The guard keeps the row inert without the disabled paint path.
+      onPress={() => {
+        if (!booked) onPress?.(option.dateIso);
+      }}
       style={[
         styles.dayRow,
         { borderRadius: s(DAY_ROW.radius), gap: s(DAY_ROW.gap) },
@@ -845,7 +855,9 @@ export function ShortLeaveSheetView({
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: color.white },
-  content: { flex: 1, alignItems: 'flex-start', backgroundColor: color.white },
+  // `flexGrow` rather than `flex`: as a ScrollView contentContainerStyle, `flex: 1` pins the
+  // content to exactly the viewport height and scrolling never engages.
+  content: { flexGrow: 1, alignItems: 'flex-start', backgroundColor: color.white },
   block: { alignItems: 'flex-start' },
   fullWidth: { width: '100%' },
   stretch: { alignSelf: 'stretch' },
@@ -867,7 +879,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   breakTimeCell: { backgroundColor: color.white, borderColor: color.lime600 },
-  dayRow: { flexDirection: 'row', alignItems: 'center', alignSelf: 'stretch', overflow: 'hidden' },
+  // No `overflow: 'hidden'`: nothing in the row overflows, and it was part of the combination
+  // under which the booked row's children went unpainted on device.
+  dayRow: { flexDirection: 'row', alignItems: 'center', alignSelf: 'stretch' },
   chipHost: { alignSelf: 'stretch', flexDirection: 'row', alignItems: 'center' },
   chip: {
     alignSelf: 'stretch',
