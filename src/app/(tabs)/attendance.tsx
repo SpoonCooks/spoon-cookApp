@@ -165,19 +165,26 @@ export default function AttendanceScreen(): React.ReactElement {
   const status = today.attendance?.status ?? null;
   const shift = today.shift;
   const name = profile.data.cook.name;
+  /** `707:1534` — the avatar in the top nav is the only route to the profile card. */
+  const openProfile = (): void => router.push('/profile');
   const shiftWindow = shiftWindowLabel(shift);
 
   if (status === 'present') {
     if (shift !== null && isShiftFinished(profile.data.serverTime, shift.endLocalTime)) {
-      return <ShiftEndedView name={name} shiftWindow={shiftWindow} />;
+      return <ShiftEndedView name={name} shiftWindow={shiftWindow} onProfile={openProfile} />;
     }
     return (
-      <PresentView name={name} shiftWindow={shiftWindow} onSeeWork={() => router.push('/jobs')} />
+      <PresentView
+        name={name}
+        shiftWindow={shiftWindow}
+        onSeeWork={() => router.push('/jobs')}
+        onProfile={openProfile}
+      />
     );
   }
 
   if (status === 'absent' || status === 'leave') {
-    return <AbsentView name={name} shiftWindow={shiftWindow} />;
+    return <AbsentView name={name} shiftWindow={shiftWindow} onProfile={openProfile} />;
   }
 
   return (
@@ -185,6 +192,7 @@ export default function AttendanceScreen(): React.ReactElement {
       <DailyLogInView
         name={name}
         shiftWindow={shiftWindow}
+        onProfile={openProfile}
         // Rendered only once the backend publishes a real opening instant. See the module note.
         markByTime={
           today.checkInOpensAt === null ? null : formatCheckInWindow(today.checkInOpensAt)

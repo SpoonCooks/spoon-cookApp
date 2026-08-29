@@ -366,15 +366,15 @@ export function RuleSheetView({
   return (
     /*
      * The scrim runs edge to edge — including behind the status band, which is what the design
-     * draws — but the SHEET stops above the device's navigation bar, exactly as the `leave`
-     * sheets do. Without the bottom inset the sheet sat flush to the window edge, its last rows
-     * under the system bar, and since these five frames are compared by their LAST row that
-     * displaced every element in all five.
+     * draws — and the sheet keeps its exact design height above the device's navigation bar, so
+     * every row lands on the row the frame puts it on. These five frames are compared by their
+     * LAST row, so a sheet that grew by the inset would carry every element up with it.
+     *
+     * What the inset changes is the COLOUR under the sheet, not the geometry: the strip below is
+     * painted white by the sibling below rather than left as dark scrim, which is what read on
+     * device as the `Samajh gyi` button being cut off by a black band.
      */
-    <View
-      style={[styles.scrim, { paddingBottom: insets.bottom }]}
-      testID={`rule-sheet-${sheet.key}`}
-    >
+    <View style={styles.scrim} testID={`rule-sheet-${sheet.key}`}>
       <View
         style={[
           styles.sheet,
@@ -556,6 +556,9 @@ export function RuleSheetView({
           </View>
         </View>
       </View>
+      {/* The safe-area strip under the sheet, in the sheet's own white. The sheet keeps its
+          design height; only this band changes, from dark scrim to the surface it sits on. */}
+      <View style={{ height: insets.bottom, backgroundColor: color.white }} />
     </View>
   );
 }

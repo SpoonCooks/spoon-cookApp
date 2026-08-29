@@ -680,18 +680,16 @@ export function LongLeaveSheetView({
     <View style={styles.scrim} testID="long-leave-sheet">
       <View style={{ height: insets.top }} />
       <View style={styles.scrimFill} />
-      {/* The sheet's WHITE runs under the gesture bar: the inset is added to its height and to
-          its bottom padding together, so every element keeps its exact position relative to the
-          safe-area edge while the surface reaches the display edge. Insetting the dark scrim
-          instead left a black band under the sheet that read as the sheet being cut off. */}
+      {/* The sheet keeps its exact design height and padding, so every row lands where the
+          frame puts it — these sheets are compared by their LAST row, and a sheet grown by the
+          inset carries every element up with it. Only the strip BELOW changes, from dark scrim
+          to the sheet's own white (see the sibling after this view). */}
       <View
         style={[
           styles.sheet,
           {
-            height: s(SHEET.longHeight) + insets.bottom,
-            paddingTop: s(SHEET.padding),
-            paddingHorizontal: s(SHEET.padding),
-            paddingBottom: s(SHEET.padding) + insets.bottom,
+            height: s(SHEET.longHeight),
+            padding: s(SHEET.padding),
             gap: s(SHEET.gap),
             borderTopLeftRadius: s(SHEET.radius),
             borderTopRightRadius: s(SHEET.radius),
@@ -750,6 +748,8 @@ export function LongLeaveSheetView({
           testID="leave-range-confirm"
         />
       </View>
+      {/* The safe-area strip under the sheet, in the sheet's own white. */}
+      <View style={{ height: insets.bottom, backgroundColor: color.white }} />
     </View>
   );
 }
@@ -783,17 +783,15 @@ export function ShortLeaveSheetView({
     <View style={styles.scrim} testID="short-leave-sheet">
       <View style={{ height: insets.top }} />
       <View style={styles.scrimFill} />
-      {/* Same construction as the long sheet: the white surface absorbs the bottom inset so it
-          reaches the display edge, instead of a black scrim band under a cut-off-looking sheet. */}
+      {/* Same construction as the long sheet: design height untouched, and the safe-area strip
+          below painted white rather than left as scrim. */}
       <View
         style={[
           styles.sheet,
           styles.sheetCentred,
           {
-            height: s(SHEET.shortHeight) + insets.bottom,
-            paddingTop: s(SHEET.padding),
-            paddingHorizontal: s(SHEET.padding),
-            paddingBottom: s(SHEET.padding) + insets.bottom,
+            height: s(SHEET.shortHeight),
+            padding: s(SHEET.padding),
             gap: s(SHEET.gap),
             borderTopLeftRadius: s(SHEET.radius),
             borderTopRightRadius: s(SHEET.radius),
@@ -859,6 +857,8 @@ export function ShortLeaveSheetView({
           testID="leave-single-confirm"
         />
       </View>
+      {/* The safe-area strip under the sheet, in the sheet's own white. */}
+      <View style={{ height: insets.bottom, backgroundColor: color.white }} />
     </View>
   );
 }

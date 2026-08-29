@@ -279,12 +279,19 @@ export function buildRuleSheets(
     return marks.join(' · ');
   };
 
-  const noShowAt = (occurrence: number): number | null =>
-    policy === null ||
-    policy.noShowPenaltyStepPaise === null ||
-    policy.noShowPenaltyStepPaise === undefined
-      ? null
-      : policy.noShowPenaltyPaise + (occurrence - 1) * policy.noShowPenaltyStepPaise;
+  /**
+   * What the ledger charges for the `occurrence`-th no-show of a cycle.
+   *
+   * A publication carrying no step is one whose ledger does not escalate — it charges the same
+   * scalar every time — so every row states that flat amount. Rendering `—` there would claim
+   * the figure is unknown when the policy publishes it plainly, which is the opposite of what
+   * the dash is for.
+   */
+  const noShowAt = (occurrence: number): number | null => {
+    if (policy === null) return null;
+    const step = policy.noShowPenaltyStepPaise ?? 0;
+    return policy.noShowPenaltyPaise + (occurrence - 1) * step;
+  };
 
   return {
     'rating-tiers': {
@@ -370,21 +377,29 @@ export function buildRuleSheets(
           ['3- teesra', money(noShowAt(3) === null ? null : -(noShowAt(3) as number))],
         ],
         /* `707:3871` — the escalation, stated with the published step. */
-        footnote: [
-          { text: 'Har ' },
-          { text: '1 NO SHOW', strong: true },
-          { text: ' ke baad penalty ' },
-          {
-            text: money(
-              policy?.noShowPenaltyStepPaise === null ||
-                policy?.noShowPenaltyStepPaise === undefined
-                ? null
-                : policy.noShowPenaltyStepPaise,
-            ),
-            strong: true,
-          },
-          { text: ' se badh jaegi' },
-        ],
+        /*
+         * The escalating footnote states the step; a non-escalating publication states the flat
+         * amount it actually charges instead, in the same five-segment shape so the run wraps
+         * where the frame wraps it.
+         */
+        footnote:
+          policy !== null &&
+          policy.noShowPenaltyStepPaise !== null &&
+          policy.noShowPenaltyStepPaise !== undefined
+            ? [
+                { text: 'Har ' },
+                { text: '1 NO SHOW', strong: true },
+                { text: ' ke baad penalty ' },
+                { text: money(policy.noShowPenaltyStepPaise), strong: true },
+                { text: ' se badh jaegi' },
+              ]
+            : [
+                { text: 'Har ' },
+                { text: '1 NO SHOW', strong: true },
+                { text: ' ka ' },
+                { text: money(policy === null ? null : -policy.noShowPenaltyPaise), strong: true },
+                { text: ' nuksaan hai' },
+              ],
       },
     },
 

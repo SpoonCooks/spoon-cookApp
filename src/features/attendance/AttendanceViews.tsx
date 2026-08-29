@@ -422,12 +422,14 @@ function Screen({
   name,
   shiftWindow,
   onHelp,
+  onProfile,
   children,
   testID,
 }: {
   name: string;
   shiftWindow: string | null;
   onHelp?: (() => void) | undefined;
+  onProfile?: (() => void) | undefined;
   children: React.ReactNode;
   testID: string;
 }): React.ReactElement {
@@ -437,7 +439,7 @@ function Screen({
   return (
     <View style={styles.screen} testID={testID}>
       <View style={{ height: insets.top }} />
-      <TopNav onHelp={onHelp} />
+      <TopNav onHelp={onHelp} onProfile={onProfile} />
       <View style={[styles.content, { padding: s(PAGE.padding), gap: s(PAGE.gap) }]}>
         <Greeting name={name} shiftWindow={shiftWindow} />
         {children}
@@ -455,6 +457,7 @@ export interface DailyLogInViewProps extends GreetingProps {
   readonly onMarkPresent?: (() => void) | undefined;
   readonly isSubmitting?: boolean;
   readonly onHelp?: (() => void) | undefined;
+  readonly onProfile?: (() => void) | undefined;
   /**
    * Whether the SERVER says this cook may check in today.
    *
@@ -478,12 +481,19 @@ export function DailyLogInView({
   onMarkPresent,
   isSubmitting = false,
   onHelp,
+  onProfile,
   canMark = true,
 }: DailyLogInViewProps): React.ReactElement {
   const { s } = useDesignScale();
 
   return (
-    <Screen name={name} shiftWindow={shiftWindow} onHelp={onHelp} testID="attendance-daily">
+    <Screen
+      name={name}
+      shiftWindow={shiftWindow}
+      onHelp={onHelp}
+      onProfile={onProfile}
+      testID="attendance-daily"
+    >
       <Block>
         <Card testID="attendance-card">
           <Headline testID="attendance-headline">aaj aap kaam pai aaye hai?</Headline>
@@ -563,6 +573,7 @@ export function DailyLogInView({
 
 export interface VerdictViewProps extends GreetingProps {
   readonly onHelp?: (() => void) | undefined;
+  readonly onProfile?: (() => void) | undefined;
 }
 
 export interface PresentViewProps extends VerdictViewProps {
@@ -575,11 +586,18 @@ export function PresentView({
   shiftWindow,
   onSeeWork,
   onHelp,
+  onProfile,
 }: PresentViewProps): React.ReactElement {
   const { s } = useDesignScale();
 
   return (
-    <Screen name={name} shiftWindow={shiftWindow} onHelp={onHelp} testID="attendance-present">
+    <Screen
+      name={name}
+      shiftWindow={shiftWindow}
+      onHelp={onHelp}
+      onProfile={onProfile}
+      testID="attendance-present"
+    >
       <Block>
         <Card testID="attendance-card">
           <Headline testID="attendance-headline">aaj aap kaam pai aaye hai.</Headline>
@@ -612,11 +630,22 @@ export function PresentView({
 }
 
 /** `575:2138` — 3c, absent. Same card shell, red disc, no call to action. */
-export function AbsentView({ name, shiftWindow, onHelp }: VerdictViewProps): React.ReactElement {
+export function AbsentView({
+  name,
+  shiftWindow,
+  onHelp,
+  onProfile,
+}: VerdictViewProps): React.ReactElement {
   const { s } = useDesignScale();
 
   return (
-    <Screen name={name} shiftWindow={shiftWindow} onHelp={onHelp} testID="attendance-absent">
+    <Screen
+      name={name}
+      shiftWindow={shiftWindow}
+      onHelp={onHelp}
+      onProfile={onProfile}
+      testID="attendance-absent"
+    >
       <Block>
         <Card testID="attendance-card">
           <Headline testID="attendance-headline">aaj aap kaam pai NAHI aaye hai.</Headline>
@@ -650,11 +679,18 @@ export function ShiftEndedView({
   name,
   shiftWindow,
   onHelp,
+  onProfile,
 }: VerdictViewProps): React.ReactElement {
   const { s } = useDesignScale();
 
   return (
-    <Screen name={name} shiftWindow={shiftWindow} onHelp={onHelp} testID="attendance-shift-ended">
+    <Screen
+      name={name}
+      shiftWindow={shiftWindow}
+      onHelp={onHelp}
+      onProfile={onProfile}
+      testID="attendance-shift-ended"
+    >
       <Block gap={RESTING.gap}>
         <Image
           source={cookResting}

@@ -45,24 +45,32 @@ import type { BottomNavTab } from '@ui';
  * The earnings policy the GALLERY renders its rule sheets against.
  *
  * A development fixture, and only reachable from `/dev` — production reads the real projection.
- * These are the values the deployed backend publishes today, so a gallery capture stays
- * comparable with the V14 reference renders; if the published policy changes, production follows
- * it and this does not, which is the correct asymmetry for a fixture.
+ * These are the founder tariff the backend publishes (`earnings-policy-v1`, Info sheets
+ * `707:3796`), so a gallery capture stays comparable with the reference renders; if the published
+ * policy changes again, production follows it and this does not, which is the correct asymmetry
+ * for a fixture.
  */
 const GALLERY_EARNINGS_POLICY = {
-  version: 'earnings-v1',
+  version: 'earnings-policy-v1',
   cycleLengthDays: 28,
   presentDayBasePaise: 100_000,
   fivePlusBonusPaise: 10_000,
-  longHoursThresholdMinutes: 300,
+  longHoursThresholdMinutes: 420,
   longHoursRatePerHourPaise: 15_000,
   fullCycleBonusPaise: 200_000,
   twentySevenDayBonusPaise: 100_000,
   paidLeaveRefundPaise: 100_000,
-  noShowPenaltyPaise: 25_000,
-  lateGraceMinutes: 5,
+  noShowPenaltyPaise: 30_000,
+  noShowPenaltyStepPaise: 10_000,
+  lateGraceMinutes: 0,
   latePenaltyPerMinutePaise: 1_000,
-} as const;
+  presentDayRatingTiers: [
+    { minRating: 4.8, basePaise: 117_500 },
+    { minRating: 4.5, basePaise: 107_500 },
+    { minRating: 4.2, basePaise: 92_500 },
+    { minRating: 4.0, basePaise: 72_500 },
+  ],
+};
 
 const GALLERY_SHEETS = buildRuleSheets(GALLERY_EARNINGS_POLICY);
 

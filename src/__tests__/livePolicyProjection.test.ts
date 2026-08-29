@@ -71,8 +71,10 @@ describe('the live server payload drives the sheets', () => {
     const amounts = body.rows.map((row) => row[1]);
     const step = policy.noShowPenaltyStepPaise;
     if (step === null || step === undefined) {
-      // A pre-revision publication carries no step; the sheet must not imply a flat charge.
-      expect(amounts).toEqual(['—', '—', '—']);
+      // A publication carrying no step is one whose ledger does not escalate: it charges the
+      // same scalar every time, and the sheet states that rather than a dash. The dash is for a
+      // figure the policy does not publish, and this one does.
+      expect(amounts).toEqual(Array(3).fill(rupees(-policy.noShowPenaltyPaise)));
     } else {
       expect(amounts).toEqual(
         [0, 1, 2].map((prior) => rupees(-(policy.noShowPenaltyPaise + prior * step))),

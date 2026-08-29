@@ -57,16 +57,16 @@
     "navBandPx": 0
   },
   "antialiasingTolerance": 12,
-  "differingPixelPercent": 11.2987,
-  "rawDifferingPixelPercent": 27.7254,
+  "differingPixelPercent": 11.3686,
+  "rawDifferingPixelPercent": 27.7856,
   "verdictTolerance": 40,
-  "differingPixelPercentAtVerdictTolerance": 8.2768,
-  "meanChannelDelta": 7.9138,
+  "differingPixelPercentAtVerdictTolerance": 8.2782,
+  "meanChannelDelta": 7.9137,
   "maxChannelDelta": 255,
   "worstRows": [
     {
       "row": 107,
-      "percent": 92.7
+      "percent": 92.16
     },
     {
       "row": 242,
@@ -94,19 +94,13 @@
     },
     {
       "row": 660,
-      "percent": 85.68
+      "percent": 85.41
     }
   ],
   "displacementProbe": {
     "bestVerticalOffsetPx": -1,
-    "percentAtBestOffset": 10.3958,
+    "percentAtBestOffset": 10.4609,
     "note": "0 means the render is on its design row and the residual is rasterisation. A non-zero offset is a real layout error even when the headline percentage is low."
   },
-  "verdict": "PENDING_REVIEW",
-  "topAlignment": {
-    "referenceFirstInkUnits": -0.2,
-    "renderFirstInkUnits": 0.0,
-    "deltaUnits": 0.2,
-    "note": "Design units between each side's first painted row and the first row the application owns. Read WITH displacementProbe, never instead of it: the probe optimises over the whole frame and drifts to a neighbouring element on a repetitive layout, so a non-zero probe offset with a delta near zero means the screen is placed correctly and differs in its content."
-  }
+  "verdict": "PENDING_REVIEW"
 }
