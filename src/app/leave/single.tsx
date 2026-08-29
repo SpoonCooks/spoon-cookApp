@@ -13,6 +13,7 @@ import {
 import { ShortLeaveSheetView } from '@features/leave/LeaveViews';
 import { addDays, formatDayLabel, relativeDayLabel } from '@features/leave/leaveModel';
 import { ErrorState, LoadingState } from '@ui';
+import { openSupportWhatsApp } from '@core/support/whatsapp';
 
 /**
  * `1 din ki Chutti` — the V13 confirmation sheet (`592:888`).
@@ -89,6 +90,7 @@ export default function SingleDayLeaveScreen(): React.ReactElement {
       canConfirm={validation.ok && !submitted && !requestLeave.isPending}
       onConfirm={submit}
       onBack={() => router.back()}
+      onHelp={() => void openSupportWhatsApp(profile.data.cook.name)}
       notice={notice}
     />
   );

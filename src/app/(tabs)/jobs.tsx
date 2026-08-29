@@ -12,6 +12,7 @@ import { useSession } from '@core/session/store';
 import { formatLocalTime } from '@features/leave/leaveModel';
 import { JobsView, type BreakWindowModel } from '@features/jobs/JobViews';
 import { color, EmptyState, ErrorState, LoadingState, spacing, Text } from '@ui';
+import { openSupportWhatsApp } from '@core/support/whatsapp';
 
 /**
  * KAAM — the V14 `job flow` section (`592:1070`).
@@ -145,6 +146,7 @@ export default function JobsScreen(): React.ReactElement {
 
   return (
     <JobsView
+      onHelp={() => void openSupportWhatsApp(profile.data?.cook.name ?? null)}
       dateLabel={formatServerDate(jobs.data?.serverTime ?? profile.data?.serverTime ?? null)}
       leadJob={leadJob}
       jobs={rest}

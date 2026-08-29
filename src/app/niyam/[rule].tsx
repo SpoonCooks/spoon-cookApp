@@ -3,6 +3,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useCookProfile, useEarningsPolicy } from '@core/api/queries';
 import { RuleSheetView } from '@features/info/InfoViews';
 import { buildRuleSheets, ruleKeys, type RuleKey } from '@features/info/rules';
+import { openSupportWhatsApp } from '@core/support/whatsapp';
 
 /**
  * One V14 rule sheet, presented over the Niyam screen.
@@ -63,6 +64,7 @@ export default function RuleSheetScreen(): React.ReactElement | null {
       standingValue={standingValue}
       onAcknowledge={() => router.back()}
       onBack={() => router.back()}
+      onHelp={() => void openSupportWhatsApp()}
     />
   );
 }

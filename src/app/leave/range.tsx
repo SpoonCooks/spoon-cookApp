@@ -14,6 +14,7 @@ import {
 import { LongLeaveSheetView } from '@features/leave/LeaveViews';
 import { monthLabel } from '@features/leave/leaveModel';
 import { ErrorState, LoadingState } from '@ui';
+import { openSupportWhatsApp } from '@core/support/whatsapp';
 
 /**
  * `Lambi Chutti` — the V13 month-grid sheet (`592:563` empty, `592:639` a range chosen).
@@ -138,6 +139,7 @@ export default function RangeLeaveScreen(): React.ReactElement {
       onPickDay={onPickDay}
       onConfirm={submit}
       onBack={() => router.back()}
+      onHelp={() => void openSupportWhatsApp(profile.data.cook.name)}
       notice={notice}
     />
   );

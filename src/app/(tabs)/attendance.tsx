@@ -13,6 +13,7 @@ import {
   ShiftEndedView,
 } from '@features/attendance/AttendanceViews';
 import { color, ErrorState, LoadingState, spacing, Text } from '@ui';
+import { openSupportWhatsApp } from '@core/support/whatsapp';
 
 /**
  * Attendance — the V13 `log in flow` section (`592:1068`).
@@ -167,11 +168,20 @@ export default function AttendanceScreen(): React.ReactElement {
   const name = profile.data.cook.name;
   /** `707:1534` — the avatar in the top nav is the only route to the profile card. */
   const openProfile = (): void => router.push('/profile');
+  /** The Help pill opens WhatsApp at Spoon support with a greeting already written. */
+  const openHelp = (): void => void openSupportWhatsApp(name);
   const shiftWindow = shiftWindowLabel(shift);
 
   if (status === 'present') {
     if (shift !== null && isShiftFinished(profile.data.serverTime, shift.endLocalTime)) {
-      return <ShiftEndedView name={name} shiftWindow={shiftWindow} onProfile={openProfile} />;
+      return (
+        <ShiftEndedView
+          name={name}
+          shiftWindow={shiftWindow}
+          onProfile={openProfile}
+          onHelp={openHelp}
+        />
+      );
     }
     return (
       <PresentView
@@ -179,12 +189,15 @@ export default function AttendanceScreen(): React.ReactElement {
         shiftWindow={shiftWindow}
         onSeeWork={() => router.push('/jobs')}
         onProfile={openProfile}
+        onHelp={openHelp}
       />
     );
   }
 
   if (status === 'absent' || status === 'leave') {
-    return <AbsentView name={name} shiftWindow={shiftWindow} onProfile={openProfile} />;
+    return (
+      <AbsentView name={name} shiftWindow={shiftWindow} onProfile={openProfile} onHelp={openHelp} />
+    );
   }
 
   return (
@@ -193,6 +206,7 @@ export default function AttendanceScreen(): React.ReactElement {
         name={name}
         shiftWindow={shiftWindow}
         onProfile={openProfile}
+        onHelp={openHelp}
         // Rendered only once the backend publishes a real opening instant. See the module note.
         markByTime={
           today.checkInOpensAt === null ? null : formatCheckInWindow(today.checkInOpensAt)

@@ -1,6 +1,7 @@
 import { router } from 'expo-router';
 
 import { NiyamIndexView } from '@features/info/InfoViews';
+import { openSupportWhatsApp } from '@core/support/whatsapp';
 
 /**
  * NIYAM — the V14 `Info` destination (`597:1131`).
@@ -15,6 +16,7 @@ import { NiyamIndexView } from '@features/info/InfoViews';
 export default function NiyamScreen(): React.ReactElement {
   return (
     <NiyamIndexView
+      onHelp={() => void openSupportWhatsApp()}
       onOpenRule={(rule) => router.push({ pathname: '/niyam/[rule]', params: { rule } })}
     />
   );

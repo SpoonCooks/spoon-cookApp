@@ -12,6 +12,7 @@ import {
   type LeaveRecord,
 } from '@features/leave/leaveModel';
 import { ErrorState, LoadingState } from '@ui';
+import { openSupportWhatsApp } from '@core/support/whatsapp';
 
 /**
  * CHUTTI — the V13 `leave` destination (`592:488` / `592:489` / `592:832` / `592:1008`).
@@ -79,6 +80,7 @@ export default function ChuttiScreen(): React.ReactElement {
   return (
     <ChuttiView
       title="CHUTTI"
+      onHelp={() => void openSupportWhatsApp(profile.data.cook.name)}
       breakWindow={breakWindow}
       singleDayLeaves={singleDayOptions(todayIso, presentToday, records)}
       groupedLongCard={null}
