@@ -99,9 +99,16 @@ const TEST_POLICY = {
   fullCycleBonusPaise: 200_000,
   twentySevenDayBonusPaise: 100_000,
   paidLeaveRefundPaise: 100_000,
-  noShowPenaltyPaise: 25_000,
-  lateGraceMinutes: 5,
+  noShowPenaltyPaise: 30_000,
+  noShowPenaltyStepPaise: 10_000,
+  lateGraceMinutes: 0,
   latePenaltyPerMinutePaise: 1_000,
+  presentDayRatingTiers: [
+    { minRating: 4.8, basePaise: 117_500 },
+    { minRating: 4.5, basePaise: 107_500 },
+    { minRating: 4.2, basePaise: 92_500 },
+    { minRating: 4.0, basePaise: 72_500 },
+  ],
 };
 const ruleSheets = buildRuleSheets(TEST_POLICY);
 
@@ -164,8 +171,8 @@ describe('Info rule sheets — five frames, five sets of overrides', () => {
     expect(strong('bonus-over-7')).toEqual(['1 extra ghante', '₹150 bonus']);
     expect(strong('bonus-5-plus')).toEqual(['5+', '₹100 bonus ']);
     expect(strong('late')).toEqual(['har minute,', '₹10']);
-    // The ledger charges one flat amount; the old footnote promised a ₹100 escalation.
-    expect(strong('no-show')).toEqual(['1 NO SHOW', '-₹250']);
+    // The published escalation: each further no-show in the cycle adds the published step.
+    expect(strong('no-show')).toEqual(['1 NO SHOW', '₹100']);
   });
 });
 

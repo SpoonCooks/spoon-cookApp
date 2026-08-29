@@ -240,23 +240,51 @@ export function buildRuleSheets(
   const bonus = (paise: number | null): string => (paise === null ? UNAVAILABLE : credit(paise));
 
   /**
-   * `605:2094` — four lateness marks, anchored on the GRACE rather than on fixed minutes.
-   *
-   * The first row is the grace itself, so the sheet opens by saying what is free. The design's
-   * own marks were 3/5/10/15, which under a five-minute grace would have printed two rows of zero
-   * and said nothing about why.
+   * `707:3926` — four lateness marks past the grace. With the published zero grace they are the
+   * design's own 3/5/10/15; under a future non-zero grace every mark shifts with it, so no row
+   * can ever print a zero the ledger would not charge.
    */
   const lateMarks =
-    policy === null ? [0, 0, 0, 0] : [0, 5, 10, 15].map((step) => policy.lateGraceMinutes + step);
+    policy === null ? [0, 0, 0, 0] : [3, 5, 10, 15].map((step) => policy.lateGraceMinutes + step);
 
-  /** `603:1924` — three day-lengths above the published threshold, one hour apart. */
+  /** `707:3985` — three day-lengths above the published threshold, one hour apart. */
   const longHourMarks =
     policy === null
       ? [0, 0, 0]
       : [1, 2, 3].map((hours) => policy.longHoursThresholdMinutes + hours * 60);
 
-  /** `605:2027` — the design's own three counts. A COUNT is not a policy value. */
+  /** `707:4052` — the design's own three counts. A COUNT is not a policy value. */
   const fivePlusCounts = [3, 6, 12];
+
+  /**
+   * The `Mahina` column's ILLUSTRATIVE month: thirty days for per-day figures, and four of the
+   * seven-day cycles the Kamai tabs call `Cycle` for per-cycle ones (`707:3797` prints
+   * ₹1,175 × 30 = ₹35,250; `707:4052` prints its cycle column × 4). Presentation arithmetic on
+   * derived figures — the design's own reading of a month — never a policy value.
+   */
+  const MONTH_DAYS = 30;
+  const WEEKS_PER_MONTH = 4;
+
+  /** `707:3797` — the rating bands, derived from the published tiers. */
+  const ratingTiers = policy?.presentDayRatingTiers ?? null;
+  const TIER_FILLS = [TIER_1, TIER_2, TIER_3, TIER_4];
+
+  /** `4.8 · 4.9 · 5` from a band's inclusive bounds, in tenths. */
+  const bandLabel = (minRating: number, nextHigherMin: number | null): string => {
+    const top = nextHigherMin === null ? 5 : Math.round(nextHigherMin * 10 - 1) / 10;
+    const marks: string[] = [];
+    for (let tenth = Math.round(minRating * 10); tenth <= Math.round(top * 10); tenth += 1) {
+      marks.push(String(tenth / 10));
+    }
+    return marks.join(' · ');
+  };
+
+  const noShowAt = (occurrence: number): number | null =>
+    policy === null ||
+    policy.noShowPenaltyStepPaise === null ||
+    policy.noShowPenaltyStepPaise === undefined
+      ? null
+      : policy.noShowPenaltyPaise + (occurrence - 1) * policy.noShowPenaltyStepPaise;
 
   return {
     'rating-tiers': {
@@ -274,25 +302,39 @@ export function buildRuleSheets(
         kind: 'matrix',
         header: ['Rating', 'Din', 'Mahina'],
         /*
-         * The rating BANDS are retained because they are not money — they are the tiers the sheet
-         * is about, and the block threshold below them is an eligibility rule.
-         *
-         * The two money columns are not. The backend pays `presentDayBasePaise` for a present day
-         * UNCONDITIONALLY — `financial-service` appends the present-day event with no rating input
-         * anywhere — so a rate that varies by rating band does not exist to be derived. The old
-         * table asserted ₹1,175 / ₹1,075 / ₹925 / ₹725 against a flat ₹1,000, and that is exactly
-         * the class of invented figure this file no longer carries.
-         *
-         * Recorded as a blocked contract gap: either the policy grows rating-tiered day rates, or
-         * this sheet stops promising them.
+         * Bands AND money derived from the published `presentDayRatingTiers` — the 2026-08-29
+         * tariff the ledger's `present_day` event is paid from. The blocked gap this table used
+         * to record is closed: the policy grew rating-tiered day rates and this derivation
+         * follows them. Against a pre-revision publication the tiers are absent and the money
+         * columns say `—`, exactly as they did while the gap was open.
          */
-        rows: [
-          { fill: TIER_1, cells: ['4.8 · 4.9 · 5', UNAVAILABLE, UNAVAILABLE] },
-          { fill: TIER_2, cells: ['4.5 · 4.6 · 4.7', UNAVAILABLE, UNAVAILABLE] },
-          { fill: TIER_3, cells: ['4.2 · 4.3 · 4.4', UNAVAILABLE, UNAVAILABLE] },
-          { fill: TIER_4, cells: ['4 · 4.1', UNAVAILABLE, UNAVAILABLE] },
-          { fill: TIER_BLOCKED, cells: ['4 se neeche', 'ID block', 'ID block'] },
-        ],
+        rows:
+          ratingTiers === null
+            ? [
+                { fill: TIER_1, cells: ['4.8 · 4.9 · 5', UNAVAILABLE, UNAVAILABLE] },
+                { fill: TIER_2, cells: ['4.5 · 4.6 · 4.7', UNAVAILABLE, UNAVAILABLE] },
+                { fill: TIER_3, cells: ['4.2 · 4.3 · 4.4', UNAVAILABLE, UNAVAILABLE] },
+                { fill: TIER_4, cells: ['4 · 4.1', UNAVAILABLE, UNAVAILABLE] },
+                { fill: TIER_BLOCKED, cells: ['4 se neeche', 'ID block', 'ID block'] },
+              ]
+            : [
+                ...ratingTiers.map((tier, index) => ({
+                  fill: TIER_FILLS[index] ?? TIER_4,
+                  cells: [
+                    bandLabel(tier.minRating, ratingTiers[index - 1]?.minRating ?? null),
+                    money(tier.basePaise),
+                    money(tier.basePaise * MONTH_DAYS),
+                  ],
+                })),
+                {
+                  fill: TIER_BLOCKED,
+                  cells: [
+                    `${String(ratingTiers[ratingTiers.length - 1]?.minRating ?? 4)} se neeche`,
+                    'ID block',
+                    'ID block',
+                  ],
+                },
+              ],
       },
     },
 
@@ -317,26 +359,31 @@ export function buildRuleSheets(
         footnoteTracking: 0.18,
         accent: PENALTY_ACCENT,
         /*
-         * Three rows, one per occurrence, all the same amount — because `noShowPenaltyPaise` is a
-         * single scalar and the ledger appends the same deduction every time. The old table read
-         * -₹300 / -₹400 / -₹500, an escalation with nothing behind it.
+         * One row per occurrence, ESCALATING — the ledger now charges the published base for
+         * the cycle's first no-show and adds the published step for each further one
+         * (`countCycleNoShowPenalties` keys the occurrence). Against a pre-revision publication
+         * with no step, every money cell says `—` rather than implying a flat charge.
          */
         rows: [
-          ['1- pehla', money(policy === null ? null : -policy.noShowPenaltyPaise)],
-          ['2- dusra', money(policy === null ? null : -policy.noShowPenaltyPaise)],
-          ['3- teesra', money(policy === null ? null : -policy.noShowPenaltyPaise)],
+          ['1- pehla', money(noShowAt(1) === null ? null : -(noShowAt(1) as number))],
+          ['2- dusra', money(noShowAt(2) === null ? null : -(noShowAt(2) as number))],
+          ['3- teesra', money(noShowAt(3) === null ? null : -(noShowAt(3) as number))],
         ],
-        /*
-         * The old footnote promised the penalty rises ₹100 after each no-show. It does not. This
-         * one states the flat amount instead, in the same five-segment shape so the run wraps the
-         * way the frame draws it.
-         */
+        /* `707:3871` — the escalation, stated with the published step. */
         footnote: [
           { text: 'Har ' },
           { text: '1 NO SHOW', strong: true },
-          { text: ' ka ' },
-          { text: money(policy === null ? null : -policy.noShowPenaltyPaise), strong: true },
-          { text: ' nuksaan hai' },
+          { text: ' ke baad penalty ' },
+          {
+            text: money(
+              policy?.noShowPenaltyStepPaise === null ||
+                policy?.noShowPenaltyStepPaise === undefined
+                ? null
+                : policy.noShowPenaltyStepPaise,
+            ),
+            strong: true,
+          },
+          { text: ' se badh jaegi' },
         ],
       },
     },
@@ -367,17 +414,14 @@ export function buildRuleSheets(
         cellFontSize: 18,
         footnoteTracking: 0,
         accent: BONUS_ACCENT,
-        /*
-         * `Mahina` is the day's bonus over one earnings CYCLE, because `cycleLengthDays` is the
-         * only pay period the policy publishes. A calendar month is not a backend concept, and
-         * inventing a conversion here is the thing this file exists to stop doing.
-         */
+        /* `Mahina` is the day's bonus over the illustrative thirty-day month the frame prints
+         * (`707:3985`: +₹150 × 30 = +₹4,500). See `MONTH_DAYS`. */
         rows: longHourMarks.map((minutes) => {
           const perDay = policy === null ? null : longHoursBonusPaise(minutes, policy);
           return [
             policy === null ? UNAVAILABLE : `${minutes / 60} hrs`,
             bonus(perDay),
-            bonus(perDay === null || policy === null ? null : perDay * policy.cycleLengthDays),
+            bonus(perDay === null ? null : perDay * MONTH_DAYS),
           ];
         }),
         footnote: [
@@ -419,19 +463,16 @@ export function buildRuleSheets(
         footnoteTracking: 0,
         accent: BONUS_ACCENT,
         /*
-         * `Cycle` is the count times the published per-rating bonus. `Mahina` is that over the
-         * whole cycles that fit a thirty-day month — with the published 28-day cycle that is one,
-         * so the two columns agree. They agree because the backend's pay period IS about a month,
-         * not because the second column was copied from the first.
+         * `Cycle` is the count times the published per-rating bonus, over the SEVEN-DAY cycle
+         * the Kamai tabs draw; `Mahina` is four of those (`707:4052`: +₹300 × 4 = +₹1,200).
+         * See `WEEKS_PER_MONTH`.
          */
         rows: fivePlusCounts.map((count) => {
           const perCycle = policy === null ? null : count * policy.fivePlusBonusPaise;
-          const cyclesPerMonth =
-            policy === null ? 0 : Math.max(1, Math.round(30 / policy.cycleLengthDays));
           return [
             String(count),
             bonus(perCycle),
-            bonus(perCycle === null ? null : perCycle * cyclesPerMonth),
+            bonus(perCycle === null ? null : perCycle * WEEKS_PER_MONTH),
           ];
         }),
         footnote: [
@@ -475,12 +516,16 @@ export function buildRuleSheets(
           policy === null ? UNAVAILABLE : `${minutes} mins`,
           money(policy === null ? null : -latePenaltyPaise(minutes, policy)),
         ]),
+        /* `707:3926` — with the published zero grace, lateness starts at the given time itself;
+         * a future non-zero grace states its own boundary instead. */
         footnote: [
           {
             text:
               policy === null
                 ? `${UNAVAILABLE} minute ke baad, `
-                : `${policy.lateGraceMinutes} minute ke baad, `,
+                : policy.lateGraceMinutes === 0
+                  ? 'Diye gaye time ke baad, '
+                  : `${policy.lateGraceMinutes} minute ke baad, `,
           },
           { text: 'har minute,', strong: true },
           { text: ' ' },

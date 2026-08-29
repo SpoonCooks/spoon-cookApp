@@ -168,6 +168,15 @@ export const cookEarningsPolicySchema = z.object({
   noShowPenaltyPaise: z.number().int(),
   lateGraceMinutes: z.number().int(),
   latePenaltyPerMinutePaise: z.number().int(),
+  /**
+   * The 2026-08-29 tariff revision (`707:3796`): the no-show escalation step and the
+   * rating-banded day rates. `.nullish()` so a pre-revision deployment still parses; the
+   * sheets then render `—` for the figures it does not publish, exactly as before.
+   */
+  noShowPenaltyStepPaise: z.number().int().nullish(),
+  presentDayRatingTiers: z
+    .array(z.object({ minRating: z.number(), basePaise: z.number().int() }))
+    .nullish(),
 });
 export type CookEarningsPolicy = z.infer<typeof cookEarningsPolicySchema>;
 

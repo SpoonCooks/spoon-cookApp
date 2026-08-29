@@ -52,24 +52,32 @@ describe('the live server payload drives the sheets', () => {
     const body = buildRuleSheets(policy)['late'].body;
     if (body.kind !== 'policy') throw new Error('not a policy body');
 
-    // The ledger: max(minutes - grace, 0) * perMinute. The first row IS the grace, so it is free.
-    const expected = [0, 5, 10, 15].map((step) => {
+    // The ledger: max(minutes - grace, 0) * perMinute. The marks sit past the grace, so every
+    // row prints a real charge — under the published zero grace they are the frame's own
+    // 3/5/10/15 (`707:3926`).
+    const expected = [3, 5, 10, 15].map((step) => {
       const minutes = policy.lateGraceMinutes + step;
       const paise =
         Math.max(minutes - policy.lateGraceMinutes, 0) * policy.latePenaltyPerMinutePaise;
       return [`${minutes} mins`, rupees(-paise)];
     });
     expect(body.rows.map((row) => [...row])).toEqual(expected);
-    expect(body.rows[0]?.[1]).toBe('₹0');
   });
 
-  it('charges the server’s flat no-show deduction, with no escalation', () => {
+  it('escalates the no-show deduction by the published step, or says it cannot', () => {
     const policy = cookEarningsPolicySchema.parse(live);
     const body = buildRuleSheets(policy)['no-show'].body;
     if (body.kind !== 'policy') throw new Error('not a policy body');
     const amounts = body.rows.map((row) => row[1]);
-    expect(amounts).toEqual(Array(3).fill(rupees(-policy.noShowPenaltyPaise)));
-    expect(new Set(amounts).size).toBe(1);
+    const step = policy.noShowPenaltyStepPaise;
+    if (step === null || step === undefined) {
+      // A pre-revision publication carries no step; the sheet must not imply a flat charge.
+      expect(amounts).toEqual(['—', '—', '—']);
+    } else {
+      expect(amounts).toEqual(
+        [0, 1, 2].map((prior) => rupees(-(policy.noShowPenaltyPaise + prior * step))),
+      );
+    }
   });
 
   it('prorates the long-hours bonus per minute above the server’s threshold', () => {
@@ -85,11 +93,8 @@ describe('the live server payload drives the sheets', () => {
           policy.longHoursRatePerHourPaise) /
           60,
       );
-      return [
-        `${minutes / 60} hrs`,
-        `+${rupees(perDay)}`,
-        `+${rupees(perDay * policy.cycleLengthDays)}`,
-      ];
+      // `Mahina` is the illustrative thirty-day month the frame prints (`707:3985`).
+      return [`${minutes / 60} hrs`, `+${rupees(perDay)}`, `+${rupees(perDay * 30)}`];
     });
     expect(body.rows.map((row) => [...row])).toEqual(expected);
   });
@@ -115,20 +120,20 @@ describe('the live server payload drives the sheets', () => {
     const policy = cookEarningsPolicySchema.parse(live);
     const sheets = buildRuleSheets(policy);
 
-    const noShow = sheets['no-show'].body;
-    if (noShow.kind !== 'policy') throw new Error('not a policy body');
-    // Flat, because `noShowPenaltyPaise` is one scalar the ledger appends unchanged.
-    expect(new Set(noShow.rows.map((row) => row[1])).size).toBe(1);
-
     const late = sheets['late'].body;
     if (late.kind !== 'policy') throw new Error('not a policy body');
-    // The first row is the grace and costs nothing, whatever the grace happens to be.
-    expect(late.rows[0]?.[0]).toBe(`${policy.lateGraceMinutes} mins`);
-    expect(late.rows[0]?.[1]).toBe('₹0');
+    // The marks sit past the grace, so no row can print a zero the ledger would not charge.
+    expect(late.rows[0]?.[0]).toBe(`${policy.lateGraceMinutes + 3} mins`);
+    expect(late.rows[0]?.[1]).toBe(rupees(-3 * policy.latePenaltyPerMinutePaise));
 
-    // And the Rating sheet still promises no rate, because none is published.
+    // The Rating sheet promises money exactly when tiers are published, and `—` when not.
     const rating = sheets['rating-tiers'].body;
     if (rating.kind !== 'matrix') throw new Error('not a matrix body');
-    expect(rating.rows[0]?.cells[1]).toBe('—');
+    const tiers = policy.presentDayRatingTiers;
+    if (tiers === null || tiers === undefined) {
+      expect(rating.rows[0]?.cells[1]).toBe('—');
+    } else {
+      expect(rating.rows[0]?.cells[1]).toBe(rupees(tiers[0]?.basePaise ?? 0));
+    }
   });
 });

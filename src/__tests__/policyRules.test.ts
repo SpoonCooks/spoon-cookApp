@@ -6,32 +6,34 @@ import type { CookEarningsPolicy } from '@core/api/schemas';
  *
  * ## What these lock
  *
- * The four sheets that quote money used to be literals, and they had drifted from the running
- * ledger in every direction:
- *
- *   - an escalating no-show penalty (`-₹300 / -₹400 / -₹500`) that the backend does not implement;
- *   - late minutes charged from the first minute, inside a five-minute grace the ledger forgives;
- *   - a long-hours bonus understated threefold, by reading a five-hour threshold as seven and a
- *     per-minute proration as whole hours.
- *
- * So these assert the FORMULAS against `financial-service`, not just the numbers, and the last
- * describe asserts the thing that actually matters: publish a different policy and the same build
- * renders different sheets.
+ * Every rupee figure on the five sheets is derived from `GET /cook/policies/earnings` — the
+ * 2026-08-29 founder tariff (`707:3796`): rating-banded day rates, an escalating no-show
+ * penalty, lateness charged from the first minute, and a seven-hour extra-hours threshold. So
+ * these assert the FORMULAS against `financial-service`, not just the numbers, and the last
+ * describe asserts the thing that actually matters: publish a different policy and the same
+ * build renders different sheets.
  */
 
 const PUBLISHED: CookEarningsPolicy = {
-  version: 'earnings-v1',
+  version: 'earnings-v2',
   cycleLengthDays: 28,
   presentDayBasePaise: 100_000,
   fivePlusBonusPaise: 10_000,
-  longHoursThresholdMinutes: 300,
+  longHoursThresholdMinutes: 420,
   longHoursRatePerHourPaise: 15_000,
   fullCycleBonusPaise: 200_000,
   twentySevenDayBonusPaise: 100_000,
   paidLeaveRefundPaise: 100_000,
-  noShowPenaltyPaise: 25_000,
-  lateGraceMinutes: 5,
+  noShowPenaltyPaise: 30_000,
+  noShowPenaltyStepPaise: 10_000,
+  lateGraceMinutes: 0,
   latePenaltyPerMinutePaise: 1_000,
+  presentDayRatingTiers: [
+    { minRating: 4.8, basePaise: 117_500 },
+    { minRating: 4.5, basePaise: 107_500 },
+    { minRating: 4.2, basePaise: 92_500 },
+    { minRating: 4.0, basePaise: 72_500 },
+  ],
 };
 
 function policyRows(policy: CookEarningsPolicy | null, key: RuleKey): readonly string[][] {
@@ -46,71 +48,62 @@ function footnote(policy: CookEarningsPolicy | null, key: RuleKey): string {
   return body.footnote.map((segment) => segment.text).join('');
 }
 
-describe('the Late sheet applies the ledger’s grace', () => {
-  it('opens on the grace itself, at zero', () => {
-    // `calculateLatePenaltyMinutes` is `max(minutes - grace, 0)`, so five minutes costs nothing.
-    expect(policyRows(PUBLISHED, 'late')[0]).toEqual(['5 mins', '₹0']);
-  });
-
-  it('charges only the minutes past the grace', () => {
-    // 10 late = 5 chargeable at ₹10; 15 late = 10; 20 late = 15.
-    expect(policyRows(PUBLISHED, 'late').slice(1)).toEqual([
-      ['10 mins', '-₹50'],
-      ['15 mins', '-₹100'],
-      ['20 mins', '-₹150'],
+describe('the Late sheet charges from the first minute — the published grace is zero', () => {
+  it('prints the design marks, each charged in full', () => {
+    // `calculateLatePenaltyMinutes` is `max(minutes - grace, 0)`; with the published zero
+    // grace, three late minutes cost ₹30 (`707:3926`).
+    expect(policyRows(PUBLISHED, 'late')).toEqual([
+      ['3 mins', '-₹30'],
+      ['5 mins', '-₹50'],
+      ['10 mins', '-₹100'],
+      ['15 mins', '-₹150'],
     ]);
   });
 
-  it('never states the pre-grace figures the hardcoded table used to', () => {
-    const rendered = policyRows(PUBLISHED, 'late').flat();
-    // The old table read 3 mins -> -₹30 and 5 mins -> -₹50, both of which the ledger forgives.
-    expect(rendered).not.toContain('-₹30');
-    expect(rendered.filter((cell) => cell === '3 mins')).toHaveLength(0);
-  });
-
-  it('quotes the grace and the per-minute rate in its footnote', () => {
-    expect(footnote(PUBLISHED, 'late')).toBe('5 minute ke baad, har minute, ₹10 ka nuksaan hai');
+  it('says the charge starts at the given time itself', () => {
+    expect(footnote(PUBLISHED, 'late')).toBe(
+      'Diye gaye time ke baad, har minute, ₹10 ka nuksaan hai',
+    );
   });
 });
 
-describe('the No Show sheet does not invent an escalation', () => {
-  it('charges the same flat deduction for every occurrence', () => {
-    // `noShowPenaltyPaise` is one scalar and the ledger appends it unchanged each time.
+describe('the No Show sheet states the published escalation', () => {
+  it('escalates by the published step per occurrence', () => {
+    // The ledger charges base + step × prior no-shows in the cycle
+    // (`countCycleNoShowPenalties`), so the three rows read ₹300, ₹400, ₹500 (`707:3871`).
     expect(policyRows(PUBLISHED, 'no-show')).toEqual([
-      ['1- pehla', '-₹250'],
-      ['2- dusra', '-₹250'],
-      ['3- teesra', '-₹250'],
+      ['1- pehla', '-₹300'],
+      ['2- dusra', '-₹400'],
+      ['3- teesra', '-₹500'],
     ]);
   });
 
-  it('does not promise the ₹100 step-up the old footnote claimed', () => {
-    expect(footnote(PUBLISHED, 'no-show')).toBe('Har 1 NO SHOW ka -₹250 nuksaan hai');
-    expect(footnote(PUBLISHED, 'no-show')).not.toContain('badh jaegi');
+  it('promises exactly the published step-up', () => {
+    expect(footnote(PUBLISHED, 'no-show')).toBe('Har 1 NO SHOW ke baad penalty ₹100 se badh jaegi');
   });
 });
 
 describe('the Extra hours sheet uses the published threshold and prorates', () => {
-  it('starts one hour above the threshold the policy publishes, not seven', () => {
-    // 300 minutes is FIVE hours. The old table titled itself `7 se zyada ke kaam`.
+  it('starts one hour above the published seven-hour threshold', () => {
     const hours = policyRows(PUBLISHED, 'bonus-over-7').map((row) => row[0]);
-    expect(hours).toEqual(['6 hrs', '7 hrs', '8 hrs']);
+    expect(hours).toEqual(['8 hrs', '9 hrs', '10 hrs']);
   });
 
   it('pays the prorated per-minute bonus, not one hour’s rate per hour marked', () => {
-    // floor(max(minutes - 300, 0) * 15000 / 60): 6h -> ₹150, 7h -> ₹300, 8h -> ₹450.
+    // floor(max(minutes - 420, 0) * 15000 / 60): 8h -> ₹150, 9h -> ₹300, 10h -> ₹450.
     const perDay = policyRows(PUBLISHED, 'bonus-over-7').map((row) => row[1]);
     expect(perDay).toEqual(['+₹150', '+₹300', '+₹450']);
   });
 
-  it('extends the day figure over the published cycle length', () => {
-    const perCycle = policyRows(PUBLISHED, 'bonus-over-7').map((row) => row[2]);
-    expect(perCycle).toEqual(['+₹4,200', '+₹8,400', '+₹12,600']);
+  it('extends the day figure over the illustrative thirty-day month the frame prints', () => {
+    const perMonth = policyRows(PUBLISHED, 'bonus-over-7').map((row) => row[2]);
+    expect(perMonth).toEqual(['+₹4,500', '+₹9,000', '+₹13,500']);
   });
 
   it('states the threshold in its own title and blurb', () => {
     const sheet = buildRuleSheets(PUBLISHED)['bonus-over-7'];
-    expect(sheet.blurb).toBe('Extra hours: 5 hours se upar');
-    expect(sheet.body.kind === 'policy' ? sheet.body.title : '').toBe('5 se zyada ke kaam');
+    expect(sheet.blurb).toBe('Extra hours: 7 hours se upar');
+    expect(sheet.body.kind === 'policy' ? sheet.body.title : '').toBe('7 se zyada ke kaam');
   });
 });
 
@@ -119,30 +112,24 @@ describe('the 5+ sheet multiplies the published per-rating bonus', () => {
     const perCycle = policyRows(PUBLISHED, 'bonus-5-plus').map((row) => row[1]);
     expect(perCycle).toEqual(['+₹300', '+₹600', '+₹1,200']);
   });
+
+  it('prints a month as four of the seven-day cycles the Kamai tabs draw', () => {
+    const perMonth = policyRows(PUBLISHED, 'bonus-5-plus').map((row) => row[2]);
+    expect(perMonth).toEqual(['+₹1,200', '+₹2,400', '+₹4,800']);
+  });
 });
 
-describe('the Rating sheet states nothing the backend does not pay', () => {
-  it('renders no day or month rate, because none is published', () => {
-    /*
-     * `financial-service` appends the present-day event at `presentDayBasePaise` with no rating
-     * input anywhere, so a rate that varies by band does not exist to derive. The old table
-     * asserted ₹1,175 / ₹1,075 / ₹925 / ₹725 against a flat ₹1,000.
-     */
+describe('the Rating sheet derives its bands and money from the published tiers', () => {
+  it('prints the tier rates by day and by thirty-day month', () => {
     const body = buildRuleSheets(PUBLISHED)['rating-tiers'].body;
     if (body.kind !== 'matrix') throw new Error('rating-tiers is not a matrix');
-    const bands = body.rows.slice(0, 4);
-    for (const row of bands) {
-      expect(row.cells[1]).toBe('—');
-      expect(row.cells[2]).toBe('—');
-    }
-    expect(body.rows.flatMap((row) => [...row.cells])).not.toContain('₹1,175');
-  });
-
-  it('keeps the bands and the block rule, which are not money', () => {
-    const body = buildRuleSheets(PUBLISHED)['rating-tiers'].body;
-    if (body.kind !== 'matrix') throw new Error('rating-tiers is not a matrix');
-    expect(body.rows[0]?.cells[0]).toBe('4.8 · 4.9 · 5');
-    expect(body.rows[4]?.cells).toEqual(['4 se neeche', 'ID block', 'ID block']);
+    expect(body.rows.map((row) => [...row.cells])).toEqual([
+      ['4.8 · 4.9 · 5', '₹1,175', '₹35,250'],
+      ['4.5 · 4.6 · 4.7', '₹1,075', '₹32,250'],
+      ['4.2 · 4.3 · 4.4', '₹925', '₹27,750'],
+      ['4 · 4.1', '₹725', '₹21,750'],
+      ['4 se neeche', 'ID block', 'ID block'],
+    ]);
   });
 });
 
@@ -155,12 +142,22 @@ describe('with no policy the sheets say so rather than guessing', () => {
     }
   });
 
-  it('does not fall back to the figures that used to be hardcoded', () => {
+  it('does not fall back to the published figures', () => {
     const everything = (['no-show', 'late', 'bonus-over-7', 'bonus-5-plus'] as const).flatMap(
       (key) => policyRows(null, key).flat(),
     );
     for (const stale of ['-₹300', '-₹400', '-₹500', '-₹30', '+₹150', '+₹4,500']) {
       expect(everything).not.toContain(stale);
+    }
+  });
+
+  it('renders no rating money against a pre-revision publication with no tiers', () => {
+    const body = buildRuleSheets({ ...PUBLISHED, presentDayRatingTiers: null })['rating-tiers']
+      .body;
+    if (body.kind !== 'matrix') throw new Error('rating-tiers is not a matrix');
+    for (const row of body.rows.slice(0, 4)) {
+      expect(row.cells[1]).toBe('—');
+      expect(row.cells[2]).toBe('—');
     }
   });
 });
@@ -175,29 +172,38 @@ describe('with no policy the sheets say so rather than guessing', () => {
 describe('publishing a policy changes the sheets without a new build', () => {
   const REPUBLISHED: CookEarningsPolicy = {
     ...PUBLISHED,
-    version: 'earnings-v2',
+    version: 'earnings-v3',
     longHoursThresholdMinutes: 240,
     longHoursRatePerHourPaise: 16_400,
     noShowPenaltyPaise: 31_700,
+    noShowPenaltyStepPaise: 5_000,
     lateGraceMinutes: 7,
     latePenaltyPerMinutePaise: 1_900,
     fivePlusBonusPaise: 12_300,
+    presentDayRatingTiers: [
+      { minRating: 4.5, basePaise: 120_000 },
+      { minRating: 4.0, basePaise: 90_000 },
+    ],
   };
 
   it('moves the late grace and the per-minute rate', () => {
+    // Marks shift with the grace (7 + 3/5/10/15) and charge only the minutes past it.
     expect(policyRows(REPUBLISHED, 'late')).toEqual([
-      ['7 mins', '₹0'],
+      ['10 mins', '-₹57'],
       ['12 mins', '-₹95'],
       ['17 mins', '-₹190'],
       ['22 mins', '-₹285'],
     ]);
+    expect(footnote(REPUBLISHED, 'late')).toBe(
+      '7 minute ke baad, har minute, ₹19 ka nuksaan hai',
+    );
   });
 
-  it('moves the no-show deduction', () => {
+  it('moves the no-show base and step together', () => {
     expect(policyRows(REPUBLISHED, 'no-show').map((row) => row[1])).toEqual([
       '-₹317',
-      '-₹317',
-      '-₹317',
+      '-₹367',
+      '-₹417',
     ]);
   });
 
@@ -213,6 +219,16 @@ describe('publishing a policy changes the sheets without a new build', () => {
       '+₹369',
       '+₹738',
       '+₹1,476',
+    ]);
+  });
+
+  it('moves the rating bands with the published tiers', () => {
+    const body = buildRuleSheets(REPUBLISHED)['rating-tiers'].body;
+    if (body.kind !== 'matrix') throw new Error('rating-tiers is not a matrix');
+    expect(body.rows.map((row) => [...row.cells])).toEqual([
+      ['4.5 · 4.6 · 4.7 · 4.8 · 4.9 · 5', '₹1,200', '₹36,000'],
+      ['4 · 4.1 · 4.2 · 4.3 · 4.4', '₹900', '₹27,000'],
+      ['4 se neeche', 'ID block', 'ID block'],
     ]);
   });
 

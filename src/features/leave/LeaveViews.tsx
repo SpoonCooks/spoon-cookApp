@@ -677,15 +677,21 @@ export function LongLeaveSheetView({
   const { s } = useDesignScale();
 
   return (
-    <View style={[styles.scrim, { paddingBottom: insets.bottom }]} testID="long-leave-sheet">
+    <View style={styles.scrim} testID="long-leave-sheet">
       <View style={{ height: insets.top }} />
       <View style={styles.scrimFill} />
+      {/* The sheet's WHITE runs under the gesture bar: the inset is added to its height and to
+          its bottom padding together, so every element keeps its exact position relative to the
+          safe-area edge while the surface reaches the display edge. Insetting the dark scrim
+          instead left a black band under the sheet that read as the sheet being cut off. */}
       <View
         style={[
           styles.sheet,
           {
-            height: s(SHEET.longHeight),
-            padding: s(SHEET.padding),
+            height: s(SHEET.longHeight) + insets.bottom,
+            paddingTop: s(SHEET.padding),
+            paddingHorizontal: s(SHEET.padding),
+            paddingBottom: s(SHEET.padding) + insets.bottom,
             gap: s(SHEET.gap),
             borderTopLeftRadius: s(SHEET.radius),
             borderTopRightRadius: s(SHEET.radius),
@@ -774,16 +780,20 @@ export function ShortLeaveSheetView({
   const { s } = useDesignScale();
 
   return (
-    <View style={[styles.scrim, { paddingBottom: insets.bottom }]} testID="short-leave-sheet">
+    <View style={styles.scrim} testID="short-leave-sheet">
       <View style={{ height: insets.top }} />
       <View style={styles.scrimFill} />
+      {/* Same construction as the long sheet: the white surface absorbs the bottom inset so it
+          reaches the display edge, instead of a black scrim band under a cut-off-looking sheet. */}
       <View
         style={[
           styles.sheet,
           styles.sheetCentred,
           {
-            height: s(SHEET.shortHeight),
-            padding: s(SHEET.padding),
+            height: s(SHEET.shortHeight) + insets.bottom,
+            paddingTop: s(SHEET.padding),
+            paddingHorizontal: s(SHEET.padding),
+            paddingBottom: s(SHEET.padding) + insets.bottom,
             gap: s(SHEET.gap),
             borderTopLeftRadius: s(SHEET.radius),
             borderTopRightRadius: s(SHEET.radius),
@@ -905,9 +915,10 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   /**
-   * The sheet sits on the bottom SAFE-AREA edge, not the bottom of the display. Without the
-   * inset its last 24dp — including the `Pakka` button's lower half — sit behind the gesture bar,
-   * which is both wrong on the device and 22 design units of displacement against the frame.
+   * The bottom inset is absorbed by the SHEET (extra height + extra bottom padding, added
+   * together at the render), never by insetting this scrim: content keeps its position relative
+   * to the safe-area edge while the white surface reaches the display edge. A scrim inset put a
+   * black band under the sheet that read on device as the sheet being cut off.
    */
   scrim: { flex: 1, backgroundColor: color.scrim },
   scrimFill: { flex: 1 },
