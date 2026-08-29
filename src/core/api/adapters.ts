@@ -16,6 +16,7 @@
 import type { AttendanceDay, AttendanceMonth, DayMark, LeaveEntry } from '../domain/attendance';
 import type {
   BonusProgress,
+  DailyHoursView,
   EarningsBreakdown,
   EarningsCycleRef,
   EarningsPeriod,
@@ -336,9 +337,13 @@ export function toEarningsBreakdown(breakdown: CookEarningsBreakdownResponse): E
 export function toEarningsPeriodView(
   period: EarningsPeriod,
   response: CookEarningsPeriodResponse,
+  dailyHours?: DailyHoursView | null,
 ): EarningsPeriodView {
   const breakdown = toEarningsBreakdown(response.breakdown);
   const counts = response.breakdown.counts;
+  // The GAP-19 figures apply to TODAY only: the summary's `dailyHours` describes the current
+  // service date, so it must never leak into the seven-day or monthly projection of this view.
+  const hours = period === 'day' ? (dailyHours ?? null) : null;
   return {
     period,
     startDateIso: response.startDate,
@@ -353,14 +358,27 @@ export function toEarningsPeriodView(
       count: counts === undefined ? null : counts.lateEvents,
       amountPaise: breakdown.lateDeductionsPaise,
     },
-    workedMinutes: null,
+    workedMinutes: hours === null ? null : hours.workedMinutes,
     lateMinutes: null,
     aboveBasePaise: null,
     perDayBasePaise: null,
-    extraKaamMultiplier: null,
-    extraKaamRatePaise: null,
+    extraKaamMultiplier: hours === null ? null : hours.bonusMinutes / 60,
+    extraKaamRatePaise: hours === null ? null : hours.ratePerHourPaise,
     fiveStarDays: counts === undefined ? null : counts.ratingBonusDays,
     longHoursDays: counts === undefined ? null : counts.longHoursDays,
+  };
+}
+
+/** The GAP-19 daily-hours figures, or null while the deployed API predates the field. */
+export function toDailyHoursView(response: CookEarningsResponse): DailyHoursView | null {
+  const hours = response.dailyHours;
+  if (hours === undefined || hours === null) return null;
+  return {
+    workedMinutes: hours.workedMinutes,
+    thresholdMinutes: hours.thresholdMinutes,
+    targetMinutes: hours.targetMinutes,
+    ratePerHourPaise: hours.ratePerHourPaise,
+    bonusMinutes: hours.bonusMinutes,
   };
 }
 

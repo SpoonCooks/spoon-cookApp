@@ -129,6 +129,21 @@ export interface BonusProgress {
   readonly targetBonusAmountPaise: number | null;
 }
 
+/**
+ * Today's worked time and long-hours bonus — the backend's GAP-19 ruling, in MINUTES.
+ *
+ * With this present, the daily meter finally speaks the design's unit ("N se zyada ghante kaam")
+ * without promising a rule the ledger will not honour: the same aggregation that charges the
+ * `long_hours` event supplies these figures. Null while the deployed API predates the field.
+ */
+export interface DailyHoursView {
+  readonly workedMinutes: number;
+  readonly thresholdMinutes: number;
+  readonly targetMinutes: number;
+  readonly ratePerHourPaise: number;
+  readonly bonusMinutes: number;
+}
+
 /** A count/amount pair. `count` is `null` while the projection does not expose it. */
 export interface DeductionLine {
   readonly count: number | null;

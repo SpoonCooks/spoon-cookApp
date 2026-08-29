@@ -461,6 +461,23 @@ export const cookBonusProgressSchema = z.object({
 });
 export type CookBonusProgressResponse = z.infer<typeof cookBonusProgressSchema>;
 
+/**
+ * Today's confirmed worked time and the long-hours bonus it has earned so far — the backend's
+ * ruling on GAP-19. Every figure (the 5-hour threshold, the ₹150/hr rate, the meter's end) is the
+ * published policy's; the app carries none of them.
+ */
+export const cookDailyHoursSchema = z.object({
+  serviceDate,
+  workedMinutes: z.number().int(),
+  thresholdMinutes: z.number().int(),
+  targetMinutes: z.number().int(),
+  ratePerHourPaise: z.number().int(),
+  bonusMinutes: z.number().int(),
+  bonusAmountPaise: z.number().int(),
+  policyVersion: z.string(),
+});
+export type CookDailyHoursResponse = z.infer<typeof cookDailyHoursSchema>;
+
 export const cookCycleSummarySchema = z.object({
   cycleId: z.string(),
   startDate: serviceDate,
@@ -488,6 +505,9 @@ export const cookEarningsSchema = z.object({
   currentCycle: cookCycleSummarySchema.nullable(),
   currentCycleBreakdown: cookEarningsBreakdownSchema.nullable(),
   bonus: cookBonusProgressSchema,
+  // `.nullish()` so a response from the still-deployed pre-GAP-19 API parses; the daily figures
+  // then stay `—` exactly as before.
+  dailyHours: cookDailyHoursSchema.nullish(),
 });
 export type CookEarningsResponse = z.infer<typeof cookEarningsSchema>;
 

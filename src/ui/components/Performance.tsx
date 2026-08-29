@@ -7,6 +7,7 @@ import {
   formatSignedRupees,
   unavailableFigure,
   type BonusProgress,
+  type DailyHoursView,
   type EarningsPeriodView,
   type PeriodCopy,
   type RatingView,
@@ -386,18 +387,22 @@ function discFor(state: DayState): string {
 /**
  * `AAJ KA KAAM` (`434:2870`) — the daily work panel.
  *
- * Worked hours/minutes and the extra-kaam multiplier are unavailable from the contract and show
- * `—`. The bonus bar's segment COUNT is `bonus.targetDays`, never a hardcoded seven, and its
- * threshold sentence takes the number from `bonus.thresholdDays`.
+ * With the GAP-19 `dailyHours` figures present, this card finally renders the design's own
+ * dimension: worked time, an HOURS meter ("N se zyada ghante kaam", where N is the policy's
+ * long-hours threshold), and the extra-kaam formula — every number the backend's. Against an
+ * older deployment `hoursBonus` is null and the card falls back to what it always showed: `—`
+ * for the unavailable figures and the day-cycle meter for the bar.
  */
 export function DailyWorkCard({
   view,
   bonus,
+  hoursBonus = null,
   copy,
   testID = 'work-card',
 }: {
   view: EarningsPeriodView;
   bonus: BonusProgress | null;
+  hoursBonus?: DailyHoursView | null;
   copy: PeriodCopy;
   testID?: string;
 }): React.ReactElement {
@@ -423,7 +428,23 @@ export function DailyWorkCard({
         </View>
       </View>
 
-      {bonus !== null && <BonusBar bonus={bonus} />}
+      {hoursBonus !== null ? (
+        <BonusBar
+          threshold={Math.floor(hoursBonus.thresholdMinutes / 60)}
+          target={Math.floor(hoursBonus.targetMinutes / 60)}
+          completed={Math.floor(hoursBonus.workedMinutes / 60)}
+          unitWord="ghante"
+        />
+      ) : (
+        bonus !== null && (
+          <BonusBar
+            threshold={bonus.thresholdDays}
+            target={bonus.targetDays}
+            completed={bonus.completedDays}
+            unitWord="din"
+          />
+        )
+      )}
 
       <View style={[styles.stretch, { gap: s(WORK_GROUP.formulaGap) }]}>
         <SectionLabel>Extra kaam bonus</SectionLabel>
@@ -487,27 +508,33 @@ function WorkUnit({
 /**
  * The bonus panel (`434:2889`).
  *
- * Both the sentence and the geometry are backend-driven: `thresholdDays` supplies the number the
- * cook must beat and `targetDays` supplies the segment count, so a policy change in the earnings
- * config moves this bar without an app release.
+ * Sentence and geometry are backend-driven: the caller supplies the threshold number, the
+ * segment count and the fill from whichever server rule the panel is showing, so a policy change
+ * moves this bar without an app release.
  *
- * ## The unit word is `din`, and V13 says `ghante`
+ * ## The unit word is the caller's, because GAP-19 got its ruling
  *
- * `434:2892` reads `Bonus ke liye: 7 se zyada ghante kaam` — **hours**. The deployed contract has
- * no hours field at all: `CookBonusProgress` exposes `currentProgressDays`, `thresholdDays` and
- * `targetDays`, and the ledger awards the bonus on present DAYS. Printing the design's word would
- * promise a rule the backend will not honour, and a cook who worked eight hours on three days
- * would read it as earned.
- *
- * So the sentence says `din`, and this is recorded as an approved, region-limited deviation in
- * `docs/COOK_APP_V13_PIXEL_PERFECT_CLOSURE.md` alongside the invalid `31 November` cell — the same
- * class of correction, for the same reason: production stays correct and the divergence is
- * documented rather than hidden. It reverts to the design's word the day the contract grows one.
+ * `434:2892` reads `Bonus ke liye: 7 se zyada ghante kaam` — hours — while the original deployed
+ * contract only exposed the day-cycle bonus, so this bar once printed `din` as a documented
+ * deviation (`docs/COOK_APP_V13_PIXEL_PERFECT_CLOSURE.md`). The contract has since grown
+ * `dailyHours` — the ledger's own hours rule — so the daily card passes `ghante` with the
+ * policy's threshold, and the cycle meter keeps `din` with the cycle's. Each word is only ever
+ * paired with figures from the rule it names.
  */
-function BonusBar({ bonus }: { bonus: BonusProgress }): React.ReactElement {
+function BonusBar({
+  threshold,
+  target,
+  completed,
+  unitWord,
+}: {
+  threshold: number;
+  target: number;
+  completed: number;
+  unitWord: 'din' | 'ghante';
+}): React.ReactElement {
   const { s } = useDesignScale();
-  const segments = Math.max(1, Math.min(31, bonus.targetDays));
-  const filled = Math.max(0, Math.min(segments, bonus.completedDays));
+  const segments = Math.max(1, Math.min(31, target));
+  const filled = Math.max(0, Math.min(segments, completed));
 
   return (
     <View
@@ -521,9 +548,9 @@ function BonusBar({ bonus }: { bonus: BonusProgress }): React.ReactElement {
       <Text variant="bonusHint" testID="bonus-bar-hint">
         {'Bonus ke liye: '}
         <Text variant="bonusHint" color={color.success}>
-          {`${bonus.thresholdDays} se zyada`}
+          {`${threshold} se zyada`}
         </Text>
-        {' din kaam'}
+        {` ${unitWord} kaam`}
       </Text>
       <View
         style={[
@@ -563,29 +590,31 @@ export function CycleWorkCard({
   rating,
   copy,
   bonus,
+  hoursBonus = null,
   testID = 'work-card',
 }: {
   view: EarningsPeriodView;
   rating: RatingView | null;
   copy: PeriodCopy;
   bonus: BonusProgress | null;
+  hoursBonus?: DailyHoursView | null;
   testID?: string;
 }): React.ReactElement {
   const { s } = useDesignScale();
   /*
-   * `7 hr ke upar kaam` — the design's own caption, on all four V14 money frames.
+   * `5 hr ke upar kaam` — number AND unit finally from the same rule.
    *
-   * The NUMBER still comes from the server (`bonus.thresholdDays`), and the unit word is the
-   * design's. That pairing is uncomfortable and it is deliberate: V14 states the threshold in
-   * hours everywhere it appears — `603:1924` is titled `Extra hours`, its blurb reads
-   * `Extra hours: 7 hours se upar` and its table is `8 hrs / 9 hrs / 10 hrs` — while the deployed
-   * earnings policy exposes `thresholdDays`. The two disagree, it is GAP-19, and it needs a
-   * backend ruling. Until then the screen reads what the cook was shown in the design; the app
-   * still never computes a bonus from it, and `BonusBar` keeps the server's own unit on the bar
-   * it draws, where the segment COUNT would otherwise be wrong.
+   * GAP-19's backend ruling (`dailyHours`) publishes the long-hours threshold in minutes, so the
+   * caption pairs the policy's own number with the design's hour word. Against an older
+   * deployment the field is absent and the caption falls back to the old uncomfortable pairing
+   * (the day-cycle number with `hr`), which was the documented pre-ruling behaviour.
    */
   const thresholdLabel =
-    bonus === null ? 'Lambe din kaam' : `${bonus.thresholdDays} hr ke upar kaam`;
+    hoursBonus !== null
+      ? `${Math.floor(hoursBonus.thresholdMinutes / 60)} hr ke upar kaam`
+      : bonus === null
+        ? 'Lambe din kaam'
+        : `${bonus.thresholdDays} hr ke upar kaam`;
 
   return (
     <Card tone="yellow" gap={CARD.cycleGap} testID={testID}>

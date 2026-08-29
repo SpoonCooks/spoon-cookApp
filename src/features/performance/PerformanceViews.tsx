@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   periodCopy,
   type BonusProgress,
+  type DailyHoursView,
   type EarningsPeriod,
   type EarningsPeriodView,
   type RatingView,
@@ -127,6 +128,8 @@ export interface MoneyPeriodViewProps {
   readonly period: EarningsPeriod;
   readonly view: EarningsPeriodView;
   readonly bonus: BonusProgress | null;
+  /** GAP-19: today's hours rule. Null against a deployment that predates `dailyHours`. */
+  readonly hoursBonus?: DailyHoursView | null;
   readonly rating: RatingView | null;
   readonly days: readonly DayStripEntry[];
   readonly tabs: readonly { key: string; title: string; subtitle: string }[];
@@ -146,6 +149,7 @@ export function MoneyPeriodView({
   period,
   view,
   bonus,
+  hoursBonus = null,
   rating,
   days,
   tabs,
@@ -171,7 +175,7 @@ export function MoneyPeriodView({
 
       <Block width={WIDTH.panel}>
         {period === 'day' ? (
-          <DailyWorkCard view={view} bonus={bonus} copy={copy} />
+          <DailyWorkCard view={view} bonus={bonus} hoursBonus={hoursBonus} copy={copy} />
         ) : (
           <CycleWorkCard
             view={view}
@@ -179,6 +183,7 @@ export function MoneyPeriodView({
             rating={period === 'cycle' ? rating : null}
             copy={copy}
             bonus={bonus}
+            hoursBonus={hoursBonus}
           />
         )}
       </Block>

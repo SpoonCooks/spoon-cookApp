@@ -6,6 +6,7 @@ import {
   periodResponseFor,
   serviceDatesBetween,
   toBonusProgress,
+  toDailyHoursView,
   toEarningsPeriodView,
 } from '@core/api/adapters';
 import { apiErrorMessage, isSessionExpired } from '@core/api/errors';
@@ -65,12 +66,17 @@ export default function MoneyScreen(): React.ReactElement {
     period === 'cycle' && week !== null,
   );
 
+  const hoursBonus = useMemo(
+    () => (earnings.data === undefined ? null : toDailyHoursView(earnings.data)),
+    [earnings.data],
+  );
+
   const view = useMemo(
     () =>
       earnings.data === undefined
         ? null
-        : toEarningsPeriodView(period, periodResponseFor(earnings.data, period)),
-    [earnings.data, period],
+        : toEarningsPeriodView(period, periodResponseFor(earnings.data, period), hoursBonus),
+    [earnings.data, period, hoursBonus],
   );
 
   const bonus = useMemo(
@@ -134,6 +140,7 @@ export default function MoneyScreen(): React.ReactElement {
       period={period}
       view={view}
       bonus={bonus}
+      hoursBonus={hoursBonus}
       rating={rating}
       days={days}
       tabs={tabs}
