@@ -444,6 +444,7 @@ export const galleryEntries: readonly GalleryEntry[] = [
       period="day"
       view={performanceFixtures.daily(8)}
       bonus={performanceFixtures.bonus()}
+      hoursBonus={performanceFixtures.hoursBonus()}
       rating={performanceFixtures.rating()}
       days={[]}
       tabs={PERIOD_TABS}

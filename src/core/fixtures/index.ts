@@ -23,6 +23,7 @@ import type { AttendanceMonth, TodayAttendance } from '../domain/attendance';
 import type { JobCardModel, JobsProjection, JobUrgency } from '../domain/job';
 import type {
   BonusProgress,
+  DailyHoursView,
   EarningsBreakdown,
   EarningsPeriodView,
   RatingView,
@@ -556,6 +557,20 @@ const bonus: BonusProgress = {
   targetBonusAmountPaise: 26300,
 };
 
+/**
+ * `575:1744` — the GAP-19 hours rule, in the daily frame's OWN arithmetic: `8 ghante 45 mins`
+ * worked against a 7-hour threshold leaves `1.75` bonus hours, and `1.75 x ₹150 = +₹263` is the
+ * formula row the frame prints. Production's threshold comes from the published policy (5 hours
+ * today); the fixture states the design's sample so the frame draws the state the file draws.
+ */
+const dailyHours: DailyHoursView = {
+  workedMinutes: 525,
+  thresholdMinutes: 420,
+  targetMinutes: 480,
+  ratePerHourPaise: 15000,
+  bonusMinutes: 105,
+};
+
 const period = (
   over: Partial<EarningsPeriodView> & Pick<EarningsPeriodView, 'period'>,
 ): EarningsPeriodView => ({
@@ -646,6 +661,7 @@ export const performanceFixtures = {
 
   rating: (): RatingView => devOnly(rating),
   bonus: (): BonusProgress => devOnly(bonus),
+  hoursBonus: (): DailyHoursView => devOnly(dailyHours),
 
   /** `505:1240` — the cycle's `Mon…Sun` strip as `575:1884` draws it. */
   days: (): readonly { label: string; state: 'present' | 'missed' | 'none' }[] =>
