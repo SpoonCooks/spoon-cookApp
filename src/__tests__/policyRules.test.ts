@@ -194,9 +194,7 @@ describe('publishing a policy changes the sheets without a new build', () => {
       ['17 mins', '-₹190'],
       ['22 mins', '-₹285'],
     ]);
-    expect(footnote(REPUBLISHED, 'late')).toBe(
-      '7 minute ke baad, har minute, ₹19 ka nuksaan hai',
-    );
+    expect(footnote(REPUBLISHED, 'late')).toBe('7 minute ke baad, har minute, ₹19 ka nuksaan hai');
   });
 
   it('moves the no-show base and step together', () => {
