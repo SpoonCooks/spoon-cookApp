@@ -23,6 +23,20 @@ import { Linking } from 'react-native';
  * So the https form leads and the scheme is the fallback for a device whose browser cannot
  * resolve it. The https form also degrades honestly without WhatsApp installed: it opens the
  * WhatsApp landing page for the number rather than failing silently.
+ *
+ * ## Why `canOpenURL` is NOT consulted
+ *
+ * It used to gate the launch, and that gate silently broke every Help button on the device. On
+ * Android 11+ `canOpenURL` resolves the intent under package-visibility filtering, so it answers
+ * "no" for URLs the system will launch perfectly well unless the exact handler is declared in the
+ * manifest's `<queries>`. Confirmed on the test phone: `adb am start -a VIEW -d https://wa.me/...`
+ * landed on `com.whatsapp/.Conversation`, while the in-app `canOpenURL` for that same URL was
+ * false and the tap did nothing at all.
+ *
+ * `openURL` is the honest test, because it is the thing we actually want: it launches, or it
+ * throws `ActivityNotFoundException`. Launching an implicit intent is not subject to the
+ * visibility filtering that `canOpenURL` is, so trying and catching both works more often AND
+ * fails more accurately than asking first.
  */
 
 /** E.164 without the `+`, which is the form both WhatsApp URLs take. */
@@ -58,20 +72,19 @@ export function supportWhatsAppWebUrl(cookName?: string | null): string {
 
 export interface SupportDependencies {
   readonly openUrl: (url: string) => Promise<unknown>;
-  readonly canOpenUrl: (url: string) => Promise<boolean>;
 }
 
 const defaultSupportDependencies: SupportDependencies = {
   openUrl: (url) => Linking.openURL(url),
-  canOpenUrl: (url) => Linking.canOpenURL(url),
 };
 
 /**
  * Opens WhatsApp at Spoon support with the greeting prefilled.
  *
- * Resolves `false` only when neither URL can be opened at all, so the caller can say something
- * rather than leaving the cook with a tap that did nothing. `canOpenURL` failing is treated as
- * "cannot", never as a reason to throw: a Help button must not crash the screen it sits on.
+ * Resolves `false` only when neither URL could be launched, so the caller can say something
+ * rather than leaving the cook with a tap that did nothing. A launch that throws is treated as
+ * "try the next form", never as a reason to propagate: a Help button must not crash the screen
+ * it sits on.
  */
 export async function openSupportWhatsApp(
   cookName?: string | null,
@@ -79,12 +92,10 @@ export async function openSupportWhatsApp(
 ): Promise<boolean> {
   for (const url of [supportWhatsAppWebUrl(cookName), supportWhatsAppUrl(cookName)]) {
     try {
-      if (!(await dependencies.canOpenUrl(url))) continue;
       await dependencies.openUrl(url);
       return true;
     } catch {
-      // Try the next form. A handler that exists but refuses the launch is the same to the cook
-      // as one that is missing.
+      // Nothing on the device would take this URL. Fall through to the other form.
     }
   }
   return false;

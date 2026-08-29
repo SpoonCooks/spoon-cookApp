@@ -47,7 +47,6 @@ describe('opening support', () => {
   it('uses the wa.me form first, because it opens the CONVERSATION', async () => {
     const opened: string[] = [];
     const ok = await openSupportWhatsApp('Cook Rekha', {
-      canOpenUrl: () => Promise.resolve(true),
       openUrl: (url) => {
         opened.push(url);
         return Promise.resolve(true);
@@ -61,42 +60,35 @@ describe('opening support', () => {
     expect(opened[0]?.startsWith('https://wa.me/')).toBe(true);
   });
 
-  it('falls back to the app scheme when the https form cannot be resolved', async () => {
+  it('launches without asking whether the URL can be opened', async () => {
+    // The regression this pins: `canOpenURL` gated the launch, and on Android 11+ package
+    // visibility made it answer "no" for a URL the device launched happily by intent. Every Help
+    // button on every screen silently did nothing. Only `openUrl` may be consulted.
+    const dependencies = { openUrl: () => Promise.resolve(true) };
+    await openSupportWhatsApp('Cook Rekha', dependencies);
+    expect(Object.keys(dependencies)).toEqual(['openUrl']);
+  });
+
+  it('falls back to the app scheme when the https launch is refused', async () => {
     const opened: string[] = [];
     const ok = await openSupportWhatsApp('Cook Rekha', {
-      canOpenUrl: (url) => Promise.resolve(!url.startsWith('https://')),
       openUrl: (url) => {
+        if (url.startsWith('https://')) return Promise.reject(new Error('no activity found'));
         opened.push(url);
         return Promise.resolve(true);
       },
     });
 
     expect(ok).toBe(true);
-    expect(opened[0]?.startsWith('whatsapp://')).toBe(true);
+    expect(opened).toEqual([supportWhatsAppUrl('Cook Rekha')]);
   });
 
   it('reports failure instead of throwing when nothing can open', async () => {
     // A Help button must never crash the screen it sits on.
     await expect(
       openSupportWhatsApp('Cook Rekha', {
-        canOpenUrl: () => Promise.reject(new Error('no handler')),
         openUrl: () => Promise.reject(new Error('no handler')),
       }),
     ).resolves.toBe(false);
-  });
-
-  it('tries the app scheme when the https handler refuses the launch', async () => {
-    const opened: string[] = [];
-    const ok = await openSupportWhatsApp(null, {
-      canOpenUrl: () => Promise.resolve(true),
-      openUrl: (url) => {
-        if (url.startsWith('https://')) return Promise.reject(new Error('refused'));
-        opened.push(url);
-        return Promise.resolve(true);
-      },
-    });
-
-    expect(ok).toBe(true);
-    expect(opened[0]?.startsWith('whatsapp://')).toBe(true);
   });
 });
