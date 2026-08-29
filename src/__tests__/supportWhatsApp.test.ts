@@ -44,7 +44,7 @@ describe('the URLs point at the founder’s support line', () => {
 });
 
 describe('opening support', () => {
-  it('prefers the installed app', async () => {
+  it('uses the wa.me form first, because it opens the CONVERSATION', async () => {
     const opened: string[] = [];
     const ok = await openSupportWhatsApp('Cook Rekha', {
       canOpenUrl: () => Promise.resolve(true),
@@ -54,24 +54,25 @@ describe('opening support', () => {
       },
     });
 
+    // On a real device the whatsapp:// scheme resumed whatever screen WhatsApp was last on,
+    // leaving the cook in her own chat list with nothing written.
     expect(ok).toBe(true);
     expect(opened).toHaveLength(1);
-    expect(opened[0]?.startsWith('whatsapp://')).toBe(true);
+    expect(opened[0]?.startsWith('https://wa.me/')).toBe(true);
   });
 
-  it('falls back to the web form when WhatsApp is not installed', async () => {
+  it('falls back to the app scheme when the https form cannot be resolved', async () => {
     const opened: string[] = [];
     const ok = await openSupportWhatsApp('Cook Rekha', {
-      canOpenUrl: (url) => Promise.resolve(!url.startsWith('whatsapp://')),
+      canOpenUrl: (url) => Promise.resolve(!url.startsWith('https://')),
       openUrl: (url) => {
         opened.push(url);
         return Promise.resolve(true);
       },
     });
 
-    // The cook still reaches the number through the browser rather than tapping into nothing.
     expect(ok).toBe(true);
-    expect(opened[0]?.startsWith('https://wa.me/')).toBe(true);
+    expect(opened[0]?.startsWith('whatsapp://')).toBe(true);
   });
 
   it('reports failure instead of throwing when nothing can open', async () => {
@@ -84,18 +85,18 @@ describe('opening support', () => {
     ).resolves.toBe(false);
   });
 
-  it('tries the web form when the app handler refuses the launch', async () => {
+  it('tries the app scheme when the https handler refuses the launch', async () => {
     const opened: string[] = [];
     const ok = await openSupportWhatsApp(null, {
       canOpenUrl: () => Promise.resolve(true),
       openUrl: (url) => {
-        if (url.startsWith('whatsapp://')) return Promise.reject(new Error('refused'));
+        if (url.startsWith('https://')) return Promise.reject(new Error('refused'));
         opened.push(url);
         return Promise.resolve(true);
       },
     });
 
     expect(ok).toBe(true);
-    expect(opened[0]?.startsWith('https://wa.me/')).toBe(true);
+    expect(opened[0]?.startsWith('whatsapp://')).toBe(true);
   });
 });

@@ -11,12 +11,18 @@ import { Linking } from 'react-native';
  * stated here instead, so changing it later means shipping a build. That is the trade, taken
  * deliberately rather than by omission.
  *
- * ## Two URL forms, in order
+ * ## Two URL forms, and why `https://wa.me` goes FIRST
  *
- * `whatsapp://send` reaches the installed app directly. `https://wa.me/...` is the universal
- * form: it opens WhatsApp when installed and the browser's WhatsApp landing page when not, so a
- * cook without the app still sees the number rather than a dead tap. The scheme is tried first
- * and the https form is the fallback, the same shape `openGateNavigation` uses for maps.
+ * Both open WhatsApp, but only one reliably opens the CONVERSATION. Tried on a real device, the
+ * `whatsapp://send` scheme handed the app the intent while it was already running and WhatsApp
+ * simply resumed whatever screen it was last on — the cook lands in her own chat list with no
+ * message written, which is worse than a dead button because it looks like it worked. The
+ * `https://wa.me/...` form opened the support conversation with the greeting in the input box
+ * every time, warm or cold.
+ *
+ * So the https form leads and the scheme is the fallback for a device whose browser cannot
+ * resolve it. The https form also degrades honestly without WhatsApp installed: it opens the
+ * WhatsApp landing page for the number rather than failing silently.
  */
 
 /** E.164 without the `+`, which is the form both WhatsApp URLs take. */
@@ -71,7 +77,7 @@ export async function openSupportWhatsApp(
   cookName?: string | null,
   dependencies: SupportDependencies = defaultSupportDependencies,
 ): Promise<boolean> {
-  for (const url of [supportWhatsAppUrl(cookName), supportWhatsAppWebUrl(cookName)]) {
+  for (const url of [supportWhatsAppWebUrl(cookName), supportWhatsAppUrl(cookName)]) {
     try {
       if (!(await dependencies.canOpenUrl(url))) continue;
       await dependencies.openUrl(url);
