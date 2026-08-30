@@ -182,8 +182,42 @@ describe('projectServiceState', () => {
       expect(state.kind).not.toBe('cooking');
     });
 
-    it('moves to End OTP on the server flag', () => {
-      expect(projectServiceState({ ...cooking, endOtpReady: true })!.kind).toBe('awaiting_end_otp');
+    it('shows the TIMER, not the keypad, while service time remains', () => {
+      /*
+       * The regression this pins.
+       *
+       * This case used to read "moves to End OTP on the server flag" and passed, because the
+       * projection's first line was `if (snapshot.endOtpReady) return awaiting_end_otp`. But the
+       * flag is `otpEligibility.end` — `booking_status = 'cooking' AND end_otp_used_at IS NULL` —
+       * so it is true for every second of every service. The cooking branch below it was dead
+       * code, and a cook went from the Start OTP keypad to the End OTP keypad with no service
+       * screen in between: no timer, no last-seven-minutes state, no extension banner.
+       *
+       * The flag says the keypad WOULD be accepted, not that it should be on screen.
+       */
+      const state = projectServiceState({ ...cooking, endOtpReady: true })!;
+      expect(state.kind).toBe('cooking');
+      if (state.kind !== 'cooking') throw new Error('expected cooking');
+      expect(state.minutesRemaining).toBe(37);
+    });
+
+    it('moves to End OTP when the service time is spent', () => {
+      const state = projectServiceState({ ...cooking, endOtpReady: true, minutesRemaining: 0 })!;
+      expect(state.kind).toBe('awaiting_end_otp');
+    });
+
+    it('does NOT bring the keypad back once the End OTP has been used', () => {
+      // `endOtpReady` goes false the moment the code is accepted. Without it in the test the
+      // clock alone would re-open the keypad on a service that is already over.
+      const state = projectServiceState({ ...cooking, endOtpReady: false, minutesRemaining: 0 })!;
+      expect(state.kind).toBe('cooking');
+    });
+
+    it('falls back to the server clock when minutesRemaining is absent', () => {
+      // A payload without the figure must still project a timer rather than collapsing to zero
+      // and throwing the cook onto the keypad mid-service.
+      const state = projectServiceState({ ...cooking, endOtpReady: true, minutesRemaining: null })!;
+      expect(state.kind).toBe('cooking');
     });
   });
 

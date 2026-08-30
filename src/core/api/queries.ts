@@ -12,8 +12,10 @@
  *    the real state.
  */
 
+import { AppState } from 'react-native';
 import {
   QueryClient,
+  focusManager,
   useMutation,
   useQuery,
   useQueryClient,
@@ -45,6 +47,33 @@ function retryPolicy(failureCount: number, error: unknown): boolean {
   if (!isApiError(error)) return false;
   return error.kind === 'offline' || error.kind === 'timeout';
 }
+
+/**
+ * Teach TanStack Query what "focused" means on a phone.
+ *
+ * `refetchOnWindowFocus: true` below was set and INERT. The library's built-in focus detection
+ * listens for the DOM's `visibilitychange` and `focus` events, which do not exist in React
+ * Native, so nothing ever told it the app had come back. A cook opened Kaam, backgrounded the
+ * app for an hour, returned — and read an hour-old list. The Kaam list has no poll either
+ * ({@link useJobs} sets no `refetchInterval`, correctly: it is a day's roster, not a live
+ * service), so a fetch on focus was its ONLY route to fresh data and it was never wired.
+ *
+ * Registered once, at module scope, because `focusManager` is a library-wide singleton and a
+ * second listener would double every refetch. It returns the unsubscribe the manager expects, so
+ * a client teardown in a test detaches the AppState subscription rather than leaking it.
+ *
+ * `active` is the only focused state. `inactive` is the iOS app-switcher and the moment a system
+ * dialog covers the app — treating it as focused would fire a refetch every time a cook glanced
+ * at another app and came straight back.
+ */
+focusManager.setEventListener((handleFocus) => {
+  const subscription = AppState.addEventListener('change', (status) => {
+    handleFocus(status === 'active');
+  });
+  return () => {
+    subscription.remove();
+  };
+});
 
 export function createQueryClient(): QueryClient {
   return new QueryClient({

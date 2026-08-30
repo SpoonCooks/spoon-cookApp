@@ -167,6 +167,24 @@ export function extensionBannerRemainingMs(
   return Math.max(0, confirmedAt + EXTENSION_BANNER_MS - serverNow);
 }
 
+/**
+ * Whole minutes from the server's clock to an instant, rounded UP.
+ *
+ * Only a fallback: the read model normally sends `minutesRemaining` and that figure is preferred,
+ * because the server owns the service clock. This exists so a payload that omits it still projects
+ * a timer instead of collapsing to zero and throwing the cook onto the End OTP keypad.
+ *
+ * Rounding up matches the timer's reading — with fifty seconds left the design says "1 mins", not
+ * "0" — and, more importantly, it keeps a service with any time at all on the cooking screen.
+ * Unparseable input returns 0, which hands the decision back to the server's permission flag.
+ */
+function minutesUntil(targetIso: string, serverNowIso: string): number {
+  const target = Date.parse(targetIso);
+  const serverNow = Date.parse(serverNowIso);
+  if (Number.isNaN(target) || Number.isNaN(serverNow)) return 0;
+  return Math.ceil((target - serverNow) / 60_000);
+}
+
 export interface JobSummary {
   readonly bookingId: string;
   /** Increments on reassignment. A mismatch means the app is acting on a stale assignment. */
@@ -294,17 +312,42 @@ export function projectServiceState(snapshot: ServiceSnapshot): ServiceState | n
     }
 
     case 'cooking': {
-      if (snapshot.endOtpReady) return { kind: 'awaiting_end_otp', job };
       // `cooking` is only renderable with the server timestamps the timer is reconstructed from.
       if (snapshot.actualStartIso === null || snapshot.expectedEndIso === null) {
         return { kind: 'assigned', job, canStartTravel: false };
       }
+      const expectedEndIso = snapshot.extension.newExpectedEndIso ?? snapshot.expectedEndIso;
+      const minutesRemaining =
+        snapshot.minutesRemaining ?? minutesUntil(expectedEndIso, snapshot.clock.serverNowIso);
+      /*
+       * The End OTP is the LAST screen of the service, not the whole of it.
+       *
+       * This used to read `if (snapshot.endOtpReady) return awaiting_end_otp` as the first line of
+       * the branch, and `endOtpReady` is `otpEligibility.end`, which the cook read model computes
+       * as `booking_status = 'cooking' AND end_otp_used_at IS NULL`. That is true from the instant
+       * the service starts until the instant it ends — so the branch below was unreachable and a
+       * cook went from the Start OTP keypad straight to the End OTP keypad. She never saw the
+       * `622:1036` timer, never saw the `622:1125` last-seven-minutes state, and never saw the
+       * `622:1163` extension banner. Three drawn frames, dead.
+       *
+       * The server field is a PERMISSION — "the end OTP would be accepted now" — and treating a
+       * permission as a screen is what broke it. The clock decides the screen: the timer runs
+       * while service time remains, and the keypad appears when it does not. That is exactly what
+       * V14 draws, which is why the cooking frame has no end button on it.
+       *
+       * `endOtpReady` is still required, so an already-used End OTP cannot bring the keypad back.
+       *
+       * KNOWN LIMIT: a cook cannot end EARLY, because V14 draws no affordance for it. If the
+       * customer is done at forty minutes of sixty she waits, or calls support. Raising that needs
+       * a frame, not a guess.
+       */
+      if (snapshot.endOtpReady && minutesRemaining <= 0) return { kind: 'awaiting_end_otp', job };
       return {
         kind: 'cooking',
         job,
         actualStartIso: snapshot.actualStartIso,
-        expectedEndIso: snapshot.extension.newExpectedEndIso ?? snapshot.expectedEndIso,
-        minutesRemaining: snapshot.minutesRemaining ?? 0,
+        expectedEndIso,
+        minutesRemaining: Math.max(0, minutesRemaining),
         isEndingSoon: snapshot.isEndingSoon,
         extension: snapshot.extension,
         extensionBannerMsRemaining: extensionBannerRemainingMs(

@@ -283,6 +283,36 @@ export async function reportLocation(
  * rejected as `400 INVALID_REQUEST` by Fastify before the handler runs — every acknowledgement
  * sent from a context without a loaded projection (a notification tap, for instance) would fail.
  * Omitting the field lets the backend fence on the current assignment itself.
+ *
+ * ## Every acknowledgement this app ever sent was rejected
+ *
+ * This call sent no `Idempotency-Key`, and the route rejects a request without one before the
+ * handler runs:
+ *
+ *     const idempotencyKey = request.headers['idempotency-key'];
+ *     if (typeof idempotencyKey !== 'string') throw new AppError(errorCodes.INVALID_REQUEST);
+ *
+ * So the header was missing, the call 400'd, and both call sites — the notification tap and the
+ * in-app command — discarded the failure. `start_alerts.acknowledged_at` could therefore never
+ * be set by this app, which is why the 2026-08-30 audit found no acknowledgements anywhere.
+ *
+ * That is not a cosmetic loss. Acknowledgement is one of the two proofs that word reached the
+ * cook, and the elapsed-window sweep now charges a no-show penalty only when it did. A cook who
+ * tapped the alert had no record of tapping it.
+ *
+ * ## Why the key is derived here rather than passed in
+ *
+ * Every other command in this file takes the key from the caller, because their intents are
+ * things a cook chooses to do twice — two check-ins, two leave requests — and only the caller
+ * can say whether a second tap is a retry or a new intent. An acknowledgement is not like that:
+ * it has ONE natural identity, the alert being acknowledged, and acknowledging the same alert
+ * twice is the same fact stated twice. Deriving it here also means the background notification
+ * handler — which has no React state to hold a key in, and where the same notification really can
+ * be tapped twice — gets a stable key for free rather than a fresh one per tap.
+ *
+ * The version is part of the key when known, because a reassignment produces a genuinely
+ * different alert (`start_alerts` is `UNIQUE (assignment_id, kind)`) and its acknowledgement must
+ * not be swallowed as a replay of the previous cook's.
  */
 export async function acknowledgeAlert(
   input: {
@@ -292,13 +322,16 @@ export async function acknowledgeAlert(
   },
   opts: Opts = {},
 ): Promise<void> {
+  const version =
+    input.assignmentVersion === undefined || input.assignmentVersion < 1
+      ? undefined
+      : input.assignmentVersion;
   await request(`/cook/bookings/${input.bookingId}/acknowledge-alert`, commandAckSchema, {
     method: 'POST',
+    idempotencyKey: `ack-${input.bookingId}-${input.alertType}${version === undefined ? '' : `-v${String(version)}`}`,
     body: {
       alertType: input.alertType,
-      ...(input.assignmentVersion === undefined || input.assignmentVersion < 1
-        ? {}
-        : { assignmentVersion: input.assignmentVersion }),
+      ...(version === undefined ? {} : { assignmentVersion: version }),
     },
     ...opts,
   });

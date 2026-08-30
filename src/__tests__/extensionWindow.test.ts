@@ -186,8 +186,41 @@ describe('the cooking projection', () => {
     expect(projectServiceState(snapshot)?.kind).toBe('interrupted');
   });
 
-  it('drops the banner when the End OTP becomes available during the window', () => {
+  it('KEEPS the banner while the End OTP is merely permitted', () => {
+    /*
+     * This case used to assert the opposite, and asserting the opposite is what hid the defect.
+     *
+     * `endOtpReady` is `otpEligibility.end`, which the cook read model computes as
+     * `booking_status = 'cooking' AND end_otp_used_at IS NULL` — true for the WHOLE service. So
+     * "the End OTP becomes available during the window" is not an event that can happen: it is
+     * true from the first second of cooking, and the projection short-circuiting on it meant the
+     * extension banner this very file exists to test could never render at all.
+     *
+     * A confirmed extension means the customer PAID for more time. Sending the cook to the end
+     * keypad at that moment is the exact opposite of what she bought.
+     */
     const snapshot = { ...cookingSnapshot(serverTimeAfter(60_000), extended()), endOtpReady: true };
-    expect(projectServiceState(snapshot)?.kind).toBe('awaiting_end_otp');
+    const state = projectServiceState(snapshot);
+    if (state?.kind !== 'cooking') throw new Error('expected cooking');
+    expect(state.extensionBannerMsRemaining).toBe(4 * 60_000);
+    expect(state.minutesRemaining).toBe(28);
+  });
+
+  it('reaches the End OTP only once the EXTENDED time is spent', () => {
+    // The extension moved the end to 08:28. At 08:20 there are still eight minutes to cook, so
+    // the keypad must wait for them — the extended end is the one that counts, not the original.
+    const duringExtension = projectServiceState({
+      ...cookingSnapshot(serverTimeAfter(60_000), extended()),
+      endOtpReady: true,
+      minutesRemaining: 8,
+    });
+    expect(duringExtension?.kind).toBe('cooking');
+
+    const spent = projectServiceState({
+      ...cookingSnapshot(serverTimeAfter(60_000), extended()),
+      endOtpReady: true,
+      minutesRemaining: 0,
+    });
+    expect(spent?.kind).toBe('awaiting_end_otp');
   });
 });
