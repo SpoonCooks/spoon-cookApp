@@ -37,16 +37,47 @@ import { openSupportWhatsApp } from '@core/support/whatsapp';
  * so the range is submitted whole rather than day by day, and the confirmation says the request
  * was sent, never that the leave was granted.
  */
+/**
+ * How far ahead a cook may page the grid.
+ *
+ * There is no product ceiling on how distant a chutti may be, so this is a UI bound rather than a
+ * rule: eleven months forward keeps every month of the coming year reachable while stopping the
+ * chevron from running away into 2031. The backend validates the dates regardless.
+ */
+const MAX_MONTHS_AHEAD = 11;
+
 export default function RangeLeaveScreen(): React.ReactElement {
   const [fromDay, setFromDay] = useState<number | null>(null);
   const [toDay, setToDay] = useState<number | null>(null);
+  /**
+   * Months AHEAD of the server's current month, which is where the grid opens.
+   *
+   * The screen used to derive its year and month straight from `serverTime` as constants and pass
+   * no month handlers at all, so both chevrons were inert: a cook could see August and could
+   * never reach September, which made a chutti more than a few weeks out impossible to request.
+   * Held as an offset rather than a date so the anchor stays the SERVER's month — the same
+   * reasoning that put the grid on server time in the first place.
+   */
+  const [monthsAhead, setMonthsAhead] = useState(0);
 
   // One key per mount, so a retry after a timeout replays rather than filing a second chutti.
   const [idempotencyKey] = useState(newIdempotencyKey);
 
   const profile = useCookProfile();
   const todayIso = (profile.data?.serverTime ?? '').slice(0, 10);
-  const requestLeave = useRequestLeave(todayIso.slice(0, 7));
+
+  // The month the GRID is on, computed before the early returns so the hook order is identical
+  // on every path. Empty while the profile loads, which `useRequestLeave` already tolerates.
+  const serverYear = Number(todayIso.slice(0, 4));
+  const serverMonth = Number(todayIso.slice(5, 7));
+  const shown = serverMonth - 1 + monthsAhead;
+  const year = serverYear + Math.floor(shown / 12);
+  const month = (shown % 12) + 1;
+  const shownMonthKey = todayIso === '' ? '' : `${year}-${String(month).padStart(2, '0')}`;
+
+  // The month whose attendance must be re-read is the one the leave is IN, not the one the cook
+  // happens to be standing in — a chutti filed for September left September's grid stale.
+  const requestLeave = useRequestLeave(shownMonthKey);
 
   if (profile.isPending) return <LoadingState testID="leave-range-loading" />;
   if (profile.isError) {
@@ -59,9 +90,9 @@ export default function RangeLeaveScreen(): React.ReactElement {
     );
   }
 
-  const year = Number(todayIso.slice(0, 4));
-  const month = Number(todayIso.slice(5, 7));
-  const firstOpenDay = Number(todayIso.slice(8, 10));
+  // Today closes the days behind it, but only in the month today is IN. Every later month is
+  // open from the first — the old code applied the server's day-of-month to whatever was shown.
+  const firstOpenDay = monthsAhead === 0 ? Number(todayIso.slice(8, 10)) : 1;
 
   const selection: LeaveRequestKind | null =
     fromDay === null
@@ -131,12 +162,35 @@ export default function RangeLeaveScreen(): React.ReactElement {
     <LongLeaveSheetView
       year={year}
       month={month}
-      monthLabel={monthLabel(todayIso)}
+      monthLabel={monthLabel(isoFor(year, month, 1))}
       firstOpenDay={firstOpenDay}
       selection={fromDay === null ? null : { fromDay, toDay: toDay ?? fromDay }}
       totalDays={totalDays}
       canConfirm={validation?.ok === true && !submitted && !requestLeave.isPending}
       onPickDay={onPickDay}
+      /*
+       * Paging clears the selection. `fromDay`/`toDay` are bare day NUMBERS, so a range left
+       * standing across a month change would silently re-point at the new month — 3-7 August
+       * becoming 3-7 September under a cook who only meant to look.
+       */
+      {...(monthsAhead > 0
+        ? {
+            onPrevMonth: () => {
+              setFromDay(null);
+              setToDay(null);
+              setMonthsAhead((current) => current - 1);
+            },
+          }
+        : {})}
+      {...(monthsAhead < MAX_MONTHS_AHEAD
+        ? {
+            onNextMonth: () => {
+              setFromDay(null);
+              setToDay(null);
+              setMonthsAhead((current) => current + 1);
+            },
+          }
+        : {})}
       onConfirm={submit}
       onBack={() => router.back()}
       onHelp={() => void openSupportWhatsApp(profile.data.cook.name)}
