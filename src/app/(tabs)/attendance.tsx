@@ -183,15 +183,33 @@ export default function AttendanceScreen(): React.ReactElement {
         />
       );
     }
-    return (
-      <PresentView
-        name={name}
-        shiftWindow={shiftWindow}
-        onSeeWork={() => router.push('/jobs')}
-        onProfile={openProfile}
-        onHelp={openHelp}
-      />
-    );
+    /*
+     * An Admin recording attendance is not the Cook arriving.
+     *
+     * This branch used to return `PresentView` on `status === 'present'` alone, which hid the
+     * PRESENT button for good — so a cook whose attendance an Admin had recorded was shown
+     * "Aaj ke liye PRESENT!" for a day she had never checked into, and had no way to correct it.
+     * The blocking copy for that state was already emptied for this exact reason
+     * (`MARKED_PRESENT_BY_ADMIN` above), but the branch above it short-circuited first, so the
+     * button could never be reached and the fix never took effect.
+     *
+     * `canCheckIn` is the server's own ruling and it stays TRUE in this state: `checkInCook`
+     * rejects only an existing `check_in_at`, never a status an Admin wrote. So when the server
+     * still says she may check in, this falls through to the daily log-in screen and offers the
+     * button — and once she has actually checked in, `canCheckIn` goes false and this is where
+     * the screen settles.
+     */
+    if (!today.canCheckIn) {
+      return (
+        <PresentView
+          name={name}
+          shiftWindow={shiftWindow}
+          onSeeWork={() => router.push('/jobs')}
+          onProfile={openProfile}
+          onHelp={openHelp}
+        />
+      );
+    }
   }
 
   if (status === 'absent' || status === 'leave') {

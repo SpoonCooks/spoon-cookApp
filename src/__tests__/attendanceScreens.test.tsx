@@ -222,6 +222,40 @@ describe('575:2137 — 3b, present', () => {
     expect(screen.getByTestId('attendance-see-work')).toBeTruthy();
     expect(screen.queryByTestId('attendance-mark-present')).toBeNull();
   });
+
+  /**
+   * An Admin recording attendance is NOT the cook arriving.
+   *
+   * The screen used to return the PRESENT frame on `status === 'present'` alone, so a cook whose
+   * attendance an Admin had written was shown "Aaj ke liye PRESENT!" for a day she had never
+   * checked into, with the button gone and no way to correct it. `canCheckIn` is the server's own
+   * ruling and stays TRUE in that state -- `checkInCook` rejects only an existing `check_in_at`,
+   * never a status an Admin wrote -- so the button has to be offered.
+   */
+  it('still offers PRESENT when only an Admin recorded the attendance', () => {
+    profile({ status: 'present', checkInAt: null, onTime: null }, true, {
+      canCheckIn: true,
+      checkedInAt: null,
+      reason: 'MARKED_PRESENT_BY_ADMIN',
+    });
+    render(<AttendanceScreen />);
+
+    expect(screen.getByTestId('attendance-mark-present')).toBeTruthy();
+    // And no blocking message, because there is nothing blocking her.
+    expect(screen.queryByTestId('attendance-no-shift')).toBeNull();
+  });
+
+  it('settles on the PRESENT frame once she has actually checked in', () => {
+    profile({ status: 'present', checkInAt: '2026-08-21T03:29:00.000Z', onTime: true }, true, {
+      canCheckIn: false,
+      checkedInAt: '2026-08-21T03:29:00.000Z',
+      reason: 'COOK_CHECKED_IN',
+    });
+    render(<AttendanceScreen />);
+
+    expect(screen.getByTestId('attendance-see-work')).toBeTruthy();
+    expect(screen.queryByTestId('attendance-mark-present')).toBeNull();
+  });
 });
 
 describe('575:2138 — 3c, absent', () => {
