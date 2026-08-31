@@ -1353,8 +1353,20 @@ const styles = StyleSheet.create({
   // width and its disc is centred inside it. `space-between` instead pins the first and last cells
   // to the edges, which put `Mon` four units left of its design column and left the strip a few
   // units short — enough to walk the card below it off its row.
-  dayStrip: { flexDirection: 'row', alignItems: 'flex-start' },
-  dayCell: { flex: 1, alignItems: 'center' },
+  /**
+   * A WEEK per row.
+   *
+   * The frame only ever draws seven discs, and every cell took `flex: 1` -- so a longer window
+   * divided the same width by however many days it was given. A 28-day cycle produced 28 columns
+   * about twelve units wide, and `Thurs` wrapped one letter per line into a wall of stacked
+   * characters. Observed on `Cycle ki kamai` for a 26 Aug - 22 Sep cycle.
+   *
+   * Seven per row rather than a horizontal scroll, because the row is a CALENDAR: the columns
+   * line up under their weekday, and a four-week cycle reads as four weeks. A seven-day window is
+   * unchanged -- one row, seven cells, exactly as drawn.
+   */
+  dayStrip: { flexDirection: 'row', alignItems: 'flex-start', flexWrap: 'wrap' },
+  dayCell: { width: `${100 / 7}%`, alignItems: 'center' },
   dayGlyph: { position: 'absolute', alignSelf: 'center', top: '7%' },
 
   card: { backgroundColor: color.surface, alignSelf: 'stretch' },
