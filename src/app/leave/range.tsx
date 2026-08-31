@@ -12,7 +12,7 @@ import {
   type LeaveRequestKind,
 } from '@core/domain/leave';
 import { LongLeaveSheetView } from '@features/leave/LeaveViews';
-import { monthLabel } from '@features/leave/leaveModel';
+import { leaveRequestErrorMessage, monthLabel } from '@features/leave/leaveModel';
 import { ErrorState, LoadingState } from '@ui';
 import { openSupportWhatsApp } from '@core/support/whatsapp';
 
@@ -153,7 +153,7 @@ export default function RangeLeaveScreen(): React.ReactElement {
     validation !== null && !validation.ok
       ? validation.message
       : requestLeave.isError
-        ? apiErrorMessage(requestLeave.error)
+        ? leaveRequestErrorMessage(requestLeave.error)
         : submitted
           ? leaveRequestPendingCopy
           : null;

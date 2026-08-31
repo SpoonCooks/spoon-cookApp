@@ -1,3 +1,4 @@
+import { apiErrorMessage, isApiError } from '@core/api/errors';
 import { formatShortDate } from '@core/domain/money';
 import { toLeaveRequestStatus, type LeaveRequestStatus } from '@core/domain/leave';
 
@@ -167,4 +168,24 @@ export function formatLocalTime(value: string): string {
 export function monthLabel(dateIso: string): string {
   const month = Number(dateIso.slice(5, 7));
   return MONTHS[month - 1] ?? '';
+}
+
+/**
+ * What to tell a cook when a chutti request is refused.
+ *
+ * The backend answers a date that already carries a `pending` or `approved` leave with
+ * `INVALID_BOOKING_STATE`, which the shared mapper renders as "Yeh abhi nahi ho sakta. Screen
+ * refresh kare." On this screen that is both uninformative and wrong advice: refreshing changes
+ * nothing, because the obstacle is a chutti she already holds. Observed 2026-08-31 — Test Cook
+ * had a pending leave on 1 September and selected 1–5 September.
+ *
+ * Only this one code is reinterpreted, and only here, where the call's meaning is known. Every
+ * other failure keeps the shared wording so the app speaks with one voice about sessions,
+ * permissions and outages.
+ */
+export function leaveRequestErrorMessage(error: unknown): string {
+  if (isApiError(error) && error.kind === 'server' && error.code === 'INVALID_BOOKING_STATE') {
+    return 'In dino me se kisi din ki chutti pehle se lagi hai. Doosri date chune.';
+  }
+  return apiErrorMessage(error);
 }

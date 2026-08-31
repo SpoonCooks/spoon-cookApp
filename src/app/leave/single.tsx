@@ -11,7 +11,12 @@ import {
   type LeaveRequestKind,
 } from '@core/domain/leave';
 import { ShortLeaveSheetView } from '@features/leave/LeaveViews';
-import { addDays, formatDayLabel, relativeDayLabel } from '@features/leave/leaveModel';
+import {
+  addDays,
+  formatDayLabel,
+  leaveRequestErrorMessage,
+  relativeDayLabel,
+} from '@features/leave/leaveModel';
 import { ErrorState, LoadingState } from '@ui';
 import { openSupportWhatsApp } from '@core/support/whatsapp';
 
@@ -78,7 +83,7 @@ export default function SingleDayLeaveScreen(): React.ReactElement {
   const notice = !validation.ok
     ? validation.message
     : requestLeave.isError
-      ? apiErrorMessage(requestLeave.error)
+      ? leaveRequestErrorMessage(requestLeave.error)
       : submitted
         ? leaveRequestPendingCopy
         : null;

@@ -318,7 +318,12 @@ function RuleChip({
       onPress={onPress ? () => onPress(rule) : undefined}
       style={[
         styles.chip,
-        flex === true ? styles.flexOne : styles.stretch,
+        // `alignSelf` only. `styles.stretch` also carries `alignItems: 'flex-start'`, which the
+        // two headings above want and a CHIP does not: on the full-width chip it overrode the
+        // chip's own `alignItems: 'center'` and pushed the label hard left, so `Rating` sat off
+        // to one side while the half-width `Extra hours` and `5+` — which take `flexOne` and
+        // never touch that rule — stayed centred.
+        flex === true ? styles.flexOne : styles.chipStretch,
         {
           backgroundColor: fill,
           borderRadius: s(INDEX.chipRadius),
@@ -781,6 +786,8 @@ const styles = StyleSheet.create({
   block: { alignSelf: 'stretch', alignItems: 'flex-start' },
   stretch: { alignSelf: 'stretch', alignItems: 'flex-start' },
   flexOne: { flex: 1 },
+  /** A chip that fills its row, centred by `chip` rather than aligned by its container. */
+  chipStretch: { alignSelf: 'stretch' },
   upper: { textTransform: 'uppercase' },
 
   indexCard: { alignItems: 'flex-start', backgroundColor: color.white },

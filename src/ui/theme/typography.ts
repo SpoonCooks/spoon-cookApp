@@ -78,10 +78,24 @@ export const textStyle = {
    * `log in flow` CTAs set 1 unit, the leave sheets set none, and sharing one variant would put a
    * unit of drift into every character of a centred button label.
    */
+  /**
+   * `Pakka`, and the lime CTAs like it.
+   *
+   * The frame sets 24px type on a 30px line, and 30 is what this used to pass through. Livvic
+   * Black's own ascent-plus-descent at 24px is taller than 30, and `Text` turns
+   * `includeFontPadding` off so the box is exactly `lineHeight` — so the glyph overflowed and
+   * Android clipped it at the bottom. `textAlignVertical: 'center'` shared the overflow across
+   * both edges but did not create room, and the word still came off the handset cut.
+   *
+   * 32 is the natural leading for this size (`lineHeight.display`) and the smallest value that
+   * holds the face without trimming. A documented two-unit deviation from the frame, taken
+   * because a button whose label is visibly sliced is further from the design than one two units
+   * taller — and the CTA it sits in is 45+ units tall, so nothing reflows.
+   */
   actionLabelPlain: {
     fontFamily: fontFamily.black,
     fontSize: fontSize.display,
-    lineHeight: lineHeight.displayTight,
+    lineHeight: lineHeight.display,
     color: color.textPrimary,
   },
   /** `526:338` / `528:656` — `CHUTTI LAGAYE`. Livvic Black 20 on a 20 line, 1 unit of tracking. */
