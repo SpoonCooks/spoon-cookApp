@@ -27,6 +27,7 @@ import {
   cookLeaveRequestSchema,
   cookLeavesSchema,
   cookLocationSchema,
+  cookPresenceLocationSchema,
   cookPresentSchema,
   cookProfileSchema,
   currentCookJobSchema,
@@ -245,6 +246,40 @@ export async function verifyEndOtp(
  * a finding against the cook. When `arrived` comes back true the backend has committed the
  * transition and the client should stop reporting.
  */
+/**
+ * Reports where the cook is while she is NOT on a job.
+ *
+ * `reportLocation` is the evidence stream and needs a booking and an assignment version; between
+ * jobs there is neither. Instant availability routes from the cook's current position, and the
+ * background stream only runs during travel — so once she arrives, her fix ages out and an idle,
+ * present, perfectly bookable cook has no origin for the engine to route from. This is the ping
+ * that keeps her reachable.
+ *
+ * Fire-and-forget by contract: the API answers 202 with nothing worth reading, and a failure here
+ * must never surface to a cook who is not doing anything wrong.
+ */
+export async function reportPresenceLocation(
+  input: {
+    readonly latitude: number;
+    readonly longitude: number;
+    readonly accuracyMetres: number;
+    readonly recordedAtIso: string;
+  },
+  opts: Opts = {},
+): Promise<void> {
+  await request('/cook/presence-location', cookPresenceLocationSchema, {
+    method: 'POST',
+    body: {
+      latitude: input.latitude,
+      longitude: input.longitude,
+      // Named `accuracyMeters` by the route schema, which is `additionalProperties: false`.
+      accuracyMeters: input.accuracyMetres,
+      recordedAt: input.recordedAtIso,
+    },
+    ...opts,
+  });
+}
+
 export async function reportLocation(
   input: {
     readonly bookingId: string;

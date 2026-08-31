@@ -1,5 +1,7 @@
 import { Tabs } from 'expo-router';
 
+import { useCookProfile } from '@core/api/queries';
+import { usePresenceReporter } from '@core/location/presenceReporter';
 import { BottomNav, type BottomNavTab } from '@ui';
 import { color } from '@ui';
 
@@ -48,6 +50,20 @@ const ROUTE_FOR_TAB: Readonly<Record<BottomNavTab, string>> = {
 };
 
 export default function TabsLayout(): React.ReactElement {
+  /*
+   * Keep an idle cook reachable by instant, from anywhere in the tab shell.
+   *
+   * Mounted here rather than on Hazri so it survives a cook moving between tabs — she is no less
+   * bookable for looking at Kamai. The SERVER decides both halves of `active`: `today.attendance`
+   * is her attendance record and `currentAssignment` is whether a job currently owns her position. While
+   * a job is live `locationTracker` is the writer and this must stay silent, or the two race.
+   */
+  const profile = useCookProfile();
+  const today = profile.data?.today;
+  const presenceActive =
+    today?.attendance?.status === 'present' && profile.data?.currentAssignment == null;
+  usePresenceReporter(presenceActive === true);
+
   return (
     <Tabs
       screenOptions={{

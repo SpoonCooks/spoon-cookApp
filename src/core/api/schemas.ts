@@ -563,6 +563,14 @@ export type CookCycleDetailResponse = z.infer<typeof cookCycleDetailSchema>;
  */
 export const commandAckSchema = z.looseObject({});
 
+/**
+ * `POST /cook/presence-location` answers 202 with nothing worth reading.
+ *
+ * Deliberately permissive: the caller is fire-and-forget, and validating a body no one consumes
+ * would let a harmless contract change break an idle cook's position reporting.
+ */
+export const cookPresenceLocationSchema = z.unknown();
+
 export const cookLocationSchema = z.object({
   accepted: z.boolean(),
   reason: z.string().nullable(),
