@@ -57,18 +57,20 @@ import { openSupportWhatsApp } from '@core/support/whatsapp';
  * explains a refusal the server did not make. `READY` is present for exhaustiveness only — the
  * button is shown in that state, so the copy is never rendered.
  */
-const checkInBlockedCopy: Record<
+/** The closed set of reasons the server may give for check-in being unavailable. */
+type CheckInReason =
   | 'READY'
   | 'NO_SHIFT'
   | 'OUTSIDE_SHIFT'
   | 'APPROVED_LEAVE'
   | 'MARKED_ABSENT'
+  | 'BEFORE_CHECK_IN_WINDOW'
   | 'MARKED_PRESENT_BY_ADMIN'
   | 'COOK_CHECKED_IN'
   | 'ALREADY_CHECKED_IN'
-  | 'ATTENDANCE_RECORDED',
-  string
-> = {
+  | 'ATTENDANCE_RECORDED';
+
+const checkInBlockedCopy: Record<CheckInReason, string> = {
   READY: '',
   NO_SHIFT: 'Aaj aapki koi shift nahi hai.',
   OUTSIDE_SHIFT: 'Abhi aapki shift ka time nahi hai.',
@@ -82,6 +84,11 @@ const checkInBlockedCopy: Record<
    * told they had — and given no way to correct it. The server now offers `canCheckIn` in
    * this state, so the screen must show the button rather than a blocking message.
    */
+  /*
+   * The window opens an hour before the shift, so this says WHEN rather than just "no".
+   * `checkInOpensAt` carries the instant; the screen fills the time into this sentence.
+   */
+  BEFORE_CHECK_IN_WINDOW: 'Abhi jaldi hai. {time} se button dabaye.',
   MARKED_PRESENT_BY_ADMIN: '',
   COOK_CHECKED_IN: 'Aaj aap check-in kar chuke ho.',
   // The pre-split code the deployed backend still sends. It cannot distinguish an Admin's
@@ -90,6 +97,26 @@ const checkInBlockedCopy: Record<
   ALREADY_CHECKED_IN: 'Aaj aap already present ho.',
   ATTENDANCE_RECORDED: 'Aaj ki attendance already darj ho chuki hai.',
 };
+
+/**
+ * The blocked-copy line, with the opening time filled in where there is one.
+ *
+ * `BEFORE_CHECK_IN_WINDOW` is the only reason that can name a moment, and it is far more useful
+ * than a bare refusal: "come back at 4 AM" is actionable where "not yet" is not. If the server
+ * sends the reason without an instant the sentence still reads, minus the time.
+ */
+function blockedCopyFor(reason: CheckInReason, opensAtIso: string | null): string {
+  const copy = checkInBlockedCopy[reason];
+  if (!copy.includes('{time}')) return copy;
+  const opensAt = opensAtIso === null ? null : new Date(opensAtIso);
+  if (opensAt === null || Number.isNaN(opensAt.getTime())) {
+    return 'Abhi jaldi hai. Shift se thodi der pehle button dabaye.';
+  }
+  return copy.replace(
+    '{time}',
+    opensAt.toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit', hour12: true }),
+  );
+}
 
 /** `09:00:00` → `9 AM`. The pill reads `6 AM se 6 PM`, so whole hours drop their `:00`. */
 function formatShiftHour(value: string): string | null {
@@ -239,7 +266,7 @@ export default function AttendanceScreen(): React.ReactElement {
         <View style={styles.notice} testID="attendance-notice">
           {!today.canCheckIn && (
             <Text variant="captionMuted" align="center" testID="attendance-no-shift">
-              {checkInBlockedCopy[today.reason]}
+              {blockedCopyFor(today.reason, today.checkInOpensAt)}
             </Text>
           )}
           {markPresent.isError && (

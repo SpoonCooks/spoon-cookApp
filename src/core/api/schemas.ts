@@ -111,6 +111,7 @@ export const cookProfileSchema = z.object({
       // An Admin recorded the Cook present; the Cook has not physically checked in. These
       // were one code until the server started reading `check_in_at`, and collapsing them
       // told a Cook they had arrived when they had not.
+      'BEFORE_CHECK_IN_WINDOW',
       'MARKED_PRESENT_BY_ADMIN',
       'COOK_CHECKED_IN',
       // The pre-split code the DEPLOYED backend still sends (verified live 2026-08-27: the
