@@ -125,7 +125,16 @@ const SHEET = {
   ctaBottomShort: 16,
   buttonRadius: 15,
   buttonPaddingH: 12,
-  buttonPaddingV: 8,
+  /**
+   * `707:1682` — a 46-unit button around a 30-unit label, i.e. eight above and below.
+   *
+   * Seven here rather than eight because `Text` renders the label on a 32-unit line: Livvic Black
+   * at 24 does not fit the frame's 30 once `includeFontPadding` is off, and the extra two units
+   * have to come from somewhere. Seven keeps the button at exactly the drawn 46.
+   */
+  buttonPaddingV: 7,
+  /** `707:1681` — (50 - 46) / 2. The CTA frame's own inset, which is NOT `BLOCK.paddingV`. */
+  ctaInsetV: 2,
 } as const;
 
 /** `529:1240` — the `Total din` strip. */
@@ -600,12 +609,19 @@ function PakkaButton({
       style={[styles.ctaHost, { marginBottom: s(Math.max(0, bottom - SHEET.padding)) }]}
       pointerEvents="box-none"
     >
+      {/*
+        `707:1681` — the 338 x 50 CTA frame holding a 330 x 46 button.
+        The vertical inset is therefore TWO units, not `BLOCK.paddingV`'s six. At six the box
+        offered the button 38 units for the 46 it needs, and the eight-unit overflow was clipped
+        off the bottom -- taking the descender of `Pakka` with it. That is the whole reason the
+        label kept coming out cut, through two attempts that treated it as a type problem.
+      */}
       <View
         style={{
           width: s(SHEET.ctaWidth),
           height: s(SHEET.ctaHeight),
           paddingHorizontal: s(BLOCK.paddingH),
-          paddingVertical: s(BLOCK.paddingV),
+          paddingVertical: s(SHEET.ctaInsetV),
           alignItems: 'center',
           justifyContent: 'center',
         }}
