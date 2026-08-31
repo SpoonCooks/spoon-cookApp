@@ -513,7 +513,9 @@ export const attendanceFixtures = {
  * into a real screen.
  *
  * The fields the deployed contract does NOT expose stay `null` in the fixture as well as in
- * production (`workedMinutes`, `aboveBasePaise`, `perDayBasePaise`, both deduction counts). A
+ * production (`workedMinutes`, `perDayBasePaise`, both deduction counts). `bonusPaise` and
+ * `aboveBasePaise` ARE published now and carry real figures here, derived the same way the server
+ * derives them so the gallery shows the arithmetic a cook actually sees. A
  * fixture that invented them would make `/dev` prove a screen the app cannot actually draw, which
  * is the opposite of what the gallery is for — so those cells render `—` here exactly as they do
  * against the live backend, and the difference is recorded rather than papered over.
@@ -525,6 +527,9 @@ const breakdown = (over: Partial<EarningsBreakdown>): EarningsBreakdown => ({
   attendanceBonusPaise: 15000,
   paidLeavePaise: 0,
   tipsPaise: 60000,
+  // `gross - base - tips` and `net - base`, matching the server's own derivation.
+  bonusPaise: 46300,
+  aboveBasePaise: 96300,
   lateDeductionsPaise: 5000,
   noShowDeductionsPaise: 25000,
   otherDeductionsPaise: 0,

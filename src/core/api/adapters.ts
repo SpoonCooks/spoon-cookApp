@@ -319,6 +319,8 @@ export function toEarningsBreakdown(breakdown: CookEarningsBreakdownResponse): E
     grossPaise: breakdown.grossEarningsPaise,
     totalDeductionsPaise: breakdown.totalDeductionsPaise,
     netPaise: breakdown.netEarningsPaise,
+    bonusPaise: breakdown.bonusEarningsPaise ?? null,
+    aboveBasePaise: breakdown.aboveBaseEarningsPaise ?? null,
   };
 }
 
@@ -367,7 +369,7 @@ export function toEarningsPeriodView(
     },
     workedMinutes: hours === null ? null : hours.workedMinutes,
     lateMinutes: null,
-    aboveBasePaise: null,
+    aboveBasePaise: breakdown.aboveBasePaise,
     perDayBasePaise: perDayBasePaise ?? null,
     extraKaamMultiplier: hours === null ? null : hours.bonusMinutes / 60,
     extraKaamRatePaise: hours === null ? null : hours.ratePerHourPaise,
@@ -424,7 +426,7 @@ export function toCycleDetailView(detail: CookCycleDetailResponse): EarningsPeri
     },
     workedMinutes: null,
     lateMinutes: null,
-    aboveBasePaise: null,
+    aboveBasePaise: breakdown.aboveBasePaise,
     perDayBasePaise: null,
     extraKaamMultiplier: null,
     extraKaamRatePaise: null,

@@ -106,6 +106,16 @@ export interface EarningsBreakdown {
   readonly totalDeductionsPaise: number;
   /** Server-computed signed net for the period. The authority on what the cook earned. */
   readonly netPaise: number;
+  /**
+   * `532:109` — everything earned that is neither base nor tip.
+   *
+   * SERVER-derived as `gross - base - tips`, never summed here from the bonus categories: a
+   * `reversal` keeps its own bucket, so adding them up counts money that has been taken back.
+   * Null from a deployment that predates the field, and the cell then shows what it always did.
+   */
+  readonly bonusPaise: number | null;
+  /** `536:207` — earnings above the daily base, after deductions. Server-derived as `net - base`. */
+  readonly aboveBasePaise: number | null;
 }
 
 /**

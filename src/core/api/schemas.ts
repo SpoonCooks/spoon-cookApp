@@ -416,6 +416,10 @@ export const cookEarningsBreakdownSchema = z.object({
   grossEarningsPaise: z.number().int(),
   totalDeductionsPaise: z.number().int(),
   netEarningsPaise: z.number().int(),
+  /** `532:109` — everything earned that is neither base nor tip, so the trio adds to the total. */
+  bonusEarningsPaise: z.number().int().nullish(),
+  /** `536:207` — earnings above the daily base, after deductions. */
+  aboveBaseEarningsPaise: z.number().int().nullish(),
   /**
    * How many times each category occurred, with reversed events excluded by the backend.
    *

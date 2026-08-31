@@ -699,7 +699,14 @@ export function CycleWorkCard({
           <MiniStat label="Base" value={formatRupees(view.breakdown.basePaise)} />
           <MiniStat
             label="Bonus"
-            value={formatRupees(view.breakdown.attendanceBonusPaise)}
+            /*
+             * `532:109` — everything that is neither base nor tip, so `Base + Bonus + Tip` equals
+             * the headline above it. This read `attendanceBonusPaise`, the cycle-completion bonus
+             * ALONE, so a cook with three five-star bonuses saw `2,000 + 0 + 100` under a total
+             * of `2,400` -- three hundred rupees of her own money missing from the explanation.
+             * Falls back to the old field where the server has not published the derived one.
+             */
+            value={formatRupees(view.breakdown.bonusPaise ?? view.breakdown.attendanceBonusPaise)}
             testID={`${testID}-bonus`}
           />
           <MiniStat label="Tip" value={formatRupees(view.breakdown.tipsPaise)} />
