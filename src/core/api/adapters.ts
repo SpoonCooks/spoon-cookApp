@@ -39,6 +39,8 @@ import { bookingStatuses } from '../domain/serviceState';
 import type {
   CookCycleDetailResponse,
   CookCycleSummaryResponse,
+  CookWeekSummaryResponse,
+  CookWeekDetailResponse,
   CookEarningsBreakdownResponse,
   CookEarningsPeriodResponse,
   CookEarningsResponse,
@@ -407,6 +409,41 @@ export function periodResponseFor(
  * `getCookCycle` supplies `summary` — the reversal-safe aggregate — so this needs no arithmetic
  * either. `eventCount` is the real line count for the cycle, which that endpoint does return.
  */
+/**
+ * One WEEK, in the same shape a period view arrives in.
+ *
+ * `18- past weekly` is drawn as a week, so this is what `Cycle ki kamai` renders. The week read
+ * carries no event list — the screen shows aggregates, not a ledger — so `eventCount` is zero
+ * rather than invented.
+ */
+export function toWeekDetailView(detail: CookWeekDetailResponse): EarningsPeriodView {
+  const breakdown = toEarningsBreakdown(detail.breakdown);
+  const counts = detail.breakdown.counts;
+  return {
+    period: 'cycle',
+    startDateIso: detail.startDate,
+    endDateIso: detail.endDate,
+    eventCount: 0,
+    breakdown,
+    noShow: {
+      count: counts === undefined ? null : counts.noShowEvents,
+      amountPaise: breakdown.noShowDeductionsPaise,
+    },
+    late: {
+      count: counts === undefined ? null : counts.lateEvents,
+      amountPaise: breakdown.lateDeductionsPaise,
+    },
+    workedMinutes: null,
+    lateMinutes: null,
+    aboveBasePaise: breakdown.aboveBasePaise,
+    perDayBasePaise: null,
+    extraKaamMultiplier: null,
+    extraKaamRatePaise: null,
+    fiveStarDays: counts === undefined ? null : counts.ratingBonusDays,
+    longHoursDays: counts === undefined ? null : counts.longHoursDays,
+  };
+}
+
 export function toCycleDetailView(detail: CookCycleDetailResponse): EarningsPeriodView {
   const breakdown = toEarningsBreakdown(detail.summary);
   const counts = detail.summary.counts;
@@ -464,6 +501,27 @@ export function toBonusProgress(response: CookEarningsResponse): BonusProgress |
     thresholdAchieved: bonus.thresholdAchieved ?? completed >= threshold,
     bonusAmountPaise: bonus.bonusAmountPaise,
     targetBonusAmountPaise: bonus.targetBonusAmountPaise,
+  };
+}
+
+/**
+ * A WEEK as a history row.
+ *
+ * `17- weekly history` lists the periods `Cycle ki kamai` opens, and that screen is drawn as a
+ * week (`11th Jul - 17th Jul`, seven discs Mon to Sun). It used to list the 28-day payout cycles
+ * instead, which is why the detail screen showed a month of days in a seven-column strip.
+ *
+ * The week's own start date is its identity — there is no row to have an id — and a week always
+ * has a total, so unlike a cycle there is no unsettled `null` to render as a dash.
+ */
+export function toWeekRef(week: CookWeekSummaryResponse): EarningsCycleRef {
+  return {
+    cycleId: week.startDate,
+    label: formatDateRange(week.startDate, week.endDate),
+    startDateIso: week.startDate,
+    endDateIso: week.endDate,
+    finalPaise: week.totalPaise,
+    isCurrent: week.current,
   };
 }
 

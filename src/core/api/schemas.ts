@@ -539,6 +539,31 @@ export type CookEarningsResponse = z.infer<typeof cookEarningsSchema>;
  * of this file expected an object wrapper and would have failed every past-cycles read against the
  * deployed API.
  */
+/**
+ * `GET /cook/earnings/weeks` — one row per WEEK, Monday to Sunday.
+ *
+ * Not a cycle. `Cycle - 7 din` on the chips and `18- past weekly` draws seven discs from Mon to
+ * Sun; the 28-day `earnings_cycles` row is the PAYOUT period the attendance bonuses resolve over.
+ * Rendering that one into a screen drawn for seven days is what produced a strip of stacked
+ * letters and three weeks of days that had not happened.
+ */
+export const cookWeekSummarySchema = z.object({
+  startDate: serviceDate,
+  endDate: serviceDate,
+  current: z.boolean(),
+  totalPaise: z.number().int(),
+});
+export type CookWeekSummaryResponse = z.infer<typeof cookWeekSummarySchema>;
+
+export const cookWeeksSchema = z.array(cookWeekSummarySchema);
+export type CookWeeksResponse = z.infer<typeof cookWeeksSchema>;
+
+/** `GET /cook/earnings/weeks/:startDate` — one week, with the breakdown the screens explain. */
+export const cookWeekDetailSchema = cookWeekSummarySchema.extend({
+  breakdown: cookEarningsBreakdownSchema,
+});
+export type CookWeekDetailResponse = z.infer<typeof cookWeekDetailSchema>;
+
 export const cookCyclesSchema = z.array(cookCycleSummarySchema);
 export type CookCyclesResponse = z.infer<typeof cookCyclesSchema>;
 

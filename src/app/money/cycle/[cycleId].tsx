@@ -1,8 +1,8 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useMemo } from 'react';
-import { serviceDatesBetween, toCycleDetailView } from '@core/api/adapters';
+import { serviceDatesBetween, toWeekDetailView } from '@core/api/adapters';
 import { apiErrorMessage } from '@core/api/errors';
-import { useAttendanceRange, useCookProfile, useEarningsCycle } from '@core/api/queries';
+import { useAttendanceRange, useCookProfile, useEarningsWeek } from '@core/api/queries';
 import { formatDateRange, type RatingView } from '@core/domain/money';
 import { PastCycleView } from '@features/performance/PerformanceViews';
 import { ErrorState, LoadingState, type DayStripEntry } from '@ui';
@@ -24,7 +24,15 @@ export default function PastCycleScreen(): React.ReactElement {
   const { cycleId } = useLocalSearchParams<{ cycleId?: string }>();
   const id = cycleId ?? '';
 
-  const cycle = useEarningsCycle(id, id.length > 0);
+  /*
+   * A WEEK, not the 28-day payout cycle.
+   *
+   * The route param is a week's Monday rather than a cycle id — `17- weekly history` lists weeks
+   * now. Feeding the 28-day cycle in here is what put a month of days into a seven-disc strip
+   * until `Thurs` wrapped one letter per line, and listed three weeks of days that had not
+   * happened.
+   */
+  const cycle = useEarningsWeek(id, id.length > 0);
   const profile = useCookProfile();
 
   const attendance = useAttendanceRange(
@@ -33,7 +41,7 @@ export default function PastCycleScreen(): React.ReactElement {
   );
 
   const view = useMemo(
-    () => (cycle.data === undefined ? null : toCycleDetailView(cycle.data)),
+    () => (cycle.data === undefined ? null : toWeekDetailView(cycle.data)),
     [cycle.data],
   );
 
@@ -84,7 +92,8 @@ export default function PastCycleScreen(): React.ReactElement {
       days={days}
       onBack={() => router.back()}
       onOpenDays={() =>
-        router.push({ pathname: '/money/days', params: { cycleId: cycle.data.cycleId } })
+        // A week is identified by its Monday; there is no row and so no id.
+        router.push({ pathname: '/money/days', params: { cycleId: cycle.data.startDate } })
       }
     />
   );

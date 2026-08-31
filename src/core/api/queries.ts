@@ -30,6 +30,8 @@ import type {
   CookAttendanceRangeResponse,
   CookCycleDetailResponse,
   CookCyclesResponse,
+  CookWeeksResponse,
+  CookWeekDetailResponse,
   CookEarningsResponse,
   CookEarningsPeriodResponse,
   CookJobResponse,
@@ -100,6 +102,8 @@ export const queryKeys = {
   earningsDay: (serviceDate: string) => ['cook', 'earnings', 'day', serviceDate] as const,
   cycles: ['cook', 'earnings', 'cycles'] as const,
   cycle: (cycleId: string) => ['cook', 'earnings', 'cycles', cycleId] as const,
+  weeks: ['cook', 'earnings', 'weeks'] as const,
+  week: (startDate: string) => ['cook', 'earnings', 'weeks', startDate] as const,
   earningsPolicy: ['cook', 'policies', 'earnings'] as const,
 };
 
@@ -240,6 +244,31 @@ export function useEarningsDay(
     queryFn: ({ signal }) => api.getEarningsDay(serviceDate, { signal }),
     enabled: enabled && serviceDate.length === 10,
     staleTime: 5 * 60_000,
+  });
+}
+
+/**
+ * The WEEKS a cook has earned in — the period the Kamai screens call a cycle.
+ *
+ * Distinct from {@link useEarningsCycles}, which reads the 28-day payout periods the attendance
+ * bonuses resolve over.
+ */
+export function useEarningsWeeks(enabled = true): UseQueryResult<CookWeeksResponse> {
+  return useQuery({
+    queryKey: queryKeys.weeks,
+    queryFn: ({ signal }) => api.listEarningsWeeks({}, { signal }),
+    enabled,
+  });
+}
+
+export function useEarningsWeek(
+  startDate: string,
+  enabled = true,
+): UseQueryResult<CookWeekDetailResponse> {
+  return useQuery({
+    queryKey: queryKeys.week(startDate),
+    queryFn: ({ signal }) => api.getEarningsWeek(startDate, { signal }),
+    enabled: enabled && startDate.length === 10,
   });
 }
 

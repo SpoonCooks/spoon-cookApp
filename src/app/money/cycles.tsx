@@ -1,8 +1,8 @@
 import { router } from 'expo-router';
 import { useMemo } from 'react';
-import { toCycleRef } from '@core/api/adapters';
+import { toWeekRef } from '@core/api/adapters';
 import { apiErrorMessage } from '@core/api/errors';
-import { useEarnings, useEarningsCycles } from '@core/api/queries';
+import { useEarnings, useEarningsWeeks } from '@core/api/queries';
 import { formatRupees, unavailableFigure } from '@core/domain/money';
 import { CycleHistoryView } from '@features/performance/PerformanceViews';
 import { ErrorState, LoadingState } from '@ui';
@@ -23,10 +23,16 @@ import { ErrorState, LoadingState } from '@ui';
  * cycle has no settled payout, and printing its running total under `Kamai:` would look like one.
  */
 export default function CycleHistoryScreen(): React.ReactElement {
-  const cycles = useEarningsCycles();
+  /*
+   * WEEKS, not the 28-day payout cycles.
+   *
+   * This list feeds `Cycle ki kamai`, which is drawn as a week. Listing payout cycles here is
+   * what sent a 28-day window into a seven-disc strip.
+   */
+  const cycles = useEarningsWeeks();
   const earnings = useEarnings();
 
-  const rows = useMemo(() => (cycles.data ?? []).map(toCycleRef), [cycles.data]);
+  const rows = useMemo(() => (cycles.data ?? []).map(toWeekRef), [cycles.data]);
 
   if (cycles.isPending) return <LoadingState testID="cycles-loading" />;
 
@@ -50,7 +56,7 @@ export default function CycleHistoryScreen(): React.ReactElement {
         // cycle the backend has not closed returns `null`, not zero, and shows the em dash.
         earnings: cycle.finalPaise === null ? unavailableFigure : formatRupees(cycle.finalPaise),
       }))}
-      emptyMessage="Koi pichla cycle nahi hai."
+      emptyMessage="Koi pichla hafta nahi hai."
       onBack={() => router.back()}
       onOpenCycle={(cycleId) =>
         router.push({ pathname: '/money/cycle/[cycleId]', params: { cycleId } })

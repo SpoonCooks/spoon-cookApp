@@ -25,7 +25,7 @@ jest.mock('@core/api/queries', () => ({
   useEarnings: () => mockEarnings,
   useCookProfile: () => mockProfile,
   useAttendanceRange: () => mockAttendanceRange,
-  useEarningsCycles: () => mockCycles,
+  useEarningsWeeks: () => mockCycles,
   useEarningsCycle: () => ({ isPending: false, isError: false, data: undefined }),
 }));
 
@@ -277,45 +277,49 @@ describe('17- weekly history (575:2032)', () => {
     expect(screen.getByTestId('lifetime-band-value')).toHaveTextContent('₹2,93,894');
   });
 
-  it('renders — for a cycle that has not settled rather than its running total', () => {
+  /*
+   * The rows are WEEKS now, keyed by their Monday.
+   *
+   * `Cycle ki kamai` is drawn as a week (`11th Jul - 17th Jul`, seven discs Mon to Sun), and this
+   * list is what opens it. Listing the 28-day payout cycles here is what sent a month of days
+   * into a seven-column strip. A week always has a total, so unlike a cycle there is no
+   * unsettled `null`.
+   */
+  it('renders the current week with its running total', () => {
     mockCycles = {
       ...mockCycles,
       data: [
         {
-          cycleId: 'c1',
-          startDate: '2026-07-18',
-          endDate: '2026-07-21',
-          status: 'open',
+          startDate: '2026-07-13',
+          endDate: '2026-07-19',
           current: true,
-          finalAmountPaise: null,
+          totalPaise: 0,
         },
       ],
     };
     render(<CycleHistoryScreen />);
-    expect(screen.getByTestId('cycle-c1')).toHaveTextContent(/—/);
+    expect(screen.getByTestId('cycle-2026-07-13')).toHaveTextContent(/₹0/);
   });
 
-  it('renders a settled cycle’s final amount', () => {
+  it('renders a past week’s total', () => {
     mockCycles = {
       ...mockCycles,
       data: [
         {
-          cycleId: 'c2',
-          startDate: '2026-06-20',
-          endDate: '2026-07-17',
-          status: 'closed',
+          startDate: '2026-07-06',
+          endDate: '2026-07-12',
           current: false,
-          finalAmountPaise: 783_900,
+          totalPaise: 783_900,
         },
       ],
     };
     render(<CycleHistoryScreen />);
-    expect(screen.getByTestId('cycle-c2')).toHaveTextContent(/₹7,839/);
+    expect(screen.getByTestId('cycle-2026-07-06')).toHaveTextContent(/₹7,839/);
   });
 
-  it('says so plainly when there are no cycles instead of rendering an empty list', () => {
+  it('says so plainly when there are no weeks instead of rendering an empty list', () => {
     render(<CycleHistoryScreen />);
-    expect(screen.getByText('Koi pichla cycle nahi hai.')).toBeTruthy();
+    expect(screen.getByText('Koi pichla hafta nahi hai.')).toBeTruthy();
   });
 });
 

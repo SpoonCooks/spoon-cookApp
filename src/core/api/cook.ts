@@ -19,6 +19,8 @@ import {
   authSessionSchema,
   commandAckSchema,
   cookCyclesSchema,
+  cookWeeksSchema,
+  cookWeekDetailSchema,
   cookEarningsSchema,
   cookJobSchema,
   cookAttendanceRangeSchema,
@@ -37,6 +39,8 @@ import {
   type AuthSessionResponse,
   type CookEarningsPeriodResponse,
   type CookCyclesResponse,
+  type CookWeeksResponse,
+  type CookWeekDetailResponse,
   type CookEarningsResponse,
   type CookJobResponse,
   type CookAttendanceRangeResponse,
@@ -531,6 +535,30 @@ export async function getEarningsCycle(
   opts: Opts = {},
 ): Promise<CookCycleDetailResponse> {
   return request(`/cook/earnings/cycles/${cycleId}`, cookCycleDetailSchema, opts);
+}
+
+/**
+ * The WEEKS a cook has earned in — what the Kamai screens call a cycle.
+ *
+ * Separate from `listEarningsCycles`, which returns the 28-day PAYOUT periods the attendance
+ * bonuses resolve over. The two share a word and nothing else.
+ */
+export async function listEarningsWeeks(
+  params: { readonly limit?: number } = {},
+  opts: Opts = {},
+): Promise<CookWeeksResponse> {
+  return request('/cook/earnings/weeks', cookWeeksSchema, {
+    query: { ...(params.limit === undefined ? {} : { limit: params.limit }) },
+    ...opts,
+  });
+}
+
+/** One week. Any day of it resolves to the whole week server-side. */
+export async function getEarningsWeek(
+  startDate: string,
+  opts: Opts = {},
+): Promise<CookWeekDetailResponse> {
+  return request(`/cook/earnings/weeks/${startDate}`, cookWeekDetailSchema, opts);
 }
 
 /* -------------------------------------------------------------- devices --- */
