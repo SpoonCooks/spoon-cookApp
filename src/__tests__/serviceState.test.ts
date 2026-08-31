@@ -206,6 +206,23 @@ describe('projectServiceState', () => {
       expect(state.kind).toBe('awaiting_end_otp');
     });
 
+    /*
+     * The keypad opens five minutes early (founder, 2026-08-31).
+     *
+     * Waiting for zero meant the cook was still hunting for the screen at the moment the service
+     * was supposed to be over, so every job ran a little long for a reason that was purely
+     * interface. The boundary is asserted from both sides so the window cannot quietly widen.
+     */
+    it('opens the keypad five minutes before the end, not at zero', () => {
+      const state = projectServiceState({ ...cooking, endOtpReady: true, minutesRemaining: 5 })!;
+      expect(state.kind).toBe('awaiting_end_otp');
+    });
+
+    it('still shows the timer six minutes out', () => {
+      const state = projectServiceState({ ...cooking, endOtpReady: true, minutesRemaining: 6 })!;
+      expect(state.kind).toBe('cooking');
+    });
+
     it('does NOT bring the keypad back once the End OTP has been used', () => {
       // `endOtpReady` goes false the moment the code is accepted. Without it in the test the
       // clock alone would re-open the keypad on a service that is already over.

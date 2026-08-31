@@ -27,6 +27,14 @@
  * this module computes.
  */
 
+/**
+ * How long before the scheduled end the End OTP keypad opens (founder, 2026-08-31).
+ *
+ * A hand-over buffer, not a licence to end a service early: the cook can close out at most this
+ * many minutes ahead, and the customer's own screen is already showing them the code by then.
+ */
+export const END_OTP_WINDOW_MINUTES = 5;
+
 /** Backend booking status, exactly as the API reports it. */
 export const bookingStatuses = [
   'created',
@@ -337,11 +345,19 @@ export function projectServiceState(snapshot: ServiceSnapshot): ServiceState | n
        *
        * `endOtpReady` is still required, so an already-used End OTP cannot bring the keypad back.
        *
-       * KNOWN LIMIT: a cook cannot end EARLY, because V14 draws no affordance for it. If the
-       * customer is done at forty minutes of sixty she waits, or calls support. Raising that needs
-       * a frame, not a guess.
+       * FOUNDER DECISION (2026-08-31): the keypad opens `END_OTP_WINDOW_MINUTES` before the end,
+       * not at zero. Waiting for the timer to hit zero meant the cook was still hunting for the
+       * screen at the moment the service was supposed to be over, so every job ran a little long
+       * for a reason that was purely interface. Five minutes is enough to have the OTP read out
+       * and typed before time is actually up.
+       *
+       * This supersedes the note that a cook cannot end early: she now can, by up to five
+       * minutes. Beyond that she still waits — the window is a hand-over buffer, not a licence to
+       * cut a service short.
        */
-      if (snapshot.endOtpReady && minutesRemaining <= 0) return { kind: 'awaiting_end_otp', job };
+      if (snapshot.endOtpReady && minutesRemaining <= END_OTP_WINDOW_MINUTES) {
+        return { kind: 'awaiting_end_otp', job };
+      }
       return {
         kind: 'cooking',
         job,
