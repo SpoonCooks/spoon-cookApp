@@ -730,7 +730,9 @@ export function RatingStrip({
   return (
     <View style={[styles.row, { gap: s(RATING.headGap) }]} testID={testID}>
       <View style={styles.ratingText}>
-        <SectionLabel>rating</SectionLabel>
+        {/* Centred on founder instruction (2026-08-31): the word sat hard left of a block whose
+            figure and caption both read centred, so the row looked misaligned on the device. */}
+        <SectionLabel align="center">rating</SectionLabel>
         <Text variant="captionMuted" color={color.black80}>
           {rated ? `Last ${rating.count} kaam` : 'Abhi koi rating nahi'}
         </Text>
@@ -1067,9 +1069,20 @@ export function BackHeader({
 /* -------------------------------------------------------------------- internals --- */
 
 /** The red uppercase caption that opens every panel (`502:371`). */
-function SectionLabel({ children }: { children: React.ReactNode }): React.ReactElement {
+function SectionLabel({
+  children,
+  align,
+}: {
+  children: React.ReactNode;
+  align?: 'left' | 'center' | 'right';
+}): React.ReactElement {
   return (
-    <Text variant="overline" color={color.danger} style={styles.upper}>
+    <Text
+      variant="overline"
+      color={color.danger}
+      style={styles.upper}
+      {...(align === undefined ? {} : { align })}
+    >
       {children}
     </Text>
   );

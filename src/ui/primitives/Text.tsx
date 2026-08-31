@@ -78,6 +78,14 @@ export function Text({
       // column -- on `575:1744` it put `AAJ KI GALATIYAAN` sixteen rows below its design row while
       // each individual card was the right size. No effect on iOS, which never adds it.
       includeFontPadding: false,
+      // The companion to the line above, and the reason `Pakka` came out with its descender
+      // shaved off on the handset. With the font padding gone Android aligns a line to its
+      // BASELINE inside the box, so a face as tall as Livvic Black on a deliberately tight line
+      // (24 on 30, `displayTight`) overflows the bottom and is clipped there — always the same
+      // edge, which is why it read as "the text is cut" rather than "the text is small".
+      // Centring distributes that overflow across both edges, where the button's own padding
+      // absorbs it. It changes no box height, so every Figma-matched layout is untouched.
+      textAlignVertical: 'center' as const,
       fontSize: font(base.fontSize),
       lineHeight: s(base.lineHeight),
       ...('letterSpacing' in base && typeof base.letterSpacing === 'number'
