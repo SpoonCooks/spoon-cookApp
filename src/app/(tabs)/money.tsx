@@ -75,7 +75,13 @@ export default function MoneyScreen(): React.ReactElement {
     () =>
       earnings.data === undefined
         ? null
-        : toEarningsPeriodView(period, periodResponseFor(earnings.data, period), hoursBonus),
+        : toEarningsPeriodView(
+            period,
+            periodResponseFor(earnings.data, period),
+            hoursBonus,
+            // `536:207` — the rate the ledger would pay her today, not a total divided by days.
+            earnings.data.perDayBasePaise,
+          ),
     [earnings.data, period, hoursBonus],
   );
 

@@ -517,6 +517,13 @@ export const cookEarningsSchema = z.object({
   // `.nullish()` so a response from the still-deployed pre-GAP-19 API parses; the daily figures
   // then stay `—` exactly as before.
   dailyHours: cookDailyHoursSchema.nullish(),
+  /**
+   * `536:207` — the rate behind `CYCLE BASE (PRATI DIN)`, from the published tariff.
+   *
+   * `.nullish()` for the same reason `dailyHours` is: a deployment that predates it still parses,
+   * and the figure stays `—` rather than the screen failing to load.
+   */
+  perDayBasePaise: z.number().int().nullish(),
 });
 export type CookEarningsResponse = z.infer<typeof cookEarningsSchema>;
 

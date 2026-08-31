@@ -338,6 +338,13 @@ export function toEarningsPeriodView(
   period: EarningsPeriod,
   response: CookEarningsPeriodResponse,
   dailyHours?: DailyHoursView | null,
+  /**
+   * `536:207` — her CURRENT per-day base rate, published by the summary.
+   *
+   * Passed in rather than derived: `base / days` would invent a rate that matches no tariff and
+   * moves every time a day is added, which is why this drew a dash for so long.
+   */
+  perDayBasePaise?: number | null,
 ): EarningsPeriodView {
   const breakdown = toEarningsBreakdown(response.breakdown);
   const counts = response.breakdown.counts;
@@ -361,7 +368,7 @@ export function toEarningsPeriodView(
     workedMinutes: hours === null ? null : hours.workedMinutes,
     lateMinutes: null,
     aboveBasePaise: null,
-    perDayBasePaise: null,
+    perDayBasePaise: perDayBasePaise ?? null,
     extraKaamMultiplier: hours === null ? null : hours.bonusMinutes / 60,
     extraKaamRatePaise: hours === null ? null : hours.ratePerHourPaise,
     fiveStarDays: counts === undefined ? null : counts.ratingBonusDays,
