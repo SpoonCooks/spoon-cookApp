@@ -24,6 +24,7 @@ import type {
 } from '../domain/money';
 import { formatDateRange } from '../domain/money';
 import { toLeaveRequestStatus } from '../domain/leave';
+import { jobUrgencyFrom } from '../domain/job';
 import type { JobAction, JobCardModel } from '../domain/job';
 import type {
   ArrivalTiming,
@@ -153,6 +154,8 @@ export function toJobCard(job: CookJobResponse): JobCardModel {
     action,
     isActionable: actionable,
     isRunningLate: job.timing.riskState === 'TRAVEL_LATE',
+    // `4c` / `4d` / `4e`: the server's ruling, never the handset's clock.
+    urgency: jobUrgencyFrom(job.departure?.urgency),
     address: toAddress(job),
     gate: toGate(job),
   };

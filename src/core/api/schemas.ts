@@ -260,6 +260,19 @@ export const cookJobSchema = z.object({
     confirmedAt: isoString.nullable().optional(),
   }),
   otpEligibility: z.object({ start: z.boolean(), end: z.boolean() }),
+  /**
+   * `job flow` §5's ruling on how close the cook is to the moment she must leave.
+   *
+   * `nullish` so an older deployment still parses; absent reads as `unknown`, which keeps the
+   * calmest treatment rather than inventing an escalation.
+   */
+  departure: z
+    .object({
+      requiredStartAt: isoString.nullable(),
+      latestFeasibleDepartureAt: isoString.nullable(),
+      urgency: z.enum(['soon', 'imminent', 'critical', 'unknown']),
+    })
+    .nullish(),
   reassignment: z.object({
     assignmentVersion: z.number().int(),
     current: z.boolean(),

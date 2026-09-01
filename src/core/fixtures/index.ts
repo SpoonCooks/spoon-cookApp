@@ -107,6 +107,7 @@ const currentJob: JobCardModel = {
   action: 'start_travel',
   isActionable: false,
   isRunningLate: false,
+  urgency: 'soon',
   address,
   gate,
 };

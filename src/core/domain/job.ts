@@ -49,6 +49,13 @@ export interface JobCardModel {
   readonly isActionable: boolean;
   /** Drives the `RUNNING LATE` badge (`434:2743`). Server-supplied. */
   readonly isRunningLate: boolean;
+  /**
+   * `job flow` §5's tier for this card, as the SERVER rules it.
+   *
+   * Was `defaultJobUrgency` for every job, because the projection published no ruling — so `4d`
+   * and `4e` were unreachable and a cook never saw the "leave now" card the design draws for her.
+   */
+  readonly urgency: JobUrgency;
 
   readonly address: CustomerAddressSnapshot;
   readonly gate: GateTarget | null;
@@ -142,6 +149,17 @@ export type JobUrgency = (typeof jobUrgencies)[number];
  * shown a red "leave now" card the server did not ask for.
  */
 export const defaultJobUrgency: JobUrgency = 'soon';
+
+/**
+ * The server's ruling, narrowed to the three tiers the card draws.
+ *
+ * `unknown` — no route evidence supports a departure deadline, and DEC-059 forbids manufacturing
+ * one — degrades to the calmest tier. Absence of evidence is not urgency, exactly as it is not
+ * lateness on the travel banner.
+ */
+export function jobUrgencyFrom(urgency: string | null | undefined): JobUrgency {
+  return urgency === 'imminent' || urgency === 'critical' ? urgency : defaultJobUrgency;
+}
 
 /** Group jobs by IST service date, preserving server order within each group. */
 export function groupJobsByDate(

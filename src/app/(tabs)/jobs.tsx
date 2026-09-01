@@ -149,6 +149,8 @@ export default function JobsScreen(): React.ReactElement {
       onHelp={() => void openSupportWhatsApp(profile.data?.cook.name ?? null)}
       dateLabel={formatServerDate(jobs.data?.serverTime ?? profile.data?.serverTime ?? null)}
       leadJob={leadJob}
+      // `4c` / `4d` / `4e`: the tier the SERVER ruled for this job, not a client guess.
+      {...(leadJob === null ? {} : { leadUrgency: leadJob.urgency })}
       jobs={rest}
       breakWindow={breakWindow}
       onStartTravel={startTravel}

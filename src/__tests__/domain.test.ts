@@ -107,6 +107,7 @@ describe('groupJobsByDate', () => {
     action: 'none',
     isActionable: false,
     isRunningLate: false,
+    urgency: 'soon',
     address: {
       buildingName: null,
       towerOrBlock: null,

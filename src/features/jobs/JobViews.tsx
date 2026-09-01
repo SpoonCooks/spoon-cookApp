@@ -148,9 +148,10 @@ export interface JobsViewProps {
   /**
    * Which colourway the lead card is drawn in.
    *
-   * Explicit rather than derived: the design's three tiers name thresholds its own mock values
-   * contradict (see `jobUrgencies`), so fixtures set the tier per frame and production passes
-   * `defaultJobUrgency`.
+   * The SERVER's ruling, from DEC-044/DEC-059's departure plan: `soon` before the cook should set
+   * off, `imminent` once she should have, `critical` past the last departure that still arrives on
+   * time. Production used to pass `defaultJobUrgency` for every job because the projection
+   * published no ruling, so two of the three designed states were unreachable.
    */
   readonly leadUrgency?: JobUrgency | undefined;
   readonly jobs: readonly JobCardModel[];

@@ -16,6 +16,7 @@ const job: JobCardModel = {
   action: 'start_travel',
   isActionable: false,
   isRunningLate: false,
+  urgency: 'soon',
   address: {
     buildingName: null,
     towerOrBlock: null,
