@@ -52,3 +52,50 @@ describe('the other Service frames keep the Active job title', () => {
     expect(screen.getByTestId('service-nav-title')).toHaveTextContent('Active job');
   });
 });
+
+/**
+ * `707:435` — "Pahauch gaye" belongs to the TRAVEL frames too.
+ *
+ * All four travel frames carry the control at the same geometry: greyed while the cook is on her
+ * way, lime once she is there. The app drew only the enabled one, on the arrival screen, so for
+ * the whole journey there was no button at all — no affordance, and no sense of what unlocks it.
+ *
+ * What unlocks it is the SERVER, not the ETA. The document says "enabled when `ETA_running` < 1
+ * min"; the backend refuses a manual arrival without a fresh position inside 75 m of the gate
+ * (`ARRIVAL_PROXIMITY_NOT_CONFIRMED`), and one minute of ETA is no guarantee of being inside 75 m.
+ * Enabling on the ETA would hand the cook a button that errors under her thumb. So the travel
+ * screens draw it inert and the arrival screen — reached when the server confirms proximity —
+ * draws the same control live.
+ */
+describe('707:446 — the arrival CTA on the travel frames', () => {
+  const travel = (timing: 'on_time' | 'at_risk' | 'late') =>
+    render(
+      <TravelView
+        job={serviceV14Fixtures.job()}
+        timing={timing}
+        minutesToDeadline={5}
+        minutesToArrival={8}
+      />,
+    );
+
+  it.each(['on_time', 'at_risk', 'late'] as const)('is drawn on the %s frame', (timing) => {
+    travel(timing);
+    expect(screen.getByTestId('service-travel-arrived')).toBeTruthy();
+  });
+
+  it('is inert while travelling, and says so to a screen reader', () => {
+    travel('on_time');
+    const cta = screen.getByTestId('service-travel-arrived');
+
+    expect(cta.props.accessibilityState).toEqual({ disabled: true });
+    // Not merely greyed: a colour is not an explanation.
+    expect(cta.props.accessibilityHint).toBe('Location par pahauchne ke baad chalu hoga');
+  });
+
+  it('carries no press handler at all, so it cannot fire a refusal', () => {
+    travel('late');
+    // Belt and braces beside `disabled`: the callback is not wired on the travel screens, so a
+    // synthesised press cannot reach `POST /cook/bookings/:id/arrive` from here.
+    expect(screen.getByTestId('service-travel-arrived').props.onPress).toBeUndefined();
+  });
+});

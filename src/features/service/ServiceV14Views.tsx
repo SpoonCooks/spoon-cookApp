@@ -617,6 +617,71 @@ export interface TravelViewProps {
   readonly onHelp?: (() => void) | undefined;
 }
 
+/**
+ * `468:4045` — "Pahauch gaye", the arrival CTA.
+ *
+ * Drawn on the TRAVEL frames as well as the arrival one. All four travel frames in `707:435`
+ * carry it at the same geometry: greyed while the cook is still on her way, lime once she is
+ * there. The Cook App only ever rendered the enabled one, on the arrival screen, so during the
+ * entire journey there was no button at all -- no affordance, and no sense of what unlocks it.
+ *
+ * ## What actually enables it
+ *
+ * The flow document says "enabled when the cook's `ETA_running` < 1 min". The BACKEND refuses a
+ * manual arrival unless it has a fresh position within `TRACKING_GATE_ARRIVAL_RADIUS_METERS`
+ * (75 m) of the gate -- `ARRIVAL_PROXIMITY_NOT_CONFIRMED`. Those are not the same rule, and an ETA
+ * of one minute is not a guarantee of being inside 75 m: enabling on the ETA would hand the cook a
+ * button that errors when she presses it.
+ *
+ * So the enabled state is the SERVER's: once proximity is confirmed the booking moves to
+ * `cook_arrived` and `ArrivalView` draws this same control live. The travel screens draw it inert.
+ * The sequence the frames show is preserved; what unlocks it is the thing that can actually
+ * authorise it.
+ */
+function ArrivedCta({
+  onPress,
+  disabled = false,
+  testID,
+}: {
+  readonly onPress?: (() => void) | undefined;
+  readonly disabled?: boolean;
+  readonly testID: string;
+}): React.ReactElement {
+  const { s } = useDesignScale();
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityState={{ disabled }}
+      // Announced rather than left for the cook to work out from the colour alone.
+      accessibilityHint={disabled ? 'Location par pahauchne ke baad chalu hoga' : undefined}
+      disabled={disabled}
+      {...(disabled || onPress === undefined ? {} : { onPress })}
+      style={[
+        styles.arrivedCta,
+        disabled ? styles.arrivedCtaDisabled : null,
+        {
+          borderRadius: s(ARRIVED_CTA.radius),
+          paddingHorizontal: s(ARRIVED_CTA.paddingH),
+          paddingVertical: s(ARRIVED_CTA.paddingV),
+          gap: s(ARRIVED_CTA.gap),
+        },
+      ]}
+      testID={testID}
+    >
+      <Image
+        source={art.done}
+        style={{ width: s(ARRIVED_CTA.glyph), height: s(ARRIVED_CTA.glyph) }}
+        resizeMode="contain"
+        accessibilityIgnoresInvertColors
+      />
+      <Text variant="cardCountdown" color={color.black} align="center">
+        Pahauch gaye
+      </Text>
+    </Pressable>
+  );
+}
+
 /** `614:453` / `622:597` / `622:530`. */
 export function TravelView({
   job,
@@ -707,6 +772,10 @@ export function TravelView({
         </View>
       </Block>
       <UserDetailsCard job={job} onMap={onMap} onCall={onCall} />
+      {/* `707:446` — present on every travel frame, inert until the server confirms arrival. */}
+      <Block>
+        <ArrivedCta disabled testID="service-travel-arrived" />
+      </Block>
     </ServiceShell>
   );
 }
@@ -816,32 +885,7 @@ export function ArrivalView({
         </View>
       </Block>
       <Block>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityState={{ disabled: isSubmitting }}
-          disabled={isSubmitting}
-          onPress={onArrived}
-          style={[
-            styles.arrivedCta,
-            {
-              borderRadius: s(ARRIVED_CTA.radius),
-              paddingHorizontal: s(ARRIVED_CTA.paddingH),
-              paddingVertical: s(ARRIVED_CTA.paddingV),
-              gap: s(ARRIVED_CTA.gap),
-            },
-          ]}
-          testID="service-arrived"
-        >
-          <Image
-            source={art.done}
-            style={{ width: s(ARRIVED_CTA.glyph), height: s(ARRIVED_CTA.glyph) }}
-            resizeMode="contain"
-            accessibilityIgnoresInvertColors
-          />
-          <Text variant="cardCountdown" color={color.black} align="center">
-            Pahauch gaye
-          </Text>
-        </Pressable>
+        <ArrivedCta onPress={onArrived} disabled={isSubmitting} testID="service-arrived" />
       </Block>
       <UserDetailsCard job={job} onMap={onMap} onCall={onCall} />
     </ServiceShell>
@@ -1445,6 +1489,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: color.lime600,
   },
+  /** `707:446` — the same control, greyed while the cook is still travelling. */
+  arrivedCtaDisabled: { backgroundColor: color.grey100 },
 
   detailsCard: {
     alignItems: 'flex-start',
