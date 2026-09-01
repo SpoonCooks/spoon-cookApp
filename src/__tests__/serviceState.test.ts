@@ -27,6 +27,7 @@ const base: ServiceSnapshot = {
   clock: { serverNowIso: '2026-08-21T11:24:00+05:30', receivedAtMs: 0 },
   travelTiming: null,
   minutesToDeadline: null,
+  minutesToArrival: null,
   arrivalTiming: null,
   startOtpReady: false,
   endOtpReady: false,
@@ -103,6 +104,7 @@ describe('projectServiceState', () => {
         status: 'cook_en_route',
         travelTiming: timing,
         minutesToDeadline: minutes,
+        minutesToArrival: null,
       })!;
       expect(state).toMatchObject({ kind: 'travelling', timing, minutesToDeadline: minutes });
     });
@@ -113,6 +115,7 @@ describe('projectServiceState', () => {
         status: 'cook_en_route',
         travelTiming: 'late',
         minutesToDeadline: -12,
+        minutesToArrival: null,
       })!;
       // Clamping would erase the distinction between "may be late" and "is late".
       expect(state).toMatchObject({ minutesToDeadline: -12 });

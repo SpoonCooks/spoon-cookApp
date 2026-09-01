@@ -326,6 +326,7 @@ export default function ServiceScreen(): React.ReactElement {
             job={state.job}
             timing={state.timing}
             minutesToDeadline={state.minutesToDeadline}
+            minutesToArrival={state.minutesToArrival}
             onMap={openGate}
           />
         );

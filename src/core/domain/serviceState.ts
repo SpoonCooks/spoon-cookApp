@@ -222,6 +222,12 @@ export type ServiceState =
        * passed — the Figma `-2 mins` state. Do not clamp to zero.
        */
       readonly minutesToDeadline: number;
+      /**
+       * `ETA_running` — the travel time the card actually names ("Location ki duri").
+       *
+       * `null` when the server has no usable ETA, and the deadline countdown is drawn instead.
+       */
+      readonly minutesToArrival: number | null;
     }
   | { readonly kind: 'arrived'; readonly job: JobSummary; readonly timing: ArrivalTiming }
   | {
@@ -269,6 +275,16 @@ export interface ServiceSnapshot {
   readonly clock: ServerClock;
   readonly travelTiming: TravelTiming | null;
   readonly minutesToDeadline: number | null;
+  /**
+   * `ETA_running` — the cook's TRAVEL time to the gate, in whole minutes.
+   *
+   * This is what "Location ki duri" means and what the flow document defines: "the time left to
+   * reach the user's location from the time at which the cook's location is checked". It moves
+   * when she moves, and does not move when she does not.
+   *
+   * `null` when the server has no usable ETA, which is a real state and not a zero.
+   */
+  readonly minutesToArrival: number | null;
   readonly arrivalTiming: ArrivalTiming | null;
   /** Server says the Start OTP may now be entered. Never inferred from arrival alone. */
   readonly startOtpReady: boolean;
@@ -310,6 +326,9 @@ export function projectServiceState(snapshot: ServiceSnapshot): ServiceState | n
         // Absent server ruling degrades to `on_time` rather than accusing the cook of lateness.
         timing: snapshot.travelTiming ?? 'on_time',
         minutesToDeadline: snapshot.minutesToDeadline ?? 0,
+        // Not defaulted to 0: no ETA is not "arriving now", and the card falls back to the
+        // deadline countdown rather than drawing a zero it cannot justify.
+        minutesToArrival: snapshot.minutesToArrival,
       };
 
     case 'cook_arrived': {

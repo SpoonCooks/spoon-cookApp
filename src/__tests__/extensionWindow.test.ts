@@ -128,6 +128,7 @@ describe('the cooking projection', () => {
     clock: { serverNowIso, receivedAtMs: 0 },
     travelTiming: null,
     minutesToDeadline: null,
+    minutesToArrival: null,
     arrivalTiming: null,
     startOtpReady: false,
     endOtpReady: false,

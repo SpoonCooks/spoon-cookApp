@@ -316,6 +316,7 @@ const baseSnapshot: ServiceSnapshot = {
   clock: { serverNowIso: '2026-08-21T11:24:00+05:30', receivedAtMs: 0 },
   travelTiming: null,
   minutesToDeadline: null,
+  minutesToArrival: null,
   arrivalTiming: null,
   startOtpReady: false,
   endOtpReady: false,

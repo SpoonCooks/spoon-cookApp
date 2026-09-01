@@ -600,6 +600,18 @@ export interface TravelViewProps {
   readonly timing: TravelTiming;
   /** Server-computed. NEGATIVE past the deadline — `622:538` draws `-6 mins`. Never clamped. */
   readonly minutesToDeadline: number;
+  /**
+   * `ETA_running` — the cook's TRAVEL time to the gate, which is what "Location ki duri" says.
+   *
+   * Preferred over `minutesToDeadline` whenever the server has one. The two are different
+   * questions and were being confused: a countdown to the service time falls whether or not the
+   * cook moves, and goes negative once it passes, so a cook standing still watched "13 mins"
+   * become "-1" without having gone anywhere. Her distance had not changed at all.
+   *
+   * `null` when the server has no usable ETA. The deadline countdown is then shown instead —
+   * still the wrong question, but the only number there is, and better than an empty card.
+   */
+  readonly minutesToArrival?: number | null | undefined;
   readonly onMap?: (() => void) | undefined;
   readonly onCall?: (() => void) | undefined;
   readonly onHelp?: (() => void) | undefined;
@@ -610,6 +622,7 @@ export function TravelView({
   job,
   timing,
   minutesToDeadline,
+  minutesToArrival,
   onMap,
   onCall,
   onHelp,
@@ -617,6 +630,8 @@ export function TravelView({
   const scale = useDesignScale();
   const { s } = scale;
   const tier = TRAVEL_TIER[timing];
+  // The travel time when there is one; the deadline countdown only as a fallback.
+  const shown = minutesToArrival ?? minutesToDeadline;
 
   return (
     <ServiceShell onHelp={onHelp} testID={`service-travel-${timing}`}>
@@ -685,7 +700,7 @@ export function TravelView({
                 align="center"
                 testID="service-travel-countdown"
               >
-                {`${minutesToDeadline} mins`}
+                {`${shown} mins`}
               </Text>
             </View>
           </View>

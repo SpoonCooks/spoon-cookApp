@@ -209,6 +209,10 @@ export function toServiceSnapshot(
     clock: { serverNowIso: job.serverTime, receivedAtMs },
     travelTiming,
     minutesToDeadline: minutesBetween(job.serverTime, job.timing.customerCommitmentAt),
+    // `ETA_running`: the arrival instant the server projected, expressed as the travel time left.
+    // Same two-server-timestamp subtraction as above, so the device clock is still never consulted.
+    minutesToArrival:
+      job.timing.eta === null ? null : minutesBetween(job.serverTime, job.timing.eta),
     arrivalTiming,
     startOtpReady: job.otpEligibility.start,
     endOtpReady: job.otpEligibility.end,
