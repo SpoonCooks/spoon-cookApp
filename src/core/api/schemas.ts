@@ -131,6 +131,17 @@ export const cookProfileSchema = z.object({
       assignmentVersion: z.number().int(),
     })
     .nullable(),
+  /**
+   * The bounds the Chutti screens draw, as the SERVER holds them.
+   *
+   * `nullish` so a deployment that predates this field still parses; the calendar falls back to
+   * its old behaviour rather than failing the whole profile read over a policy number.
+   */
+  leavePolicy: z
+    .object({
+      longLeaveNoticeDays: z.number().int().nonnegative(),
+    })
+    .nullish(),
   serverTime: isoString,
 });
 export type CookProfileResponse = z.infer<typeof cookProfileSchema>;

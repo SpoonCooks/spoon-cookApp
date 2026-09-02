@@ -12,7 +12,7 @@ import {
   type LeaveRequestKind,
 } from '@core/domain/leave';
 import { LongLeaveSheetView } from '@features/leave/LeaveViews';
-import { leaveRequestErrorMessage, monthLabel } from '@features/leave/leaveModel';
+import { addDays, leaveRequestErrorMessage, monthLabel } from '@features/leave/leaveModel';
 import { ErrorState, LoadingState } from '@ui';
 import { openSupportWhatsApp } from '@core/support/whatsapp';
 
@@ -90,9 +90,27 @@ export default function RangeLeaveScreen(): React.ReactElement {
     );
   }
 
-  // Today closes the days behind it, but only in the month today is IN. Every later month is
-  // open from the first — the old code applied the server's day-of-month to whatever was shown.
-  const firstOpenDay = monthsAhead === 0 ? Number(todayIso.slice(8, 10)) : 1;
+  /*
+   * The earliest day a LONG leave may start, greyed out before it.
+   *
+   * Two rules, and both are the server's. Today closes the days behind it — but only in the month
+   * today is in; every later month opens from the first, which the old code got wrong by applying
+   * the server's day-of-month to whatever month was on screen.
+   *
+   * On top of that, a multi-day leave needs notice. `requestCookLeave` refuses a long leave that
+   * starts sooner than `longLeaveNoticeDays`, so a calendar that let one be selected would offer a
+   * range the server rejects under the cook's thumb. The number comes from the profile rather than
+   * a constant here: two copies drift the moment operations tunes it.
+   */
+  const noticeDays = profile.data?.leavePolicy?.longLeaveNoticeDays ?? 0;
+  const earliestIso = addDays(todayIso, noticeDays);
+  const earliestMonthKey = earliestIso.slice(0, 7);
+  const firstOpenDay =
+    shownMonthKey === '' || shownMonthKey > earliestMonthKey
+      ? 1
+      : shownMonthKey < earliestMonthKey
+        ? Number.MAX_SAFE_INTEGER
+        : Number(earliestIso.slice(8, 10));
 
   const selection: LeaveRequestKind | null =
     fromDay === null

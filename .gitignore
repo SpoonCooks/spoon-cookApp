@@ -19,3 +19,9 @@ expo-env.d.ts
 # the .py files are the source of truth and the cache is machine-specific.
 __pycache__/
 *.pyc
+
+# Firebase Android config. Supplied per build, never committed: it carries the project's Android
+# API key, and which Firebase project a build talks to is an environment decision rather than a
+# property of the source. The customer app ignores it for the same reason.
+google-services.json
+GoogleService-Info.plist

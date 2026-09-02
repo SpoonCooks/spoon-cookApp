@@ -83,6 +83,22 @@ const DEV_FALLBACK_API_BASE_URL = 'https://spoon-api-kalc.onrender.com';
 
 const BUNDLE_ID = `com.spoonhelp.cookapp${BUNDLE_SUFFIX[APP_ENV]}`;
 
+/**
+ * Firebase Android config, supplied by PATH and never committed.
+ *
+ * `expo-notifications` asks Firebase for the device token, and Firebase will only issue one to a
+ * build that carries this file for its own package name. Without it `getDevicePushTokenAsync`
+ * resolves `unavailable`, no token is ever registered, and every alert the backend sends comes
+ * back `no_device` -- which is exactly what the database showed on 2026-09-02: twelve start
+ * alerts, none delivered, not one cook reachable.
+ *
+ * Defaulted to the repo root rather than left required, because that is where the file lands and
+ * a build that silently has no push is worse than one that finds it without being told. It is
+ * gitignored: it names the Firebase project a build talks to, which is an environment decision,
+ * and it carries the project's Android API key.
+ */
+const GOOGLE_SERVICES_JSON = process.env.GOOGLE_SERVICES_JSON ?? './google-services.json';
+
 const BUILD_PROVENANCE_RELEASE_SHA =
   process.env.SPOON_RELEASE_SHA ?? process.env.GIT_COMMIT_SHA ?? 'unknown';
 const BUILD_PROVENANCE_TIMESTAMP = process.env.SPOON_BUILD_TIMESTAMP ?? new Date().toISOString();
@@ -123,6 +139,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   assetBundlePatterns: ['**/*'],
   android: {
     package: BUNDLE_ID,
+    googleServicesFile: GOOGLE_SERVICES_JSON,
     adaptiveIcon: { backgroundColor: BRAND_YELLOW },
     permissions: [
       'ACCESS_COARSE_LOCATION',
@@ -196,10 +213,10 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
         isAndroidForegroundServiceEnabled: true,
       },
     ],
-    // Remote delivery additionally needs the Cook App's own `google-services.json` / FCM sender
-    // identity, which is PENDING_FOUNDER. The plugin is declared so the native notification
-    // module, the Android channel and the POST_NOTIFICATIONS prompt are built in; without the
-    // Firebase file, token acquisition resolves `unavailable` rather than crashing.
+    // The native notification module, the Android channel and the POST_NOTIFICATIONS prompt.
+    // Remote delivery also needs `google-services.json`, wired above as of 2026-09-02 -- the
+    // founder registered com.spoonhelp.cookapp in Firebase project august-dev-3b4bf. Before that
+    // it was PENDING_FOUNDER and token acquisition resolved `unavailable` rather than crashing.
     'expo-notifications',
     // Must stay in the list: `android/` is gitignored and regenerated, so this is the only thing
     // that survives `expo prebuild --clean`.
