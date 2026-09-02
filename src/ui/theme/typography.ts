@@ -422,7 +422,18 @@ export const textStyle = {
   unitLabel: {
     fontFamily: fontFamily.semibold,
     fontSize: fontSize.xl,
-    lineHeight: lineHeight.s,
+    /*
+     * `lineHeight.l` (20), not `lineHeight.s` (16), which is the font size itself.
+     *
+     * Figma draws this on a 16-high box and gets away with it; React Native on Android does not.
+     * An explicit line height equal to the font size leaves no room below the baseline, so the
+     * descender is clipped -- "ghante" lost the tail of its `g` on the device, which is the only
+     * word in the app where it shows.
+     *
+     * Safe for layout: both users sit in rows with `alignItems: 'center'` beside a 30/32 figure,
+     * so the row's height is set by the number and a taller word box changes nothing.
+     */
+    lineHeight: lineHeight.l,
     color: color.textPrimary,
   },
   /** `502:631` — a past-cycle row title, `18 Jul - 21 Jul`. Black 18/28, tracking `-0.45`. */

@@ -695,8 +695,23 @@ export function TravelView({
   const scale = useDesignScale();
   const { s } = scale;
   const tier = TRAVEL_TIER[timing];
-  // The travel time when there is one; the deadline countdown only as a fallback.
-  const shown = minutesToArrival ?? minutesToDeadline;
+  /*
+   * The travel time, or nothing — never the deadline countdown in its place.
+   *
+   * This used to fall back to `minutesToDeadline`, and the two are different quantities under one
+   * label. On 2026-09-02 a cook opened an 08:30 job at 07:32 before the first ETA had been
+   * computed: the card showed "57 mins", which was the time until her BOOKING, and three seconds
+   * later the real ETA arrived at one minute. The number collapsed by an hour and read as broken.
+   *
+   * It was not broken, and that is the point — a card labelled "Location ki duri" that silently
+   * swaps in a different measurement cannot be read at all. With no ETA the honest answer is that
+   * we do not know yet, and `--` says so.
+   *
+   * `minutesToDeadline` stays on the props: it is still the right number for a screen that asks
+   * how long until the booking, and removing it would only push this confusion somewhere else.
+   */
+  const shown =
+    minutesToArrival === null || minutesToArrival === undefined ? null : minutesToArrival;
 
   return (
     <ServiceShell onHelp={onHelp} testID={`service-travel-${timing}`}>
@@ -765,7 +780,7 @@ export function TravelView({
                 align="center"
                 testID="service-travel-countdown"
               >
-                {`${shown} mins`}
+                {shown === null ? '--' : `${shown} mins`}
               </Text>
             </View>
           </View>

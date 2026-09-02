@@ -99,3 +99,38 @@ describe('707:446 — the arrival CTA on the travel frames', () => {
     expect(screen.getByTestId('service-travel-arrived').props.onPress).toBeUndefined();
   });
 });
+
+/**
+ * The travel card shows the ETA or nothing — never the deadline countdown wearing its label.
+ *
+ * On 2026-09-02 a cook opened an 08:30 job at 07:32, before the first ETA had been computed. The
+ * card fell back to `minutesToDeadline` and showed "57 mins" — the time until her BOOKING — and
+ * three seconds later the real ETA arrived at one minute. The number collapsed by an hour and read
+ * as a bug. It was not one: it was two different measurements sharing a label, which is a card
+ * that cannot be read at all.
+ */
+describe('the travel card refuses to substitute a different measurement', () => {
+  const view = (minutesToArrival: number | null) =>
+    render(
+      <TravelView
+        job={serviceV14Fixtures.job()}
+        timing="on_time"
+        minutesToDeadline={57}
+        minutesToArrival={minutesToArrival}
+      />,
+    );
+
+  it('shows the travel time when the server has one', () => {
+    view(2);
+    expect(screen.getByTestId('service-travel-countdown')).toHaveTextContent('2 mins');
+  });
+
+  it('shows a placeholder rather than the time until the booking', () => {
+    view(null);
+    const countdown = screen.getByTestId('service-travel-countdown');
+
+    expect(countdown).toHaveTextContent('--');
+    // The exact regression: 57 was the deadline, not the distance.
+    expect(countdown).not.toHaveTextContent('57');
+  });
+});

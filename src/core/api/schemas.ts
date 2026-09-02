@@ -261,6 +261,26 @@ export const cookJobSchema = z.object({
   }),
   otpEligibility: z.object({ start: z.boolean(), end: z.boolean() }),
   /**
+   * Whether the server would ACCEPT a start-travel command right now.
+   *
+   * `startCommute` refuses a cook who has not marked present for the booking's service date, so
+   * offering the CTA on the client's own reading would hand her a button that fails under her
+   * thumb. `nullish` for an older deployment; absent falls back to the status-only rule the app
+   * used before.
+   */
+  commandEligibility: z.object({ startTravel: z.boolean() }).nullish(),
+  /** Every confirmed extension, oldest first — the `timer-2x extension` frame draws one row each. */
+  extensions: z
+    .array(
+      z.object({
+        state: z.string(),
+        minutes: z.number(),
+        expectedEnd: isoString.nullable(),
+        confirmedAt: isoString.nullable(),
+      }),
+    )
+    .nullish(),
+  /**
    * `job flow` §5's ruling on how close the cook is to the moment she must leave.
    *
    * `nullish` so an older deployment still parses; absent reads as `unknown`, which keeps the

@@ -737,9 +737,11 @@ export function RatingStrip({
   return (
     <View style={[styles.row, { gap: s(RATING.headGap) }]} testID={testID}>
       <View style={styles.ratingText}>
-        {/* Centred on founder instruction (2026-08-31): the word sat hard left of a block whose
-            figure and caption both read centred, so the row looked misaligned on the device. */}
-        <SectionLabel align="center">rating</SectionLabel>
+        {/* Right-aligned on founder instruction (2026-09-01), superseding the centring asked for
+            on 2026-08-31. Centred, the word floated between its own caption on the left and the
+            star on the right and belonged to neither; against the right edge it reads as the
+            heading of the figure it labels. */}
+        <SectionLabel align="right">rating</SectionLabel>
         <Text variant="captionMuted" color={color.black80}>
           {rated ? `Last ${rating.count} kaam` : 'Abhi koi rating nahi'}
         </Text>

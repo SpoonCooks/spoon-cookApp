@@ -137,7 +137,16 @@ export function toJobSummary(job: CookJobResponse): JobSummary {
  */
 export function toJobCard(job: CookJobResponse): JobCardModel {
   const status = toBookingStatus(job.status);
-  const actionable = job.reassignment.current && (status === 'assigned' || status === 'created');
+  /*
+   * The SERVER decides whether she may set off.
+   *
+   * `startCommute` refuses a cook who has not marked present for this booking's service date, so
+   * deciding it here would offer a CTA the endpoint rejects. An older deployment sends no ruling,
+   * and the status-only rule it used before is the fallback.
+   */
+  const statusStartable = status === 'assigned' || status === 'created';
+  const actionable =
+    job.reassignment.current && (job.commandEligibility?.startTravel ?? statusStartable);
   const action: JobAction = actionable ? 'start_travel' : 'none';
 
   return {
@@ -225,7 +234,9 @@ export function toServiceSnapshot(
     minutesRemaining: remaining === null ? null : Math.round(remaining / 60),
     isEndingSoon: job.timer.tenMinuteState === 'warning',
     extension: toExtension(job),
-    canStartTravel: job.reassignment.current && (status === 'assigned' || status === 'created'),
+    canStartTravel:
+      job.reassignment.current &&
+      (job.commandEligibility?.startTravel ?? (status === 'assigned' || status === 'created')),
     interruption,
   };
 }
