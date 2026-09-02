@@ -737,11 +737,10 @@ export function RatingStrip({
   return (
     <View style={[styles.row, { gap: s(RATING.headGap) }]} testID={testID}>
       <View style={styles.ratingText}>
-        {/* Right-aligned on founder instruction (2026-09-01), superseding the centring asked for
-            on 2026-08-31. Centred, the word floated between its own caption on the left and the
-            star on the right and belonged to neither; against the right edge it reads as the
-            heading of the figure it labels. */}
-        <SectionLabel align="right">rating</SectionLabel>
+        {/* LEFT-aligned on founder instruction (2026-09-02), superseding the right alignment of
+            2026-09-01 and the centring of 2026-08-31. Three rulings on one word: the alignment is
+            the founder's call each time, so it is stated here rather than reasoned about. */}
+        <SectionLabel align="left">rating</SectionLabel>
         <Text variant="captionMuted" color={color.black80}>
           {rated ? `Last ${rating.count} kaam` : 'Abhi koi rating nahi'}
         </Text>
