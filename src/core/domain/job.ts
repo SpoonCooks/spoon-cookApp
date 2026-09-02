@@ -50,6 +50,16 @@ export interface JobCardModel {
   /** Drives the `RUNNING LATE` badge (`434:2743`). Server-supplied. */
   readonly isRunningLate: boolean;
   /**
+   * The booking is CANCELLED and the card is here so she can find that out.
+   *
+   * `listCookJobs` keeps a cancelled job on the list for six hours after it is cancelled. Before
+   * that it dropped the card the instant the booking ended, so the only way to see the V14
+   * cancellation frame was to already be standing on that job's service screen when the
+   * cancellation landed — and with no push device registered, a cook who was anywhere else was
+   * simply never told. Tapping the card opens the frame.
+   */
+  readonly isCancelled: boolean;
+  /**
    * `job flow` §5's tier for this card, as the SERVER rules it.
    *
    * Was `defaultJobUrgency` for every job, because the projection published no ruling — so `4d`

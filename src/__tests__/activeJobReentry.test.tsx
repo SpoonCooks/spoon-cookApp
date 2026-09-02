@@ -129,3 +129,64 @@ describe('a job can be opened without being startable', () => {
     expect(opened).toEqual([]);
   });
 });
+
+/**
+ * The other way a cook loses sight of a job: it is cancelled while she is looking elsewhere.
+ *
+ * `622:913` — the frame that tells her — renders from the job DETAIL, so it was only ever
+ * reachable by already standing on that job's service screen when the cancellation landed. The
+ * list dropped the card the instant the booking ended, and with no push device registered
+ * (`dispatch_outcome = 'no_device'`) a cook who was anywhere else was simply never told: on
+ * 2026-09-02 the founder cancelled an assigned booking and the assigned cook saw nothing at all.
+ *
+ * `listCookJobs` now keeps the card for six hours. These pin the two things that makes it worth
+ * keeping: it must SAY it is cancelled, and it must still open.
+ */
+describe('a cancelled job stays visible long enough to be found', () => {
+  it('marks the card rather than leaving it looking like a job that is still on', () => {
+    const state = jobsV14Fixtures.countdown(20, 'soon');
+    const job = state.jobs[0];
+    if (job === undefined) throw new Error('fixture has no non-lead job');
+
+    render(
+      withSafeArea(
+        <JobsView
+          dateLabel="7 November"
+          leadJob={null}
+          jobs={[{ ...job, isCancelled: true, isActionable: false }]}
+          breakWindow={state.breakWindow}
+        />,
+      ),
+    );
+
+    expect(screen.getByTestId('job-tile-cancelled')).toBeTruthy();
+  });
+
+  it('says nothing on a job that is still going to happen', () => {
+    const state = jobsV14Fixtures.countdown(20, 'soon');
+    render(withSafeArea(<JobsView dateLabel="7 November" {...state} />));
+    expect(screen.queryByTestId('job-tile-cancelled')).toBeNull();
+  });
+
+  it('still opens, because the card is the only route to the cancellation frame', () => {
+    const state = jobsV14Fixtures.countdown(20, 'soon');
+    const job = state.jobs[0];
+    if (job === undefined) throw new Error('fixture has no non-lead job');
+    const onOpenJob = jest.fn();
+
+    render(
+      withSafeArea(
+        <JobsView
+          dateLabel="7 November"
+          leadJob={null}
+          jobs={[{ ...job, isCancelled: true, isActionable: false }]}
+          breakWindow={state.breakWindow}
+          onOpenJob={onOpenJob}
+        />,
+      ),
+    );
+
+    fireEvent.press(screen.getByTestId(`job-tile-${job.bookingId}`));
+    expect(onOpenJob).toHaveBeenCalledWith(job.bookingId);
+  });
+});

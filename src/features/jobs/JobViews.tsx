@@ -281,7 +281,10 @@ function JobTile({
           paddingV: CARD.paddingV,
           align: 'inside',
         }),
-        { borderRadius: s(CARD.radius), borderColor: color.yellow600 },
+        {
+          borderRadius: s(CARD.radius),
+          borderColor: job.isCancelled ? color.danger : color.yellow600,
+        },
       ]}
       testID={`job-tile-${job.bookingId}`}
     >
@@ -303,6 +306,20 @@ function JobTile({
         <Text variant="cardTitle" color={color.black}>
           {job.societyOrBuilding}
         </Text>
+        {/*
+         * FIGMA_PENDING — no frame draws a cancelled card in the list, because until 2026-09-02
+         * the list never held one. `622:913` is the cancellation the design DOES draw, and this
+         * card is the way in to it: without a marker the tile is indistinguishable from a job that
+         * is still going to happen, which is worse than not listing it at all.
+         *
+         * Deliberately the card's own vocabulary rather than a new one: the same red the frame
+         * uses for its cancellation copy, on the border and on one line of text.
+         */}
+        {job.isCancelled && (
+          <Text variant="captionStrong" color={color.danger} testID="job-tile-cancelled">
+            CANCEL ho gayi
+          </Text>
+        )}
       </View>
     </Pressable>
   );
@@ -483,11 +500,7 @@ function JobsBreakCard({
          * Text itself, so it is the Text that stretches now.
          */}
         <View style={styles.stretch}>
-          <Text
-            variant="overlineLg"
-            color={color.danger}
-            style={[styles.upper, styles.fullWidth]}
-          >
+          <Text variant="overlineLg" color={color.danger} style={[styles.upper, styles.fullWidth]}>
             aaj ka break
           </Text>
         </View>
