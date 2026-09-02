@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react-native';
+import { StyleSheet } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { jobsV14Fixtures, performanceFixtures } from '@core/fixtures';
@@ -77,7 +78,20 @@ describe('job flow — each frame publishes its own list', () => {
     render(withSafeArea(<JobsView dateLabel="7 November" {...jobsV14Fixtures.loggedIn()} />));
     // Android under-measures a tracked run and drops the last word at a word boundary when the
     // label is sized to its own content. `573:1208` is `w-full` for exactly this reason.
-    expect(screen.getByText('AAJ KA BREAK')).toBeTruthy();
+    const headline = screen.getByText('AAJ KA BREAK');
+    expect(headline).toBeTruthy();
+
+    /*
+     * The string being in the tree is NOT the guarantee, which is why this assertion exists
+     * beside it. The renderer does no text measurement, so the check above passed for the whole
+     * time the handset was drawing `AAJ KA` — the truncation is a measurement artefact and is
+     * invisible here by construction.
+     *
+     * What CAN be pinned is the contract that prevents it: the Text must be given the row's full
+     * width rather than sized to its own content. Stretching only the wrapper was not enough,
+     * because `alignItems: 'flex-start'` shrank the Text back to the measured width again.
+     */
+    expect(StyleSheet.flatten(headline.props.style)).toMatchObject({ alignSelf: 'stretch' });
   });
 });
 

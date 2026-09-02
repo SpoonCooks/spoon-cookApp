@@ -476,9 +476,18 @@ function JobsBreakCard({
          * given and loses its last word at the word boundary — silently, with no ellipsis and no
          * wrap. The leave screen never showed it because `528:465` already wraps this label in a
          * stretched row; the jobs card did not.
+         *
+         * Stretching the WRAPPER was not enough, and the card still read `AAJ KA` on the handset
+         * on 2026-09-02: `alignItems: 'flex-start'` sized the Text back down to the same
+         * under-measured width the wrapper was introduced to escape. The width has to reach the
+         * Text itself, so it is the Text that stretches now.
          */}
         <View style={styles.stretch}>
-          <Text variant="overlineLg" color={color.danger} style={styles.upper}>
+          <Text
+            variant="overlineLg"
+            color={color.danger}
+            style={[styles.upper, styles.fullWidth]}
+          >
             aaj ka break
           </Text>
         </View>
@@ -598,6 +607,7 @@ const styles = StyleSheet.create({
   breakBlock: { alignSelf: 'stretch', alignItems: 'flex-start' },
   breakCard: { alignSelf: 'stretch', alignItems: 'flex-start' },
   stretch: { alignSelf: 'stretch', alignItems: 'flex-start' },
+  fullWidth: { alignSelf: 'stretch' },
   breakGrid: { alignSelf: 'stretch', flexDirection: 'row' },
   breakCell: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   upper: { textTransform: 'uppercase' },
