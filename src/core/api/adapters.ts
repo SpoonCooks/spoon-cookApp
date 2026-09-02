@@ -93,7 +93,13 @@ function toAddress(job: CookJobResponse): CustomerAddressSnapshot {
     // The backend projection carries no separate floor field; flat covers it.
     floor: null,
     flatOrHouse: job.destination.flat,
-    customerName: null,
+    /*
+     * The person at the door -- the address's receiver when the customer named one, else the
+     * account holder. This was hardcoded `null`, so the card's name row rendered blank on every
+     * job and a cook arrived without knowing who to ask for. The name existed all along; the
+     * projection simply never carried it.
+     */
+    customerName: job.destination.customerName ?? null,
   };
 }
 

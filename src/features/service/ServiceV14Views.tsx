@@ -395,12 +395,33 @@ function UserDetailsCard({
 }): React.ReactElement {
   const scale = useDesignScale();
   const { s } = scale;
-  const rows: readonly { icon: ImageSourcePropType; text: string | null }[] = [
-    { icon: art.building, text: job.address.buildingName },
-    { icon: art.tower, text: job.address.towerOrBlock },
-    { icon: art.floor, text: job.address.floor },
-    { icon: art.flat, text: job.address.flatOrHouse },
-  ];
+  /*
+   * TWO rows, because an address in this product has two parts.
+   *
+   * The frame draws four -- building, tower, floor, flat -- and it is a mock with a placeholder in
+   * every one. The customer's own form (`60:655`) collects a flat and ONE combined
+   * "Building/ Tower name or Plot no.", stored as the society. There is no separate tower field
+   * and no floor field anywhere in the product, so two of the four rows could only ever render as
+   * an icon with nothing beside it, on every job.
+   *
+   * Collapsed rather than filtered. A four-row list that usually drops two is still a card built
+   * around data that does not exist; two rows is what the address IS.
+   *
+   * `tower` is appended rather than discarded. The column exists and Ops can populate it, and the
+   * customer's field is named "Building/ Tower name" -- so when both are present they are one
+   * line, and nothing a human typed is silently thrown away.
+   */
+  const buildingLine = [job.address.buildingName, job.address.towerOrBlock]
+    .map((part) => part?.trim() ?? '')
+    .filter((part) => part !== '')
+    .join(', ');
+  const flatLine = job.address.flatOrHouse?.trim() ?? '';
+  const rows = (
+    [
+      { icon: art.building, text: buildingLine },
+      { icon: art.flat, text: flatLine },
+    ] as readonly { icon: ImageSourcePropType; text: string }[]
+  ).filter((row) => row.text !== '');
 
   return (
     <Block>
@@ -432,6 +453,7 @@ function UserDetailsCard({
               gap: s(DETAILS.addressGap),
             },
           ]}
+          testID="service-details-rows"
         >
           {rows.map((row, index) => (
             <View

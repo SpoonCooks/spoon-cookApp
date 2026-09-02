@@ -226,6 +226,8 @@ export const cookJobSchema = z.object({
     latitude: z.number(),
     longitude: z.number(),
     label: z.string(),
+    /** Who the cook is going to see. `nullish` for a deployment that predates it. */
+    customerName: z.string().nullish(),
     /**
      * Gate-level entry guidance from the operational snapshot (`gate_access_instructions`).
      *

@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react-native';
 
 import { serviceV14Fixtures } from '@core/fixtures';
+import type { JobSummary } from '@core/domain/serviceState';
 import { CompletedView, TravelCancelledView, TravelView } from '@features/service/ServiceV14Views';
 
 /**
@@ -132,5 +133,91 @@ describe('the travel card refuses to substitute a different measurement', () => 
     expect(countdown).toHaveTextContent('--');
     // The exact regression: 57 was the deadline, not the distance.
     expect(countdown).not.toHaveTextContent('57');
+  });
+});
+
+/**
+ * `462:3579` — the address card draws the lines an address HAS, and names who is at the door.
+ *
+ * Two defects, both visible on one screen. `customerName` was hardcoded `null` in the adapter, so
+ * the name row rendered blank on every job and a cook arrived without knowing who to ask for — the
+ * name existed in the customer's profile the whole time and the projection simply never carried
+ * it. And all four address rows were drawn unconditionally, while the customer's own form collects
+ * a flat and ONE combined "Building/ Tower name or Plot no." stored as the society: `tower` is
+ * never populated, no surface collects a floor, so two rows rendered as an icon with nothing
+ * beside it on every job.
+ */
+describe('the address card', () => {
+  const jobWithAddress = (address: Partial<JobSummary['address']>) => {
+    const base = serviceV14Fixtures.job();
+    return { ...base, address: { ...base.address, ...address } };
+  };
+
+  const rowsFor = (address: Partial<JobSummary['address']>) => {
+    render(
+      <TravelView
+        job={jobWithAddress(address)}
+        timing="on_time"
+        minutesToDeadline={16}
+        minutesToArrival={16}
+      />,
+    );
+    return screen.getByTestId('service-details-rows').props.children as unknown[];
+  };
+
+  it('draws the address as two lines, not four', () => {
+    const rows = rowsFor({
+      buildingName: 'Dawars',
+      towerOrBlock: null,
+      floor: null,
+      flatOrHouse: '549',
+    });
+
+    expect(screen.getByText('Dawars')).toBeTruthy();
+    expect(screen.getByText('549')).toBeTruthy();
+    // The two the product collects. Tower and floor have no source anywhere, so a four-row card
+    // could only ever draw two icons with nothing beside them.
+    expect(rows).toHaveLength(2);
+  });
+
+  it('keeps a tower on the building line rather than discarding it', () => {
+    // Ops can populate the column even though the customer's form has no separate field for it,
+    // and their own field is named "Building/ Tower name" -- so the two belong on one line.
+    rowsFor({ buildingName: 'Dawars', towerOrBlock: 'B Block', flatOrHouse: '549' });
+
+    expect(screen.getByText('Dawars, B Block')).toBeTruthy();
+  });
+
+  it('drops a line the address genuinely has nothing for', () => {
+    const rows = rowsFor({ buildingName: null, towerOrBlock: null, flatOrHouse: '549' });
+
+    expect(rows).toHaveLength(1);
+    expect(screen.getByText('549')).toBeTruthy();
+  });
+
+  it('names the person the cook is going to see', () => {
+    render(
+      <TravelView
+        job={jobWithAddress({ customerName: 'Lakshay Dawar' })}
+        timing="on_time"
+        minutesToDeadline={16}
+        minutesToArrival={16}
+      />,
+    );
+
+    expect(screen.getByTestId('service-customer')).toHaveTextContent('Lakshay Dawar');
+  });
+
+  it('leaves the name blank rather than inventing one', () => {
+    render(
+      <TravelView
+        job={jobWithAddress({ customerName: null })}
+        timing="on_time"
+        minutesToDeadline={16}
+        minutesToArrival={16}
+      />,
+    );
+
+    expect(screen.getByTestId('service-customer')).toHaveTextContent('');
   });
 });
