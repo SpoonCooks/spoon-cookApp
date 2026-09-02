@@ -1,11 +1,11 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { AppState, StyleSheet, View } from 'react-native';
+import { AppState, Linking, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { toServiceSnapshot } from '@core/api/adapters';
-import { newIdempotencyKey } from '@core/api/cook';
-import { apiErrorMessage, isSessionExpired } from '@core/api/errors';
+import { getCustomerContact, newIdempotencyKey } from '@core/api/cook';
+import { apiErrorMessage, isApiError, isSessionExpired } from '@core/api/errors';
 import {
   useJob,
   useMarkArrived,
@@ -80,6 +80,7 @@ export default function ServiceScreen(): React.ReactElement {
   const [otpError, setOtpError] = useState<string | null>(null);
   const [startTravelError, setStartTravelError] = useState<string | null>(null);
   const [startingTravel, setStartingTravel] = useState(false);
+  const [callError, setCallError] = useState<string | null>(null);
 
   /**
    * One key per command per booking, held for the life of the screen.
@@ -124,6 +125,53 @@ export default function ServiceScreen(): React.ReactElement {
     if (gate === null || !isNavigableGate(gate)) return;
     void openGateNavigation(gate);
   }, [gate]);
+
+  /* ---------------------------------------------------------- call kare --- */
+
+  /**
+   * `462:3579` -- `Call kare`.
+   *
+   * The number is read at the instant she presses, from
+   * `GET /v1/cook/jobs/:id/customer-contact`, and is never held anywhere that outlives the press:
+   * not in the query cache, not in state, not in a log line. That is why this is a direct call
+   * rather than a field on the polled projection -- a household's personal number should not ride
+   * along on a request that fires every twenty seconds.
+   *
+   * V0 dials directly (owner decision 2026-08-18): no masking layer, no in-app VoIP. `openURL`
+   * hands the dialer a PREFILLED number and does not place the call, so the cook still confirms.
+   *
+   * A 404 is not "no such job". The server answers `RESOURCE_NOT_FOUND` for every ineligible case
+   * and deliberately does not say which, so the generic copy for that code ("Yeh mila nahi")
+   * would be actively misleading on a job she is standing in front of. It is reported here as the
+   * number being unavailable.
+   */
+  const [calling, setCalling] = useState(false);
+  const call = useCallback((): void => {
+    if (id.length === 0 || calling) return;
+    setCalling(true);
+    setCallError(null);
+    void (async () => {
+      try {
+        const { customer } = await getCustomerContact(id);
+        // Strip anything the dialer would choke on; `+` is kept because the numbers are E.164.
+        await Linking.openURL(`tel:${customer.phone.replace(/[^\d+]/g, '')}`);
+        setCallError(null);
+      } catch (error) {
+        if (isSessionExpired(error)) {
+          signOut();
+          router.replace('/login');
+          return;
+        }
+        setCallError(
+          isApiError(error) && error.code === 'RESOURCE_NOT_FOUND'
+            ? 'Customer ka number abhi nahi mil raha.'
+            : apiErrorMessage(error),
+        );
+      } finally {
+        setCalling(false);
+      }
+    })();
+  }, [calling, id, signOut]);
 
   /* -------------------------------------------------- extension countdown --- */
 
@@ -328,6 +376,8 @@ export default function ServiceScreen(): React.ReactElement {
             minutesToDeadline={state.minutesToDeadline}
             minutesToArrival={state.minutesToArrival}
             onMap={openGate}
+            onCall={call}
+            callError={callError}
           />
         );
 
@@ -338,6 +388,8 @@ export default function ServiceScreen(): React.ReactElement {
             timing={state.timing}
             onArrived={confirmArrival}
             onMap={openGate}
+            onCall={call}
+            callError={callError}
             isSubmitting={markArrived.isPending}
           />
         );
@@ -348,6 +400,8 @@ export default function ServiceScreen(): React.ReactElement {
             job={state.job}
             length={otpLength.start}
             onMap={openGate}
+            onCall={call}
+            callError={callError}
             code={startCode}
             onChange={(next) => {
               setStartCode(next.slice(0, otpLength.start));

@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react-native';
+import { fireEvent, render, screen } from '@testing-library/react-native';
 
 import { serviceV14Fixtures } from '@core/fixtures';
 import type { JobSummary } from '@core/domain/serviceState';
@@ -219,5 +219,59 @@ describe('the address card', () => {
     );
 
     expect(screen.getByTestId('service-customer')).toHaveTextContent('');
+  });
+});
+
+describe('462:3579 — Call kare', () => {
+  it('rings the customer when pressed', () => {
+    // The button was drawn on three frames for weeks with `onPress` undefined, because no route
+    // ever passed `onCall` and there was no endpoint behind it either. A press did nothing at all
+    // and looked exactly like a press that worked.
+    const onCall = jest.fn();
+    render(
+      <TravelView
+        job={serviceV14Fixtures.job()}
+        timing="on_time"
+        minutesToDeadline={16}
+        minutesToArrival={16}
+        onCall={onCall}
+      />,
+    );
+
+    fireEvent.press(screen.getByTestId('service-call'));
+    expect(onCall).toHaveBeenCalledTimes(1);
+  });
+
+  it('says nothing until a call actually fails', () => {
+    render(
+      <TravelView
+        job={serviceV14Fixtures.job()}
+        timing="on_time"
+        minutesToDeadline={16}
+        minutesToArrival={16}
+        onCall={jest.fn()}
+      />,
+    );
+
+    expect(screen.queryByTestId('service-call-error')).toBeNull();
+  });
+
+  it('reports a failure under the button rather than in a modal', () => {
+    // A cook presses this at a gate with one hand free. The caption leaves the arrival CTA and the
+    // rest of the screen reachable; a dialog she has to dismiss would not.
+    render(
+      <TravelView
+        job={serviceV14Fixtures.job()}
+        timing="on_time"
+        minutesToDeadline={16}
+        minutesToArrival={16}
+        onCall={jest.fn()}
+        callError="Customer ka number abhi nahi mil raha."
+      />,
+    );
+
+    expect(screen.getByTestId('service-call-error')).toHaveTextContent(
+      'Customer ka number abhi nahi mil raha.',
+    );
   });
 });

@@ -314,6 +314,22 @@ export type CookJobsListResponse = z.infer<typeof cookJobsListSchema>;
 /** `GET /cook/jobs/current` returns the projection or `null` when nothing is assigned. */
 export const currentCookJobSchema = cookJobSchema.nullable();
 
+/**
+ * `GET /cook/jobs/:bookingId/customer-contact` — the household's number, for a direct dial.
+ *
+ * Fetched ON PRESS of "Call kare", never on render, because it carries a real personal number.
+ * `displayName` may be an empty string when neither the address receiver nor the account holder
+ * carries a name; the screen falls back to the customer name it already shows rather than
+ * dialling a blank.
+ */
+export const customerContactSchema = z.object({
+  customer: z.object({
+    displayName: z.string(),
+    phone: z.string(),
+  }),
+});
+export type CustomerContactResponse = z.infer<typeof customerContactSchema>;
+
 /* --------------------------------------------------------- attendance --- */
 
 export const attendanceStatusSchema = z.enum(['present', 'absent', 'leave']);

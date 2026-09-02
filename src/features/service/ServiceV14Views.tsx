@@ -379,12 +379,22 @@ function UserDetailsCard({
   job,
   onMap,
   onCall,
+  callError = null,
   showCall = true,
   showMap = true,
 }: {
   job: JobSummary;
   onMap?: (() => void) | undefined;
   onCall?: (() => void) | undefined;
+  /**
+   * Why a failed "Call kare" is drawn HERE rather than raised as an alert.
+   *
+   * FIGMA_PENDING -- no frame draws a failed call. A cook is usually at a gate with one hand free
+   * when she presses it, so a modal she must dismiss is the wrong shape: this caption sits under
+   * the button that failed and leaves the rest of the screen, the arrival CTA included, reachable.
+   * It renders nothing until something fails, so no frame's normal state changes.
+   */
+  callError?: string | null;
   showCall?: boolean;
   /**
    * `622:913` draws the card WITHOUT `Map dekhe`, which is why this exists alongside `showCall`.
@@ -504,6 +514,11 @@ function UserDetailsCard({
             scale={scale}
             testID="service-call"
           />
+        )}
+        {showCall && callError !== null && (
+          <Text variant="caption" color={color.danger} testID="service-call-error">
+            {callError}
+          </Text>
         )}
       </View>
     </Block>
@@ -636,6 +651,7 @@ export interface TravelViewProps {
   readonly minutesToArrival?: number | null | undefined;
   readonly onMap?: (() => void) | undefined;
   readonly onCall?: (() => void) | undefined;
+  readonly callError?: string | null;
   readonly onHelp?: (() => void) | undefined;
 }
 
@@ -712,6 +728,7 @@ export function TravelView({
   minutesToArrival,
   onMap,
   onCall,
+  callError = null,
   onHelp,
 }: TravelViewProps): React.ReactElement {
   const scale = useDesignScale();
@@ -808,7 +825,7 @@ export function TravelView({
           </View>
         </View>
       </Block>
-      <UserDetailsCard job={job} onMap={onMap} onCall={onCall} />
+      <UserDetailsCard job={job} onMap={onMap} onCall={onCall} callError={callError} />
       {/* `707:446` — present on every travel frame, inert until the server confirms arrival. */}
       <Block>
         <ArrivedCta disabled testID="service-travel-arrived" />
@@ -891,6 +908,7 @@ export function ArrivalView({
   onArrived,
   onMap,
   onCall,
+  callError = null,
   onHelp,
   isSubmitting = false,
 }: {
@@ -899,6 +917,7 @@ export function ArrivalView({
   onArrived?: (() => void) | undefined;
   onMap?: (() => void) | undefined;
   onCall?: (() => void) | undefined;
+  callError?: string | null;
   onHelp?: (() => void) | undefined;
   isSubmitting?: boolean;
 }): React.ReactElement {
@@ -924,7 +943,7 @@ export function ArrivalView({
       <Block>
         <ArrivedCta onPress={onArrived} disabled={isSubmitting} testID="service-arrived" />
       </Block>
-      <UserDetailsCard job={job} onMap={onMap} onCall={onCall} />
+      <UserDetailsCard job={job} onMap={onMap} onCall={onCall} callError={callError} />
     </ServiceShell>
   );
 }
@@ -1114,15 +1133,17 @@ export function StartOtpView({
   length,
   onMap,
   onCall,
+  callError = null,
   onHelp,
 }: OtpViewProps & {
   job: JobSummary;
   onMap?: (() => void) | undefined;
   onCall?: (() => void) | undefined;
+  callError?: string | null;
 }): React.ReactElement {
   return (
     <ServiceShell onHelp={onHelp} testID="service-start-otp">
-      <UserDetailsCard job={job} onMap={onMap} onCall={onCall} />
+      <UserDetailsCard job={job} onMap={onMap} onCall={onCall} callError={callError} />
       <OtpBlock
         label="Start OTP"
         action="Start"

@@ -33,6 +33,7 @@ import {
   cookPresentSchema,
   cookProfileSchema,
   currentCookJobSchema,
+  customerContactSchema,
   earningsPeriodSchema,
   monthlyAttendanceSchema,
   otpSendSchema,
@@ -51,6 +52,7 @@ import {
   type CookLocationResponse,
   type CookPresentResponse,
   type CookProfileResponse,
+  type CustomerContactResponse,
   type MonthlyAttendanceResponse,
 } from './schemas';
 
@@ -157,6 +159,26 @@ export async function getCurrentJob(opts: Opts = {}): Promise<CookJobResponse | 
 
 export async function getJob(bookingId: string, opts: Opts = {}): Promise<CookJobResponse> {
   return request(`/cook/jobs/${bookingId}`, cookJobSchema, opts);
+}
+
+/**
+ * The customer's number for THIS job — read at the moment "Call kare" is pressed.
+ *
+ * V0 contact is a direct dial in both directions (owner decision 2026-08-18): no masking layer,
+ * no in-app VoIP. Because the response carries a household's real number, it is deliberately a
+ * one-shot read rather than a field on the job projection, so the number does not ride along on
+ * every poll of the live job screen and is never cached.
+ *
+ * The server answers `RESOURCE_NOT_FOUND` for every ineligible case -- another cook's booking, a
+ * superseded assignment, a finished or cancelled job -- and does not say which, because naming the
+ * gate would confirm the booking exists. The caller must therefore render a 404 as "number not
+ * available right now", never as "no such job".
+ */
+export async function getCustomerContact(
+  bookingId: string,
+  opts: Opts = {},
+): Promise<CustomerContactResponse> {
+  return request(`/cook/jobs/${bookingId}/customer-contact`, customerContactSchema, opts);
 }
 
 /* --------------------------------------------------------- service flow --- */
