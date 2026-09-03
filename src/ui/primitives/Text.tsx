@@ -77,7 +77,11 @@ export function Text({
       // label on a screen is a few units tall than the design and the error accumulates down the
       // column -- on `575:1744` it put `AAJ KI GALATIYAAN` sixteen rows below its design row while
       // each individual card was the right size. No effect on iOS, which never adds it.
-      includeFontPadding: false,
+      // Keep Android's font padding so Livvic ascenders and descenders remain inside the line box.
+      // Disabling it made handset text such as `Aap`, `accha` and `Rating` lose their p, descender
+      // and g even after the affected variants received larger line heights. The small amount of
+      // native leading is preferable to silently clipping user-facing copy.
+      includeFontPadding: true,
       // The companion to the line above, and the reason `Pakka` came out with its descender
       // shaved off on the handset. With the font padding gone Android aligns a line to its
       // BASELINE inside the box, so a face as tall as Livvic Black on a deliberately tight line

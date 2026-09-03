@@ -172,7 +172,10 @@ export const textStyle = {
   screenTitle: {
     fontFamily: fontFamily.black,
     fontSize: fontSize.display,
-    lineHeight: lineHeight.displayTight,
+    // 24 on 32, not the frame's 30. `displayTight` is the case the Text primitive's own comment
+    // names as overflowing — Livvic Black at 24 does not fit a 30 box once `includeFontPadding`
+    // is off, and `Rating` came back with its g clipped (2026-09-02). Two units is the whole fix.
+    lineHeight: lineHeight.display,
     color: color.textPrimary,
   },
   /** `598:1360` — a rating-matrix cell. Livvic SemiBold 16 on a **16** line. */
@@ -274,11 +277,13 @@ export const textStyle = {
     lineHeight: lineHeight.s,
     color: color.textPrimary,
   },
-  /** `462:3602` / `614:408` — `Map dekhe` / `Call kare`. Livvic Bold 18 on a **16** line. */
+  /** `462:3602` / `614:408` — `Map dekhe` / `Call kare`. Livvic Bold 18 on a 22 line. */
   actionChip: {
     fontFamily: fontFamily.bold,
     fontSize: fontSize.xxl,
-    lineHeight: lineHeight.s,
+    // The old 16pt line clipped the bottom of the `p` in `Map dekhe` on Android. This still fits
+    // the 35pt action chip after its vertical padding and leaves the descender inside the box.
+    lineHeight: 22,
     color: color.textPrimary,
   },
   /**
@@ -292,15 +297,22 @@ export const textStyle = {
     color: color.textPrimary,
   },
   /**
-   * `617:454` — the headline card above a travel countdown. Livvic Bold 20 on a **16** line.
+   * `617:454` — the headline card above a travel countdown. Livvic Bold 20 on a 26 line.
    *
-   * Same size as `travelHeadline` on a line twelve units shorter: the card is only 47 units tall
-   * and the taller line box pushes the countdown out of the 150-unit column.
+   * The frame reads 16, and transcribing that literally put 20px type in a 16px box — a line
+   * SHORTER than the font itself. With `includeFontPadding` off the box is exactly `lineHeight`,
+   * so every descender was shaved: `Aap LATE hai!` lost the tail of its p on the handset,
+   * reported 2026-09-02. Centring cannot rescue a box that is four units too short to begin with;
+   * it only splits the loss between top and bottom.
+   *
+   * 26 is the smallest line that clears Livvic Bold's descender at this size. The card is 47 units
+   * tall and holds it; the original 16 was chosen to keep the countdown inside a 150-unit column,
+   * and ten units on one headline does not threaten that.
    */
   travelPill: {
     fontFamily: fontFamily.bold,
     fontSize: fontSize.xxxl,
-    lineHeight: lineHeight.s,
+    lineHeight: 26,
     color: color.textPrimary,
   },
   /** `463:3777` — the travel countdown. Livvic Black **32** on a 25 line, 0.32 tracking. */
@@ -352,7 +364,9 @@ export const textStyle = {
   completedHeadline: {
     fontFamily: fontFamily.bold,
     fontSize: fontSize.displayLg,
-    lineHeight: lineHeight.displayLg,
+    // 30 on 40, not 36. At 1.2 the box could not hold Livvic Bold's descenders with the font
+    // padding off: `Agle booking mein bhi accha kaam kare!` lost the tails of both g's.
+    lineHeight: lineHeight.displayXl,
     color: color.textPrimary,
   },
   /** `528:475` — the break window times. Livvic Bold 18 on a 28 line, wider than `heading`. */
