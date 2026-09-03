@@ -280,7 +280,20 @@ export default function ServiceScreen(): React.ReactElement {
   };
 
   const submitEndOtp = (): void => {
-    if (state?.kind !== 'awaiting_end_otp' || verifyEndOtp.isPending) return;
+    /*
+     * Reachable from `cooking` as well as `awaiting_end_otp` (founder, 2026-09-02).
+     *
+     * The End OTP is now drawn beside the timer for the whole service rather than replacing it in
+     * the last five minutes, so the same submit serves both. `otpEligibility.end` has always been
+     * true for the whole of `cooking` — the server was never the thing holding this back — and
+     * ending early is safe because the code is the CUSTOMER's to read out.
+     */
+    if (
+      (state?.kind !== 'awaiting_end_otp' && state?.kind !== 'cooking') ||
+      verifyEndOtp.isPending
+    ) {
+      return;
+    }
     setOtpError(null);
     verifyEndOtp.mutate(
       {
@@ -309,10 +322,13 @@ export default function ServiceScreen(): React.ReactElement {
    * This is NOT what normally commits arrival — two accepted GPS samples inside 75 m of the gate
    * do. The backend refuses this command with `409 ARRIVAL_PROXIMITY_NOT_CONFIRMED` unless recent
    * in-radius evidence already exists, so it recovers a cook whose samples stalled rather than
-   * offering a way around the gate rule. Opening the arrival screen does nothing on its own.
+   * offering a way around the gate rule. The same command is available from the travel CTA and the
+   * arrival fallback screen; opening either screen does nothing on its own.
    */
   const confirmArrival = (): void => {
-    if (state?.kind !== 'arrived' || markArrived.isPending) return;
+    if ((state?.kind !== 'travelling' && state?.kind !== 'arrived') || markArrived.isPending) {
+      return;
+    }
     setOtpError(null);
     markArrived.mutate(
       {
@@ -378,6 +394,9 @@ export default function ServiceScreen(): React.ReactElement {
             onMap={openGate}
             onCall={call}
             callError={callError}
+            onArrived={confirmArrival}
+            canMarkArrived={state.canMarkArrived}
+            isSubmitting={markArrived.isPending}
           />
         );
 
@@ -397,11 +416,7 @@ export default function ServiceScreen(): React.ReactElement {
       case 'awaiting_start_otp':
         return (
           <StartOtpView
-            job={state.job}
             length={otpLength.start}
-            onMap={openGate}
-            onCall={call}
-            callError={callError}
             code={startCode}
             onChange={(next) => {
               setStartCode(next.slice(0, otpLength.start));
@@ -425,7 +440,27 @@ export default function ServiceScreen(): React.ReactElement {
             isEndingSoon={state.isEndingSoon}
             extensionMinutes={
               !bannerExpired && state.extensionBannerMsRemaining > 0
-                ? state.extension.extendedByMinutes
+                ? state.extension.extensions.map((extension) => extension.minutes)
+                : null
+            }
+            /*
+             * The same keypad the End OTP screen uses, drawn beside the timer. `endOtpReady` is
+             * the server's permission — an already-used code hides the block rather than offering
+             * one that would be refused.
+             */
+            endOtp={
+              state.endOtpReady
+                ? {
+                    code: endCode,
+                    onChange: (next: string) => {
+                      setEndCode(next.slice(0, otpLength.end));
+                      if (otpError !== null) setOtpError(null);
+                    },
+                    onSubmit: submitEndOtp,
+                    isSubmitting: verifyEndOtp.isPending,
+                    error: otpError,
+                    length: otpLength.end,
+                  }
                 : null
             }
           />

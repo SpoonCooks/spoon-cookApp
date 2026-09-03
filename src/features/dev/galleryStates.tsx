@@ -131,11 +131,7 @@ function ServiceOtpFixture({ kind }: { kind: 'start' | 'end' }): React.ReactElem
     isSubmitting: false,
     length: otpLength[kind],
   };
-  return kind === 'start' ? (
-    <StartOtpView job={serviceV14Fixtures.job()} {...props} />
-  ) : (
-    <EndOtpView {...props} />
-  );
+  return kind === 'start' ? <StartOtpView {...props} /> : <EndOtpView {...props} />;
 }
 
 /** One of the three OTP frames, which differ only in code, countdown and error. */
@@ -585,7 +581,7 @@ export const galleryEntries: readonly GalleryEntry[] = [
       hoursRemaining={null}
       minutesRemaining={28}
       isEndingSoon={false}
-      extensionMinutes={20}
+      extensionMinutes={[20]}
     />
   )),
   service('service/end-otp', '628:1249', 'End OTP', () => <ServiceOtpFixture kind="end" />),

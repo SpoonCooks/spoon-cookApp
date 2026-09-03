@@ -331,8 +331,10 @@ const baseSnapshot: ServiceSnapshot = {
     extendedByMinutes: null,
     newExpectedEndIso: null,
     confirmedAtIso: null,
+    extensions: [],
   },
   canStartTravel: true,
+  canMarkArrived: false,
   interruption: null,
 };
 
@@ -429,6 +431,14 @@ export const serviceFixtures = {
         extendedByMinutes: 30,
         newExpectedEndIso: '2026-08-21T14:00:00+05:30',
         confirmedAtIso: null,
+        extensions: [
+          {
+            state: 'confirmed',
+            minutes: 30,
+            newExpectedEndIso: '2026-08-21T14:00:00+05:30',
+            confirmedAtIso: null,
+          },
+        ],
       },
     }),
 

@@ -222,6 +222,7 @@ export const cookJobSchema = z.object({
     expectedEnd: isoString.nullable(),
     // Negative is legal and meaningful — the service has run past its expected end.
     remainingSeconds: z.number().nullable(),
+    // Historical API field name; Render's warning value is the Figma last-seven-minutes state.
     tenMinuteState: z.enum(['not_started', 'normal', 'warning', 'elapsed']),
   }),
   actualEnd: isoString.nullable(),
@@ -281,7 +282,13 @@ export const cookJobSchema = z.object({
    * thumb. `nullish` for an older deployment; absent falls back to the status-only rule the app
    * used before.
    */
-  commandEligibility: z.object({ startTravel: z.boolean() }).nullish(),
+  commandEligibility: z
+    .object({
+      startTravel: z.boolean(),
+      /** Fresh accepted in-radius evidence for the manual arrival fallback. */
+      markArrived: z.boolean().optional(),
+    })
+    .nullish(),
   /** Every confirmed extension, oldest first — the `timer-2x extension` frame draws one row each. */
   extensions: z
     .array(

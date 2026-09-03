@@ -183,6 +183,26 @@ export function toJobCard(job: CookJobResponse): JobCardModel {
 
 function toExtension(job: CookJobResponse): ExtensionProjection {
   const isExtended = job.extension.state === 'confirmed' || job.extension.state === 'active';
+  const extensions = (job.extensions ?? [])
+    .filter((item) => item.state === 'confirmed' || item.state === 'active')
+    .map((item) => ({
+      state: item.state,
+      minutes: item.minutes,
+      newExpectedEndIso: item.expectedEnd,
+      confirmedAtIso: item.confirmedAt,
+    }));
+
+  // Older Render deployments expose only the singular extension object. Preserve the single-row
+  // design there without fabricating a second row or a confirmation timestamp.
+  if (extensions.length === 0 && isExtended && job.extension.minutes !== null) {
+    extensions.push({
+      state: job.extension.state ?? 'confirmed',
+      minutes: job.extension.minutes,
+      newExpectedEndIso: job.extension.expectedEnd,
+      confirmedAtIso: job.extension.confirmedAt ?? null,
+    });
+  }
+
   return {
     isExtended,
     extendedByMinutes: job.extension.minutes,
@@ -190,6 +210,7 @@ function toExtension(job: CookJobResponse): ExtensionProjection {
     // Absent on today's API. Left null rather than substituted, so the banner stays dark until
     // the backend can say when the extension was actually confirmed.
     confirmedAtIso: job.extension.confirmedAt ?? null,
+    extensions,
   };
 }
 
@@ -241,11 +262,14 @@ export function toServiceSnapshot(
     expectedEndIso: job.timer.expectedEnd,
     // Sign preserved — a service running past its expected end reports a negative remainder.
     minutesRemaining: remaining === null ? null : Math.round(remaining / 60),
+    // The API keeps the historical `tenMinuteState` wire name; warning now means the Figma
+    // last-seven-minutes treatment. The threshold itself remains backend-owned.
     isEndingSoon: job.timer.tenMinuteState === 'warning',
     extension: toExtension(job),
     canStartTravel:
       job.reassignment.current &&
       (job.commandEligibility?.startTravel ?? (status === 'assigned' || status === 'created')),
+    canMarkArrived: job.reassignment.current && (job.commandEligibility?.markArrived ?? false),
     interruption,
   };
 }

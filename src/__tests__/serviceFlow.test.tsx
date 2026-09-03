@@ -210,9 +210,9 @@ describe('commands do not advance state locally', () => {
       },
     });
     render(<ServiceScreen />);
-    fireEvent.changeText(screen.getByTestId('end-otp-input-field'), '731');
-    fireEvent.press(screen.getByTestId('end-otp-submit'));
-    fireEvent.press(screen.getByTestId('end-otp-submit'));
+    fireEvent.changeText(screen.getByTestId('cooking-end-otp-input-field'), '731');
+    fireEvent.press(screen.getByTestId('cooking-end-otp-submit'));
+    fireEvent.press(screen.getByTestId('cooking-end-otp-submit'));
     const keys = mockEndOtp.mock.calls.map(
       (call) => (call[0] as Record<string, string>)['idempotencyKey'],
     );
@@ -224,6 +224,39 @@ describe('commands do not advance state locally', () => {
     setJob({ status: 'cook_arrived' });
     render(<ServiceScreen />);
     expect(mockArrive).not.toHaveBeenCalled();
+  });
+
+  /*
+   * The travel screen's arrival button waits for the SERVER's permission.
+   *
+   * It used to fire from anywhere on the journey, on the reasoning that `markArrived` would refuse
+   * it — the command needs fresh samples inside the immutable gate radius. But a lime button that
+   * looks ready and then throws teaches the cook nothing, which is why she pressed it repeatedly
+   * ("why pahauch gaya button is active from start", 2026-09-03).
+   */
+  it('does not fire from the travel screen while the server withholds permission', () => {
+    setJob({
+      status: 'cook_en_route',
+      commandEligibility: { startTravel: false, markArrived: false },
+    });
+    render(<ServiceScreen />);
+    fireEvent.press(screen.getByTestId('service-travel-arrived'));
+    expect(mockArrive).not.toHaveBeenCalled();
+  });
+
+  it('offers the same authoritative arrival command once she is at the gate', () => {
+    setJob({
+      status: 'cook_en_route',
+      commandEligibility: { startTravel: false, markArrived: true },
+    });
+    render(<ServiceScreen />);
+    fireEvent.press(screen.getByTestId('service-travel-arrived'));
+    expect(mockArrive).toHaveBeenCalledTimes(1);
+    expect(mockArrive.mock.calls[0]?.[0]).toMatchObject({
+      bookingId: 'b1',
+      assignmentVersion: 3,
+      idempotencyKey: expect.any(String),
+    });
   });
 
   it('sends the manual arrive command only when the cook presses it', () => {

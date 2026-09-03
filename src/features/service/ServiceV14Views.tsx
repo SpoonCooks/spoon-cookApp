@@ -160,7 +160,9 @@ const PROMO = {
   radius: 20,
   width: 338,
   height: 535,
-  headlineHeight: 63,
+  // The headline wraps to two 40-unit lines. 63 clipped the second line and its descenders on
+  // Android, so the fixed promo slot must hold the complete text block.
+  headlineHeight: 84,
   artWidth: 314,
 } as const;
 
@@ -313,12 +315,14 @@ const ARRIVAL_HEADLINE: Readonly<Record<ArrivalTiming, string>> = {
 
 function ServiceShell({
   children,
+  footer,
   gap = BODY.gap,
   onHelp,
   testID,
   title = 'Active job',
 }: {
   children: React.ReactNode;
+  footer?: React.ReactNode;
   gap?: number;
   onHelp?: (() => void) | undefined;
   testID?: string;
@@ -345,12 +349,24 @@ function ServiceShell({
         </View>
         <HelpPill onPress={onHelp} testID="service-nav-help" />
       </View>
-      <ScrollView
-        contentContainerStyle={[styles.body, { padding: s(BODY.padding), gap: s(gap) }]}
-        testID="service-scroll"
-      >
-        {children}
-      </ScrollView>
+      <View style={styles.shellContent}>
+        <ScrollView
+          contentContainerStyle={[
+            styles.body,
+            {
+              padding: s(BODY.padding),
+              gap: s(gap),
+              ...(footer === undefined ? {} : { paddingBottom: s(100) }),
+            },
+          ]}
+          testID="service-scroll"
+        >
+          {children}
+        </ScrollView>
+        {footer !== undefined && (
+          <View style={[styles.fixedFooter, { paddingBottom: s(21) }]}>{footer}</View>
+        )}
+      </View>
     </View>
   );
 }
@@ -645,13 +661,17 @@ export interface TravelViewProps {
    * cook moves, and goes negative once it passes, so a cook standing still watched "13 mins"
    * become "-1" without having gone anywhere. Her distance had not changed at all.
    *
-   * `null` when the server has no usable ETA. The deadline countdown is then shown instead —
-   * still the wrong question, but the only number there is, and better than an empty card.
+   * `null` when the server has no usable ETA. The card then shows `--` rather than substituting the
+   * booking deadline, because that is a different measurement.
    */
   readonly minutesToArrival?: number | null | undefined;
   readonly onMap?: (() => void) | undefined;
   readonly onCall?: (() => void) | undefined;
   readonly callError?: string | null;
+  readonly onArrived?: (() => void) | undefined;
+  /** Server permission: fresh accepted evidence is within the 75 m gate radius. */
+  readonly canMarkArrived?: boolean;
+  readonly isSubmitting?: boolean;
   readonly onHelp?: (() => void) | undefined;
 }
 
@@ -659,9 +679,8 @@ export interface TravelViewProps {
  * `468:4045` — "Pahauch gaye", the arrival CTA.
  *
  * Drawn on the TRAVEL frames as well as the arrival one. All four travel frames in `707:435`
- * carry it at the same geometry: greyed while the cook is still on her way, lime once she is
- * there. The Cook App only ever rendered the enabled one, on the arrival screen, so during the
- * entire journey there was no button at all -- no affordance, and no sense of what unlocks it.
+ * carry it at the same geometry. This product flow makes it the handoff from travel to the next
+ * server state, so it is fixed above the bottom nav and remains available while the cook travels.
  *
  * ## What actually enables it
  *
@@ -671,10 +690,10 @@ export interface TravelViewProps {
  * of one minute is not a guarantee of being inside 75 m: enabling on the ETA would hand the cook a
  * button that errors when she presses it.
  *
- * So the enabled state is the SERVER's: once proximity is confirmed the booking moves to
- * `cook_arrived` and `ArrivalView` draws this same control live. The travel screens draw it inert.
- * The sequence the frames show is preserved; what unlocks it is the thing that can actually
- * authorise it.
+ * The route wires this control to the same proximity-validated fallback command used by the
+ * arrival screen. The backend publishes `commandEligibility.markArrived` from that evidence, so
+ * the button is visibly disabled until the server has a fresh accepted sample within 75 m. The
+ * command remains evidence-checked on the write path as well.
  */
 function ArrivedCta({
   onPress,
@@ -729,6 +748,9 @@ export function TravelView({
   onMap,
   onCall,
   callError = null,
+  onArrived,
+  canMarkArrived = false,
+  isSubmitting = false,
   onHelp,
 }: TravelViewProps): React.ReactElement {
   const scale = useDesignScale();
@@ -753,7 +775,19 @@ export function TravelView({
     minutesToArrival === null || minutesToArrival === undefined ? null : minutesToArrival;
 
   return (
-    <ServiceShell onHelp={onHelp} testID={`service-travel-${timing}`}>
+    <ServiceShell
+      onHelp={onHelp}
+      footer={
+        <Block>
+          <ArrivedCta
+            onPress={onArrived}
+            disabled={isSubmitting || onArrived === undefined || !canMarkArrived}
+            testID="service-travel-arrived"
+          />
+        </Block>
+      }
+      testID={`service-travel-${timing}`}
+    >
       <Block>
         <View style={[styles.travelBanner, { gap: s(TRAVEL.gap) }]}>
           {/*
@@ -826,10 +860,6 @@ export function TravelView({
         </View>
       </Block>
       <UserDetailsCard job={job} onMap={onMap} onCall={onCall} callError={callError} />
-      {/* `707:446` — present on every travel frame, inert until the server confirms arrival. */}
-      <Block>
-        <ArrivedCta disabled testID="service-travel-arrived" />
-      </Block>
     </ServiceShell>
   );
 }
@@ -1053,12 +1083,14 @@ function PromoBlock({
   captionFirst = false,
   gap = PROMO.gap,
   coverHeight,
+  testID,
 }: {
   source: ImageSourcePropType;
   caption: string;
   height: number;
   captionFirst?: boolean;
   gap?: number;
+  testID?: string;
   /**
    * The height the covering image is DRAWN at, when the design pins it to the top of its box
    * rather than centring the overflow. Omit for the centred default.
@@ -1106,6 +1138,7 @@ function PromoBlock({
         styles.promo,
         { gap: s(gap), paddingHorizontal: s(PROMO.paddingH), paddingVertical: s(PROMO.paddingV) },
       ]}
+      testID={testID}
     >
       {captionFirst ? [text, image] : [image, text]}
     </View>
@@ -1122,28 +1155,25 @@ export interface OtpViewProps {
   readonly onHelp?: (() => void) | undefined;
 }
 
-/** `622:801` — details, then the Start OTP block, then the promo. */
+/** `622:801` — the Start OTP promo, then the Start OTP block. */
 export function StartOtpView({
-  job,
   code,
   onChange,
   onSubmit,
   isSubmitting = false,
   error = null,
   length,
-  onMap,
-  onCall,
-  callError = null,
   onHelp,
-}: OtpViewProps & {
-  job: JobSummary;
-  onMap?: (() => void) | undefined;
-  onCall?: (() => void) | undefined;
-  callError?: string | null;
-}): React.ReactElement {
+}: OtpViewProps): React.ReactElement {
   return (
     <ServiceShell onHelp={onHelp} testID="service-start-otp">
-      <UserDetailsCard job={job} onMap={onMap} onCall={onCall} callError={callError} />
+      <PromoBlock
+        source={art.startOtp}
+        caption="OTP daalke job start kare"
+        height={217}
+        coverHeight={START_OTP_ART_COVER_HEIGHT}
+        testID="start-otp-promo"
+      />
       <OtpBlock
         label="Start OTP"
         action="Start"
@@ -1154,12 +1184,6 @@ export function StartOtpView({
         hasError={error !== null}
         length={length}
         testID="start-otp"
-      />
-      <PromoBlock
-        source={art.startOtp}
-        caption="OTP daalke job start kare"
-        height={217}
-        coverHeight={START_OTP_ART_COVER_HEIGHT}
       />
       {error !== null && <ErrorLine message={error} testID="start-otp-error" />}
     </ServiceShell>
@@ -1208,6 +1232,30 @@ function ErrorLine({ message, testID }: { message: string; testID: string }): Re
 /* ---------------------------------------------------------------- cooking --- */
 
 export interface CookingViewProps {
+  /**
+   * The End OTP, available for the WHOLE of the service rather than only its last minutes.
+   *
+   * The keypad used to replace the timer five minutes before the end (founder, 2026-08-31), and
+   * before that it replaced the timer from the first second — which is why the timer, the
+   * last-seven-minutes state and the extension banner were all unreachable. Neither shape is what
+   * a cook needs: she wants to see how long is left AND be able to close the job the moment the
+   * customer is ready.
+   *
+   * So it is drawn BESIDE the timer (founder, 2026-09-02), not instead of it. Ending early is
+   * safe because the code is the CUSTOMER's — she reads it out — so the OTP is their consent, not
+   * the cook's shortcut. `otpEligibility.end` has always been true for the whole of `cooking`, so
+   * the server was never the thing holding this back.
+   *
+   * `null` hides the block entirely, which is what an already-used End OTP looks like.
+   */
+  readonly endOtp?: {
+    readonly code: string;
+    readonly onChange: (next: string) => void;
+    readonly onSubmit: () => void;
+    readonly isSubmitting: boolean;
+    readonly error: string | null;
+    readonly length: number;
+  } | null;
   /** Whole hours remaining, or `null` when the design shows minutes alone. */
   readonly hoursRemaining: number | null;
   readonly minutesRemaining: number;
@@ -1219,12 +1267,14 @@ export interface CookingViewProps {
    * `null` hides the `628:1228` row entirely, which is the normal Active Job screen. The caller
    * derives this from `extensionBannerMsRemaining`; this view never times anything itself.
    */
-  readonly extensionMinutes: number | null;
+  /** Confirmed extension minutes, oldest first; null hides the temporary extension banner. */
+  readonly extensionMinutes: readonly number[] | null;
   readonly onHelp?: (() => void) | undefined;
 }
 
 /** `622:1036` / `622:1085` / `622:1125` / `622:1163`. */
 export function CookingView({
+  endOtp = null,
   hoursRemaining,
   minutesRemaining,
   isEndingSoon,
@@ -1232,7 +1282,7 @@ export function CookingView({
   onHelp,
 }: CookingViewProps): React.ReactElement {
   const { s } = useDesignScale();
-  const showExtension = extensionMinutes !== null;
+  const showExtension = extensionMinutes !== null && extensionMinutes.length > 0;
   const timerFill = isEndingSoon ? color.yellow600 : color.lime400;
   const timerColor = isEndingSoon ? color.danger : color.black;
 
@@ -1282,7 +1332,7 @@ export function CookingView({
            */
           <View style={[styles.stretch, { gap: s(COOK.bannerGap) }]}>
             {heading}
-            <ExtensionRow minutes={extensionMinutes} />
+            <ExtensionRows minutes={extensionMinutes ?? []} />
             {timer}
           </View>
         ) : (
@@ -1302,12 +1352,32 @@ export function CookingView({
           </View>
         )}
       </View>
+      {/* The End OTP shares the live cooking screen with the timer and coaching artwork. */}
+      {endOtp !== null && (
+        <>
+          <OtpBlock
+            label="End OTP"
+            action="End"
+            code={endOtp.code}
+            onChange={endOtp.onChange}
+            onSubmit={endOtp.onSubmit}
+            isSubmitting={endOtp.isSubmitting}
+            hasError={endOtp.error !== null}
+            length={endOtp.length}
+            testID="cooking-end-otp"
+          />
+          {endOtp.error !== null && (
+            <ErrorLine message={endOtp.error} testID="cooking-end-otp-error" />
+          )}
+        </>
+      )}
       <PromoBlock
         source={isEndingSoon ? art.cookingEnding : art.cooking}
-        caption="5+ rating ki koshish kare"
+        caption={isEndingSoon ? 'Clean: SLAB, WALL aur STOVE' : '5+ rating ki koshish kare'}
         height={276}
         captionFirst
         gap={12}
+        testID="cooking-promo"
       />
     </ServiceShell>
   );
@@ -1354,7 +1424,17 @@ function TimerCell({
 }
 
 /** `628:1228` — the clock, the `Extension` label and the granted minutes. */
-function ExtensionRow({ minutes }: { minutes: number }): React.ReactElement {
+function ExtensionRows({ minutes }: { minutes: readonly number[] }): React.ReactElement {
+  return (
+    <>
+      {minutes.map((item, index) => (
+        <ExtensionRow key={`${item}-${index}`} minutes={item} index={index} />
+      ))}
+    </>
+  );
+}
+
+function ExtensionRow({ minutes, index }: { minutes: number; index: number }): React.ReactElement {
   const { s } = useDesignScale();
   return (
     <View
@@ -1362,7 +1442,7 @@ function ExtensionRow({ minutes }: { minutes: number }): React.ReactElement {
         styles.extensionRow,
         { gap: s(COOK.extensionGap), paddingVertical: s(COOK.extensionPaddingV) },
       ]}
-      testID="service-extension-banner"
+      testID={index === 0 ? 'service-extension-banner' : `service-extension-banner-${index + 1}`}
     >
       <Image
         source={art.extensionClock}
@@ -1413,7 +1493,9 @@ function ExtensionRow({ minutes }: { minutes: number }): React.ReactElement {
             color={color.black}
             align="center"
             style={styles.stretch}
-            testID="service-extension-minutes"
+            testID={
+              index === 0 ? 'service-extension-minutes' : `service-extension-minutes-${index + 1}`
+            }
           >
             {`${minutes} mins`}
           </Text>
@@ -1449,7 +1531,7 @@ export function CompletedView({
           },
         ]}
       >
-        {/* `485:4932` is a 63-unit box holding a 72-unit two-line run, centred and clipped. */}
+        {/* `485:4932` is a fixed slot large enough for the complete two-line headline. */}
         <View style={[styles.headlineBox, { height: s(PROMO.headlineHeight) }]}>
           <Text
             variant="completedHeadline"
@@ -1516,6 +1598,14 @@ function DoneButton({
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: color.white },
+  shellContent: { flex: 1, position: 'relative' },
+  fixedFooter: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: color.white,
+  },
   nav: {
     flexDirection: 'row',
     alignItems: 'center',

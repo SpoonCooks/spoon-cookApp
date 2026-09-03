@@ -40,8 +40,10 @@ const base: ServiceSnapshot = {
     extendedByMinutes: null,
     newExpectedEndIso: null,
     confirmedAtIso: null,
+    extensions: [],
   },
   canStartTravel: true,
+  canMarkArrived: false,
   interruption: null,
 };
 
@@ -174,6 +176,14 @@ describe('projectServiceState', () => {
           extendedByMinutes: 30,
           newExpectedEndIso: '2026-08-21T14:00:00+05:30',
           confirmedAtIso: null,
+          extensions: [
+            {
+              state: 'confirmed',
+              minutes: 30,
+              newExpectedEndIso: '2026-08-21T14:00:00+05:30',
+              confirmedAtIso: null,
+            },
+          ],
         },
       })!;
       expect(state).toMatchObject({ expectedEndIso: '2026-08-21T14:00:00+05:30' });
@@ -204,9 +214,11 @@ describe('projectServiceState', () => {
       expect(state.minutesRemaining).toBe(37);
     });
 
-    it('moves to End OTP when the service time is spent', () => {
+    it('keeps the cooking surface when the service time is spent', () => {
       const state = projectServiceState({ ...cooking, endOtpReady: true, minutesRemaining: 0 })!;
-      expect(state.kind).toBe('awaiting_end_otp');
+      expect(state.kind).toBe('cooking');
+      if (state.kind !== 'cooking') throw new Error('expected cooking');
+      expect(state.endOtpReady).toBe(true);
     });
 
     /*
@@ -216,9 +228,11 @@ describe('projectServiceState', () => {
      * was supposed to be over, so every job ran a little long for a reason that was purely
      * interface. The boundary is asserted from both sides so the window cannot quietly widen.
      */
-    it('opens the keypad five minutes before the end, not at zero', () => {
+    it('keeps the timer and keypad together five minutes before the end', () => {
       const state = projectServiceState({ ...cooking, endOtpReady: true, minutesRemaining: 5 })!;
-      expect(state.kind).toBe('awaiting_end_otp');
+      expect(state.kind).toBe('cooking');
+      if (state.kind !== 'cooking') throw new Error('expected cooking');
+      expect(state.endOtpReady).toBe(true);
     });
 
     it('still shows the timer six minutes out', () => {

@@ -25,6 +25,14 @@ const extended = (over: Partial<ExtensionProjection> = {}): ExtensionProjection 
   extendedByMinutes: 20,
   newExpectedEndIso: '2026-08-25T08:28:00.000Z',
   confirmedAtIso: CONFIRMED_AT,
+  extensions: [
+    {
+      state: 'confirmed',
+      minutes: 20,
+      newExpectedEndIso: '2026-08-25T08:28:00.000Z',
+      confirmedAtIso: CONFIRMED_AT,
+    },
+  ],
   ...over,
 });
 
@@ -138,6 +146,7 @@ describe('the cooking projection', () => {
     isEndingSoon: false,
     extension,
     canStartTravel: false,
+    canMarkArrived: false,
     interruption: null,
   });
 
@@ -207,9 +216,9 @@ describe('the cooking projection', () => {
     expect(state.minutesRemaining).toBe(28);
   });
 
-  it('reaches the End OTP only once the EXTENDED time is spent', () => {
-    // The extension moved the end to 08:28. At 08:20 there are still eight minutes to cook, so
-    // the keypad must wait for them — the extended end is the one that counts, not the original.
+  it('keeps the End OTP beside the timer after the EXTENDED time is spent', () => {
+    // The extension moved the end to 08:28. The extended end still controls the timer, while the
+    // End OTP remains an inline permission throughout the cooking state.
     const duringExtension = projectServiceState({
       ...cookingSnapshot(serverTimeAfter(60_000), extended()),
       endOtpReady: true,
@@ -222,6 +231,6 @@ describe('the cooking projection', () => {
       endOtpReady: true,
       minutesRemaining: 0,
     });
-    expect(spent?.kind).toBe('awaiting_end_otp');
+    expect(spent?.kind).toBe('cooking');
   });
 });

@@ -27,14 +27,6 @@
  * this module computes.
  */
 
-/**
- * How long before the scheduled end the End OTP keypad opens (founder, 2026-08-31).
- *
- * A hand-over buffer, not a licence to end a service early: the cook can close out at most this
- * many minutes ahead, and the customer's own screen is already showing them the code by then.
- */
-export const END_OTP_WINDOW_MINUTES = 5;
-
 /** Backend booking status, exactly as the API reports it. */
 export const bookingStatuses = [
   'created',
@@ -112,6 +104,13 @@ export interface GateTarget {
   readonly accessInstructions: string | null;
 }
 
+export interface ExtensionItemProjection {
+  readonly state: string;
+  readonly minutes: number;
+  readonly newExpectedEndIso: string | null;
+  readonly confirmedAtIso: string | null;
+}
+
 export interface ExtensionProjection {
   /** True once the backend confirms a customer-paid extension. Never set optimistically. */
   readonly isExtended: boolean;
@@ -135,6 +134,8 @@ export interface ExtensionProjection {
    * the window restart on every reinstall and drift per device, so it is not done.
    */
   readonly confirmedAtIso: string | null;
+  /** Every confirmed extension, oldest first, for the single- and 2x-extension Figma states. */
+  readonly extensions: readonly ExtensionItemProjection[];
 }
 
 /**
@@ -228,6 +229,8 @@ export type ServiceState =
        * `null` when the server has no usable ETA, and the deadline countdown is drawn instead.
        */
       readonly minutesToArrival: number | null;
+      /** Server permission for the manual arrival fallback; never inferred from ETA. */
+      readonly canMarkArrived: boolean;
     }
   | { readonly kind: 'arrived'; readonly job: JobSummary; readonly timing: ArrivalTiming }
   | {
@@ -238,6 +241,15 @@ export type ServiceState =
   | {
       readonly kind: 'cooking';
       readonly job: JobSummary;
+      /**
+       * The server's permission for the End OTP — `otpEligibility.end`.
+       *
+       * Carried onto `cooking` because the keypad is now drawn beside the timer for the whole
+       * service (founder, 2026-09-02) rather than only in its last five minutes. It stays a
+       * PERMISSION and never a screen: false means an already-used code, and the block is hidden
+       * rather than offering one the endpoint would refuse.
+       */
+      readonly endOtpReady: boolean;
       readonly actualStartIso: string;
       readonly expectedEndIso: string;
       readonly minutesRemaining: number;
@@ -297,6 +309,8 @@ export interface ServiceSnapshot {
   readonly isEndingSoon: boolean;
   readonly extension: ExtensionProjection;
   readonly canStartTravel: boolean;
+  /** Server says fresh accepted in-radius evidence enables the manual arrival fallback. */
+  readonly canMarkArrived: boolean;
   readonly interruption: 'cancelled_while_travelling' | 'reassigned' | 'cancelled' | null;
 }
 
@@ -329,6 +343,7 @@ export function projectServiceState(snapshot: ServiceSnapshot): ServiceState | n
         // Not defaulted to 0: no ETA is not "arriving now", and the card falls back to the
         // deadline countdown rather than drawing a zero it cannot justify.
         minutesToArrival: snapshot.minutesToArrival,
+        canMarkArrived: snapshot.canMarkArrived,
       };
 
     case 'cook_arrived': {
@@ -346,40 +361,13 @@ export function projectServiceState(snapshot: ServiceSnapshot): ServiceState | n
       const expectedEndIso = snapshot.extension.newExpectedEndIso ?? snapshot.expectedEndIso;
       const minutesRemaining =
         snapshot.minutesRemaining ?? minutesUntil(expectedEndIso, snapshot.clock.serverNowIso);
-      /*
-       * The End OTP is the LAST screen of the service, not the whole of it.
-       *
-       * This used to read `if (snapshot.endOtpReady) return awaiting_end_otp` as the first line of
-       * the branch, and `endOtpReady` is `otpEligibility.end`, which the cook read model computes
-       * as `booking_status = 'cooking' AND end_otp_used_at IS NULL`. That is true from the instant
-       * the service starts until the instant it ends — so the branch below was unreachable and a
-       * cook went from the Start OTP keypad straight to the End OTP keypad. She never saw the
-       * `622:1036` timer, never saw the `622:1125` last-seven-minutes state, and never saw the
-       * `622:1163` extension banner. Three drawn frames, dead.
-       *
-       * The server field is a PERMISSION — "the end OTP would be accepted now" — and treating a
-       * permission as a screen is what broke it. The clock decides the screen: the timer runs
-       * while service time remains, and the keypad appears when it does not. That is exactly what
-       * V14 draws, which is why the cooking frame has no end button on it.
-       *
-       * `endOtpReady` is still required, so an already-used End OTP cannot bring the keypad back.
-       *
-       * FOUNDER DECISION (2026-08-31): the keypad opens `END_OTP_WINDOW_MINUTES` before the end,
-       * not at zero. Waiting for the timer to hit zero meant the cook was still hunting for the
-       * screen at the moment the service was supposed to be over, so every job ran a little long
-       * for a reason that was purely interface. Five minutes is enough to have the OTP read out
-       * and typed before time is actually up.
-       *
-       * This supersedes the note that a cook cannot end early: she now can, by up to five
-       * minutes. Beyond that she still waits — the window is a hand-over buffer, not a licence to
-       * cut a service short.
-       */
-      if (snapshot.endOtpReady && minutesRemaining <= END_OTP_WINDOW_MINUTES) {
-        return { kind: 'awaiting_end_otp', job };
-      }
+      /* End OTP is a permission, not a replacement screen. The cooking frame owns the complete
+       * live-service surface: timer, optional extension history, End OTP block and coaching art.
+       * Keeping this branch as `cooking` makes every Figma timer state reachable. */
       return {
         kind: 'cooking',
         job,
+        endOtpReady: snapshot.endOtpReady,
         actualStartIso: snapshot.actualStartIso,
         expectedEndIso,
         minutesRemaining: Math.max(0, minutesRemaining),
