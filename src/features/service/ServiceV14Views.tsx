@@ -106,7 +106,13 @@ const DETAILS = {
   addressPaddingH: 12,
   addressPaddingV: 8,
   addressGap: 16,
-  addressRowHeight: 25,
+  /*
+   * 30, not the frame's 25. The address line is 18px Livvic and the row is a FIXED height, so
+   * widening the line alone would have moved the crop one level up and changed nothing on screen.
+   * A cook reads a street address off this row; it is the last thing that should lose its
+   * descenders, and "Gurgaon" has two.
+   */
+  addressRowHeight: 30,
   addressRowGap: 12,
   addressIcon: 25,
   durationRadius: 5,

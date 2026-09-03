@@ -63,7 +63,7 @@ export const textStyle = {
   pillLabel: {
     fontFamily: fontFamily.semibold,
     fontSize: fontSize.xxxl,
-    lineHeight: lineHeight.s,
+    lineHeight: 25,
     color: color.textPrimary,
   },
   /** `572:604` — the small white note beside the check-in time. Livvic SemiBold 13/16. */
@@ -102,7 +102,7 @@ export const textStyle = {
   overlineXl: {
     fontFamily: fontFamily.black,
     fontSize: fontSize.xxxl,
-    lineHeight: lineHeight.l,
+    lineHeight: 25,
     letterSpacing: 1,
     color: color.textPrimary,
   },
@@ -110,7 +110,7 @@ export const textStyle = {
   overlineLg: {
     fontFamily: fontFamily.black,
     fontSize: fontSize.xxl,
-    lineHeight: lineHeight.l,
+    lineHeight: 23,
     letterSpacing: 1,
     color: color.textPrimary,
   },
@@ -124,7 +124,7 @@ export const textStyle = {
   cardTime: {
     fontFamily: fontFamily.black,
     fontSize: fontSize.display,
-    lineHeight: lineHeight.xl,
+    lineHeight: 30,
     letterSpacing: -0.6,
     color: color.textPrimary,
   },
@@ -182,7 +182,7 @@ export const textStyle = {
   ruleCell: {
     fontFamily: fontFamily.semibold,
     fontSize: fontSize.xl,
-    lineHeight: lineHeight.s,
+    lineHeight: 20,
     color: color.textPrimary,
   },
   /**
@@ -192,7 +192,7 @@ export const textStyle = {
   policyCell: {
     fontFamily: fontFamily.semibold,
     fontSize: fontSize.xxxl,
-    lineHeight: lineHeight.s,
+    lineHeight: 25,
     color: color.textPrimary,
   },
   /**
@@ -207,7 +207,7 @@ export const textStyle = {
   policyCellSm: {
     fontFamily: fontFamily.semibold,
     fontSize: fontSize.xxl,
-    lineHeight: lineHeight.s,
+    lineHeight: 23,
     color: color.textPrimary,
   },
   /**
@@ -267,14 +267,14 @@ export const textStyle = {
   addressLine: {
     fontFamily: fontFamily.black,
     fontSize: fontSize.xxl,
-    lineHeight: lineHeight.l,
+    lineHeight: 23,
     color: color.textPrimary,
   },
   /** `463:3759` — the `1.5 hrs` chip beside the customer name. Livvic Bold 16 on a 16 line. */
   durationChip: {
     fontFamily: fontFamily.bold,
     fontSize: fontSize.xl,
-    lineHeight: lineHeight.s,
+    lineHeight: 20,
     color: color.textPrimary,
   },
   /** `462:3602` / `614:408` — `Map dekhe` / `Call kare`. Livvic Bold 18 on a 22 line. */
@@ -319,7 +319,7 @@ export const textStyle = {
   travelCountdown: {
     fontFamily: fontFamily.black,
     fontSize: 32,
-    lineHeight: lineHeight.chip,
+    lineHeight: 40,
     letterSpacing: 0.32,
     color: color.textPrimary,
   },
@@ -335,28 +335,28 @@ export const textStyle = {
   otpAction: {
     fontFamily: fontFamily.bold,
     fontSize: 25,
-    lineHeight: lineHeight.xxl,
+    lineHeight: 32,
     color: color.textPrimary,
   },
   /** `622:1211` — the cooking timer. Livvic Black **35** on a **40** line. */
   timerValue: {
     fontFamily: fontFamily.black,
     fontSize: 35,
-    lineHeight: lineHeight.displayXl,
+    lineHeight: 44,
     color: color.textPrimary,
   },
   /** `628:1230` — the `Extension` chip. Livvic Bold 24 on a **16** line. */
   extensionLabel: {
     fontFamily: fontFamily.bold,
     fontSize: fontSize.display,
-    lineHeight: lineHeight.s,
+    lineHeight: 30,
     color: color.textPrimary,
   },
   /** `628:1232` — the granted minutes. Livvic Black **28** on a 25 line, 0.28 tracking. */
   extensionValue: {
     fontFamily: fontFamily.black,
     fontSize: 28,
-    lineHeight: lineHeight.chip,
+    lineHeight: 35,
     letterSpacing: 0.28,
     color: color.textPrimary,
   },
@@ -462,7 +462,7 @@ export const textStyle = {
   dayStripLabel: {
     fontFamily: fontFamily.bold,
     fontSize: fontSize.m,
-    lineHeight: lineHeight.dayStrip,
+    lineHeight: 15,
     color: color.textPrimary,
   },
   /** `505:1702` — a calendar day. Livvic Black 11 on a 16.5 line. */
@@ -532,7 +532,7 @@ export const textStyle = {
   bodyMuted: {
     fontFamily: fontFamily.semibold,
     fontSize: fontSize.l,
-    lineHeight: lineHeight.s,
+    lineHeight: 18,
     color: color.textSecondary,
   },
   /** Card meta — `1.5 hrs`, `Building/ Society`. */

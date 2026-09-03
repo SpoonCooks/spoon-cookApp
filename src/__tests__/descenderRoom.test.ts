@@ -28,37 +28,25 @@ import { textStyle } from '@ui/theme/typography';
 const MIN_RATIO = 1.2;
 
 /**
- * Variants transcribed below the bound and NOT yet observed clipping.
+ * What is still below the bound.
  *
- * A tight line only clips when the text actually carries a descender, and most of these never do:
- * `30 mins`, `11:30 AM`, `₹1,175` have no g, j, p, q or y in them. That is why the list is
- * "not yet observed" rather than "verified safe" — nobody has proved these are fine, only that
- * nothing has been reported.
+ * This was nineteen entries, held on the argument that a tight line only clips when the text
+ * carries a descender and that most of these never would. The argument did not survive being
+ * checked against what each variant actually renders: `bodyMuted` draws "Aaj ka kaam khatam ho
+ * gaya, aaram kare!" and `overlineLg` draws "aaj ka break" — a g, a y and a j, all below the
+ * bound. Worse, seven variants set a line SHORTER than their own font size, `extensionLabel`
+ * worst at 24px on a 16px line, and a box that small crops a glyph whether or not it descends.
  *
- * The list is the point of the test. It locks today's state so a NEW variant cannot quietly join
- * it, and it is the backlog for anyone widening a line later: each entry is a frame's literal
- * transcription, and the three removed from it on 2026-09-02 were all found on a handset first.
+ * Fifteen were widened on 2026-09-03, each checked against its container first so nothing is
+ * merely clipped one level up instead: the policy row is 35pt around a 25pt line, the countdown
+ * box 103pt around 40, the shift pill 32 around 25.
  */
 const KNOWN_TIGHT: ReadonlySet<string> = new Set([
+  // Both are UNUSED: no component names either one. They are left tight rather than "fixed"
+  // blind, because changing a variant nothing renders proves nothing and the numbers are the
+  // frames' own. Whoever first renders one of these has to give it room at that point.
   'hero',
   'displayXl',
-  'pillLabel',
-  'overlineXl',
-  'overlineLg',
-  'cardTime',
-  'ruleCell',
-  'policyCell',
-  'policyCellSm',
-  'addressLine',
-  'durationChip',
-  'actionChip',
-  'travelCountdown',
-  'otpAction',
-  'timerValue',
-  'extensionLabel',
-  'extensionValue',
-  'dayStripLabel',
-  'bodyMuted',
 ]);
 
 function tightVariants(): readonly string[] {
