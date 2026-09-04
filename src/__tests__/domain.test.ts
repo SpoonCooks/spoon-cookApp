@@ -109,6 +109,7 @@ describe('groupJobsByDate', () => {
     blockedReason: null,
     isRunningLate: false,
     isCancelled: false,
+    isFinished: false,
     urgency: 'soon',
     address: {
       buildingName: null,

@@ -176,6 +176,8 @@ export function toJobCard(job: CookJobResponse): JobCardModel {
     // A cancelled job cannot also be running late — there is nothing left to be late for — and the
     // card draws one marker, so the two are read in that order where it is rendered.
     isCancelled: status === 'cancelled',
+    // Terminal the other way. Both are history; neither is work she still has to do.
+    isFinished: status === 'completed',
     // `4c` / `4d` / `4e`: the server's ruling, never the handset's clock.
     urgency: jobUrgencyFrom(job.departure?.urgency),
     address: toAddress(job),

@@ -66,8 +66,14 @@ export default function JobsScreen(): React.ReactElement {
    * A cancelled or finished job is never the lead: those cards are news, and the lead card is
    * work. The list arrives already ordered live-first, then upcoming, then done, so the first
    * card that is still ahead of her IS the next thing she has to do.
+   *
+   * Both terminal states have to be excluded, and at first only cancellation was. A COMPLETED job
+   * then took the lead once the day's work was done: a card counting -91 mins, carrying a Chalo
+   * that could not fire, over the line "Yeh kaam pehle se shuru ho chuka hai". Pressing the
+   * disabled button fell through to the card beneath it and opened the completion screen, so the
+   * app answered Go with "Agle booking mein bhi accha kaam kare!".
    */
-  const leadJob = cards.find((card) => !card.isCancelled) ?? null;
+  const leadJob = cards.find((card) => !card.isCancelled && !card.isFinished) ?? null;
   const rest = useMemo(
     () => cards.filter((card) => card.bookingId !== leadJob?.bookingId),
     [cards, leadJob],

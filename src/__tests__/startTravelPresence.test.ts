@@ -131,3 +131,56 @@ describe('why she cannot set off', () => {
     expect(startTravelBlockedNote(undefined)).toBeNull();
   });
 });
+
+/**
+ * The lead card is WORK, not news.
+ *
+ * Finished and cancelled jobs stay on the list for a few hours so a cook can see the day she has
+ * had. That makes "not cancelled" the wrong test for what belongs at the top: once the day's work
+ * was done a COMPLETED job took the lead, showing a countdown of -91 mins and a Chalo that could
+ * not fire, over "Yeh kaam pehle se shuru ho chuka hai". Pressing the disabled button fell through
+ * to the card and opened the completion screen, so Go was answered with "Agle booking mein bhi
+ * accha kaam kare!". From the handset, 2026-09-04.
+ */
+describe('which job leads the list', () => {
+  // The selector from the Kaam screen, stated once so the test cannot drift from the rule.
+  const lead = (cards: readonly { isCancelled: boolean; isFinished: boolean; id: string }[]) =>
+    cards.find((card) => !card.isCancelled && !card.isFinished) ?? null;
+
+  const card = (id: string, over: Partial<{ isCancelled: boolean; isFinished: boolean }> = {}) => ({
+    id,
+    isCancelled: false,
+    isFinished: false,
+    ...over,
+  });
+
+  it('skips a job that is already over', () => {
+    const cards = [card('done', { isFinished: true }), card('upcoming')];
+
+    expect(lead(cards)?.id).toBe('upcoming');
+  });
+
+  it('skips a cancelled job too', () => {
+    const cards = [card('gone', { isCancelled: true }), card('upcoming')];
+
+    expect(lead(cards)?.id).toBe('upcoming');
+  });
+
+  /*
+   * Nothing left to do is a real answer. No lead card renders, and the finished cards are still
+   * listed below -- she can see her day without being handed a button for it.
+   */
+  it('leads with nothing when the day is done', () => {
+    const cards = [card('a', { isFinished: true }), card('b', { isCancelled: true })];
+
+    expect(lead(cards)).toBeNull();
+  });
+
+  it('carries the terminal flags off the server status', () => {
+    expect(toJobCard(job({ status: 'completed' } as never)).isFinished).toBe(true);
+    expect(toJobCard(job({ status: 'cancelled' } as never)).isCancelled).toBe(true);
+    const live = toJobCard(job({ status: 'assigned' } as never));
+    expect(live.isFinished).toBe(false);
+    expect(live.isCancelled).toBe(false);
+  });
+});

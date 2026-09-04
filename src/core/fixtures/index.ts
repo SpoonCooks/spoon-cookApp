@@ -109,6 +109,7 @@ const currentJob: JobCardModel = {
   blockedReason: null,
   isRunningLate: false,
   isCancelled: false,
+  isFinished: false,
   urgency: 'soon',
   address,
   gate,

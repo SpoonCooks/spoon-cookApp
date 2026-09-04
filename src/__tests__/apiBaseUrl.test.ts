@@ -84,10 +84,32 @@ describe('app.config.ts', () => {
     return mod.default({ config: {} });
   }
 
-  it('leaves the base URL undefined in production when the env var is absent', () => {
+  /**
+   * It used to leave the url undefined and let the build continue, and this asserted that.
+   *
+   * The refusal to GUESS a backend was always right -- a build that guesses can silently talk to
+   * the wrong environment. Letting it build with none was the worse half of the same trade, and
+   * that is the half that shipped: a production APK went out with no api base url anywhere in it,
+   * and the only symptom on the handset was every request failing as "Internet nahi mil raha.
+   * Connection check kare." on a phone with four bars of 4G. The url had been present in the
+   * previous build only because the variable happened to be exported in the shell that made it.
+   *
+   * So the rule is now stronger, not weaker: still never defaulted, and no longer buildable
+   * without. The failure lands at build time carrying the name of the missing variable.
+   */
+  it('refuses to build for production without a base URL', () => {
     process.env.APP_ENV = 'production';
     delete process.env.EXPO_PUBLIC_API_BASE_URL;
-    expect(loadConfig().extra?.apiBaseUrl).toBeUndefined();
+
+    expect(loadConfig).toThrow(/EXPO_PUBLIC_API_BASE_URL/);
+  });
+
+  /* The message has to be actionable at 2am, so it names the variable AND the consequence. */
+  it('says what is missing and what happens without it', () => {
+    process.env.APP_ENV = 'production';
+    delete process.env.EXPO_PUBLIC_API_BASE_URL;
+
+    expect(loadConfig).toThrow(/offline/);
   });
 
   it('honours an explicit production base URL', () => {
@@ -98,6 +120,9 @@ describe('app.config.ts', () => {
 
   it('does not carry the User App identity', () => {
     process.env.APP_ENV = 'production';
+    // A production config cannot be built without this at all now, so the case has to supply it
+    // to ask its own question, which is about the package name.
+    process.env.EXPO_PUBLIC_API_BASE_URL = 'https://api.spoonhelp.com';
     expect(loadConfig().android?.package).toBe('com.spoonhelp.cookapp');
   });
 

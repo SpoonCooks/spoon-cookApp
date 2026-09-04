@@ -68,6 +68,16 @@ export interface JobCardModel {
    */
   readonly isCancelled: boolean;
   /**
+   * The service is OVER -- she finished it and the end OTP was verified.
+   *
+   * A finished job stays on the list for six hours so she can see the day she has had, which
+   * means "not cancelled" is not the same as "still ahead of her". Selecting the lead card on
+   * `!isCancelled` alone put a COMPLETED job at the top with a countdown of -91 mins and a Chalo
+   * on it, and tapping the card opened the completion screen -- "Agle booking mein bhi accha kaam
+   * kare!" -- which is a strange answer to pressing a button that says Go.
+   */
+  readonly isFinished: boolean;
+  /**
    * `job flow` §5's tier for this card, as the SERVER rules it.
    *
    * Was `defaultJobUrgency` for every job, because the projection published no ruling — so `4d`
