@@ -254,6 +254,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     ],
     // Must stay in the list: `android/` is gitignored and regenerated, so this is the only thing
     // that survives `expo prebuild --clean`.
+    './plugins/withGradleHeap',
     ['./plugins/withAndroidNdkVersion', { ndkVersion: ANDROID_NDK_VERSION }],
     './plugins/withStagingSigning',
   ],
