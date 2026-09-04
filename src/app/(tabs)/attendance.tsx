@@ -252,10 +252,13 @@ export default function AttendanceScreen(): React.ReactElement {
         shiftWindow={shiftWindow}
         onProfile={openProfile}
         onHelp={openHelp}
-        // Rendered only once the backend publishes a real opening instant. See the module note.
-        markByTime={
-          today.checkInOpensAt === null ? null : formatCheckInWindow(today.checkInOpensAt)
-        }
+        /*
+         * The DEADLINE, not the opening. She is recorded absent for the day if she has not
+         * marked present by the time her shift starts, so that instant is the one worth putting
+         * on the screen; `checkInOpensAt` is an hour earlier and only decides when the button
+         * begins to work, which `canMark` already carries.
+         */
+        markByTime={today.shiftStartsAt === null ? null : formatCheckInWindow(today.shiftStartsAt)}
         // The SERVER decides eligibility. `canCheckIn` already accounts for the shift, approved
         // leave, an existing record and cook status, so nothing is re-derived here.
         canMark={today.canCheckIn}

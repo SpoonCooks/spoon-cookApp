@@ -450,13 +450,17 @@ function Screen({
 
 export interface DailyLogInViewProps extends GreetingProps {
   /**
-   * `540:415` — the clock time from which the cook may press, formatted by the caller from the
-   * server's `checkInOpensAt`. `null` hides the whole row rather than inventing a time.
+   * `540:415` — the DEADLINE, formatted by the caller from the server's `shiftStartsAt`.
+   * `null` hides the whole row rather than inventing a time.
    *
-   * It is when check-in OPENS, an hour before her shift, and the caption underneath used to
-   * read "se pehle tak" — before this. So a cook on a 5am shift was told to mark herself
-   * present before 4am, an hour before the button would even work, and every one of them is
-   * late by that reading. The value was always right; the sentence around it was backwards.
+   * This showed `checkInOpensAt` under the caption "se pehle tak" -- before this -- so a cook on
+   * a 5am shift was told to mark herself present before 4am, an hour before the button would
+   * even work. The caption was dropped to "se button dabaye" to match the value.
+   *
+   * Both halves move now, because there IS a deadline: a cook who has not marked present by the
+   * time her shift starts is recorded absent for the day. That instant is the one she needs, and
+   * "before" is the true relation to it. The window still OPENS an hour earlier, which is what
+   * `canMark` gates on -- this names the moment it closes.
    */
   readonly markByTime: string | null;
   readonly onMarkPresent?: (() => void) | undefined;
@@ -525,7 +529,7 @@ export function DailyLogInView({
                 align="center"
                 style={{ width: s(WINDOW_ROW.noteWidth) }}
               >
-                se button dabaye
+                se pehle tak button dabaye
               </Text>
             </View>
           )}

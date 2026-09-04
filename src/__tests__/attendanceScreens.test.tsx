@@ -144,19 +144,39 @@ describe('575:2135 — 3a, daily log in', () => {
     expect(screen.queryByTestId('attendance-shift-pill')).toBeNull();
   });
 
-  it('does NOT print a check-in deadline, which the backend does not enforce', () => {
-    // `540:402` reads "5:30 AM se pehle tak button dabaye". No approved opening window exists —
-    // `/cook/me` returns `checkInOpensAt: null` — so printing it would state a restriction the
-    // server has never applied and would send away cooks who are entitled to check in.
+  /*
+   * There IS a deadline now, and it is the shift start.
+   *
+   * This used to assert the opposite -- "the backend does not enforce a check-in deadline" -- and
+   * that was true: printing one would have stated a restriction nothing applied. The founder's
+   * rule of 2026-09-04 makes it real. A cook who has not marked present by her shift start, plus
+   * a grace period, is recorded absent for the day and earns no base pay for it, so the deadline
+   * is the single most useful thing this row can say.
+   */
+  it('says nothing when the server publishes no shift start to be late for', () => {
+    // No instant, no deadline. An older deployment sends none, and a time drawn from nothing
+    // would be invented -- which is the fault this row has already had once, in the other
+    // direction.
+    profile(null, true, { shiftStartsAt: null });
     render(<AttendanceScreen />);
     expect(screen.queryByTestId('attendance-window')).toBeNull();
-    expect(screen.queryByText(/se button dabaye/)).toBeNull();
+    expect(screen.queryByText(/button dabaye/)).toBeNull();
   });
 
-  it('draws the window row only once the backend publishes an opening instant', () => {
-    profile(null, true, { checkInOpensAt: '2026-08-21T00:00:00.000Z' });
+  it('names the deadline, not the moment the button starts working', () => {
+    /*
+     * Both instants are published and they are an hour apart. `checkInOpensAt` decides when the
+     * button begins to work and `canMark` already carries that; `shiftStartsAt` is the one she is
+     * measured against. Drawing the opening under "se pehle tak" told a cook on a 5am shift to
+     * mark herself present before 4am -- an hour before the button worked, and everyone late by
+     * that reading.
+     */
+    profile(null, true, {
+      checkInOpensAt: '2026-08-20T23:00:00.000Z',
+      shiftStartsAt: '2026-08-21T00:00:00.000Z',
+    });
     render(<AttendanceScreen />);
-    expect(screen.getByTestId('attendance-window')).toHaveTextContent(/se button dabaye/);
+    expect(screen.getByTestId('attendance-window')).toHaveTextContent(/se pehle tak button dabaye/);
   });
 
   it('withholds the button when the SERVER says the cook cannot check in', () => {
