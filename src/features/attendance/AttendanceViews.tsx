@@ -450,8 +450,13 @@ function Screen({
 
 export interface DailyLogInViewProps extends GreetingProps {
   /**
-   * `540:415` — the clock time the cook must press by, formatted by the caller from the server's
-   * `checkInOpensAt`/shift. `null` hides the whole window row rather than inventing a deadline.
+   * `540:415` — the clock time from which the cook may press, formatted by the caller from the
+   * server's `checkInOpensAt`. `null` hides the whole row rather than inventing a time.
+   *
+   * It is when check-in OPENS, an hour before her shift, and the caption underneath used to
+   * read "se pehle tak" — before this. So a cook on a 5am shift was told to mark herself
+   * present before 4am, an hour before the button would even work, and every one of them is
+   * late by that reading. The value was always right; the sentence around it was backwards.
    */
   readonly markByTime: string | null;
   readonly onMarkPresent?: (() => void) | undefined;
@@ -520,7 +525,7 @@ export function DailyLogInView({
                 align="center"
                 style={{ width: s(WINDOW_ROW.noteWidth) }}
               >
-                se pehle tak button dabaye
+                se button dabaye
               </Text>
             </View>
           )}

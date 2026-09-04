@@ -150,13 +150,13 @@ describe('575:2135 — 3a, daily log in', () => {
     // server has never applied and would send away cooks who are entitled to check in.
     render(<AttendanceScreen />);
     expect(screen.queryByTestId('attendance-window')).toBeNull();
-    expect(screen.queryByText(/se pehle tak button dabaye/)).toBeNull();
+    expect(screen.queryByText(/se button dabaye/)).toBeNull();
   });
 
   it('draws the window row only once the backend publishes an opening instant', () => {
     profile(null, true, { checkInOpensAt: '2026-08-21T00:00:00.000Z' });
     render(<AttendanceScreen />);
-    expect(screen.getByTestId('attendance-window')).toHaveTextContent(/se pehle tak button dabaye/);
+    expect(screen.getByTestId('attendance-window')).toHaveTextContent(/se button dabaye/);
   });
 
   it('withholds the button when the SERVER says the cook cannot check in', () => {
