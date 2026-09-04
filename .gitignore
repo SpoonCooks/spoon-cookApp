@@ -25,3 +25,4 @@ __pycache__/
 # property of the source. The customer app ignores it for the same reason.
 google-services.json
 GoogleService-Info.plist
+build-output/
