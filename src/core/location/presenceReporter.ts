@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import * as Location from 'expo-location';
 
 import { reportPresenceLocation } from '@core/api/cook';
+import { startPresenceBackground, stopPresenceBackground } from './presenceBackground';
 
 /**
  * Keeps an idle cook reachable by instant.
@@ -39,9 +40,10 @@ import { reportPresenceLocation } from '@core/api/cook';
 /**
  * How often an idle position is refreshed.
  *
- * The server's freshness bound is five minutes, so a slower interval than that would guarantee
- * windows where the cook is invisible to instant despite reporting. Two minutes keeps a fix
- * comfortably inside the bound with room for one failed attempt.
+ * The server keeps an origin usable for forty-five minutes now, so this no longer races a
+ * five-minute bound. Two minutes is kept anyway: it is nearly free while the app is already
+ * awake on screen, and it means a cook who has just marked present is bookable immediately
+ * rather than after the background service's first slower tick.
  */
 export const PRESENCE_PING_INTERVAL_MS = 2 * 60 * 1000;
 
@@ -104,6 +106,27 @@ export function usePresenceReporter(
   useEffect(() => {
     depsRef.current = deps;
   }, [deps]);
+
+  /*
+   * The background service runs alongside the foreground timer, and covers the case the timer
+   * cannot: the app off screen. Without it a cook who marked present and pocketed her phone
+   * went stale within minutes and stopped being offered instant work — the timer below only
+   * ticks while she is looking at the app.
+   *
+   * Deliberately not awaited into the render path and deliberately unable to fail loudly: a
+   * refused permission leaves her with the foreground ping and the backend's hub fallback,
+   * which is worse than having it and much better than a blocked screen.
+   */
+  useEffect(() => {
+    if (!active) {
+      void stopPresenceBackground();
+      return;
+    }
+    void startPresenceBackground();
+    return () => {
+      void stopPresenceBackground();
+    };
+  }, [active]);
 
   useEffect(() => {
     if (!active) return;
