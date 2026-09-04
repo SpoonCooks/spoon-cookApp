@@ -105,7 +105,25 @@ describe('the native splash background', () => {
   it('leaves the app icon on the brand yellow', () => {
     // The icon is brand furniture and does NOT follow the gradient.
     expect(config).toContain("const BRAND_YELLOW = '#FFD600'");
-    expect(config).toContain('adaptiveIcon: { backgroundColor: BRAND_YELLOW }');
+    expect(config).toContain('backgroundColor: BRAND_YELLOW');
+  });
+
+  /*
+   * The app shipped with no icon at all: the adaptive icon named a background colour and gave
+   * it nothing to hold, and no top-level icon existed either, so Android drew its own default
+   * mark on the home screen and in the notification tray.
+   */
+  it('gives the launcher and the notification tray a Spoon mark to draw', () => {
+    const logo = 'assets/images/figma-v13/spoon-brand-logo.png';
+
+    expect(config).toMatch(new RegExp(`^  icon: '\./${logo}'`, 'm'));
+    expect(config).toContain(`foregroundImage: './${logo}'`);
+
+    // Android renders a notification icon as an alpha silhouette filled with this colour, so
+    // a plain 'expo-notifications' with no config leaves it drawing the system default.
+    const notifications = config.slice(config.indexOf("'expo-notifications'"));
+    expect(notifications.slice(0, 200)).toContain(logo);
+    expect(notifications.slice(0, 200)).toContain('color: BRAND_YELLOW');
   });
 
   it('hands that colour to expo-splash-screen', () => {

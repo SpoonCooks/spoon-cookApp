@@ -56,9 +56,11 @@ function retryPolicy(failureCount: number, error: unknown): boolean {
  * `refetchOnWindowFocus: true` below was set and INERT. The library's built-in focus detection
  * listens for the DOM's `visibilitychange` and `focus` events, which do not exist in React
  * Native, so nothing ever told it the app had come back. A cook opened Kaam, backgrounded the
- * app for an hour, returned — and read an hour-old list. The Kaam list has no poll either
- * ({@link useJobs} sets no `refetchInterval`, correctly: it is a day's roster, not a live
- * service), so a fetch on focus was its ONLY route to fresh data and it was never wired.
+ * app for an hour, returned — and read an hour-old list.
+ *
+ * The roster also polls now ({@link useJobs}), because a list that looks static is not: CHALO
+ * appears on its own when the departure window opens, and a cancellation removes a job. Focus
+ * alone was never going to carry either.
  *
  * Registered once, at module scope, because `focusManager` is a library-wide singleton and a
  * second listener would double every refetch. It returns the unsubscribe the manager expects, so
@@ -138,6 +140,20 @@ export function useCookProfile(enabled = true): UseQueryResult<CookProfileRespon
   });
 }
 
+/**
+ * How often the day's roster re-reads itself.
+ *
+ * It was not polled at all, on the reasoning that a roster is not a live surface. It is: the
+ * CHALO button appears on its own when the departure window opens, a booking the customer
+ * cancels has to stop being offered, and a reassignment moves a job onto or off this list.
+ * None of that is something the cook does, so without a poll she sits looking at a screen that
+ * is quietly wrong until she thinks to pull it down — which is exactly how it was reported.
+ *
+ * Thirty seconds. The window that matters most is CHALO opening, and being up to half a minute
+ * late to offer it is invisible; being ten minutes late is a cook standing still.
+ */
+const ROSTER_POLL_MS = 30_000;
+
 export function useJobs(
   params: { readonly from?: string; readonly to?: string; readonly limit?: number } = {},
   enabled = true,
@@ -146,6 +162,7 @@ export function useJobs(
     queryKey: queryKeys.jobs(params.from, params.to),
     queryFn: ({ signal }) => api.listJobs(params, { signal }),
     enabled,
+    refetchInterval: ROSTER_POLL_MS,
   });
 }
 

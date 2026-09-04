@@ -134,13 +134,21 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   slug: 'spoon-cook-app',
   scheme: 'spooncook',
   version: '0.1.0',
+  /*
+   * The app had no icon of any kind, so Android substituted its own green robot on the home
+   * screen and in the tray. This is the brand mark the splash already uses.
+   */
+  icon: './assets/images/figma-v13/spoon-brand-logo.png',
   orientation: 'portrait',
   userInterfaceStyle: 'light',
   assetBundlePatterns: ['**/*'],
   android: {
     package: BUNDLE_ID,
     googleServicesFile: GOOGLE_SERVICES_JSON,
-    adaptiveIcon: { backgroundColor: BRAND_YELLOW },
+    adaptiveIcon: {
+      foregroundImage: './assets/images/figma-v13/spoon-brand-logo.png',
+      backgroundColor: BRAND_YELLOW,
+    },
     permissions: [
       'ACCESS_COARSE_LOCATION',
       'ACCESS_FINE_LOCATION',
@@ -217,7 +225,19 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     // Remote delivery also needs `google-services.json`, wired above as of 2026-09-02 -- the
     // founder registered com.spoonhelp.cookapp in Firebase project august-dev-3b4bf. Before that
     // it was PENDING_FOUNDER and token acquisition resolved `unavailable` rather than crashing.
-    'expo-notifications',
+    /*
+     * The icon matters as much as the module. Android draws a notification icon as an alpha
+     * silhouette — colour is discarded and the shape is filled with the accent below — so
+     * without one it falls back to its own default mark, which is what was appearing in the
+     * tray instead of Spoon.
+     */
+    [
+      'expo-notifications',
+      {
+        icon: './assets/images/figma-v13/spoon-brand-logo.png',
+        color: BRAND_YELLOW,
+      },
+    ],
     // Must stay in the list: `android/` is gitignored and regenerated, so this is the only thing
     // that survives `expo prebuild --clean`.
     ['./plugins/withAndroidNdkVersion', { ndkVersion: ANDROID_NDK_VERSION }],
