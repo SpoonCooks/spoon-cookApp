@@ -15,6 +15,7 @@ const job: JobCardModel = {
   travelMinutes: 12,
   action: 'start_travel',
   isActionable: false,
+  blockedReason: null,
   isRunningLate: false,
   isCancelled: false,
   urgency: 'soon',

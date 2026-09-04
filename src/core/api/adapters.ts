@@ -168,6 +168,10 @@ export function toJobCard(job: CookJobResponse): JobCardModel {
     travelMinutes: null,
     action,
     isActionable: actionable,
+    blockedReason: actionable
+      ? null
+      : ((job.commandEligibility?.startTravelBlockedReason ??
+          null) as JobCardModel['blockedReason']),
     isRunningLate: job.timing.riskState === 'TRAVEL_LATE',
     // A cancelled job cannot also be running late — there is nothing left to be late for — and the
     // card draws one marker, so the two are read in that order where it is rendered.

@@ -56,7 +56,18 @@ export default function JobsScreen(): React.ReactElement {
     [jobs.data],
   );
 
-  const leadJob = cards.find((card) => card.isActionable) ?? null;
+  /**
+   * The job at the top of her day, whether or not she may act on it yet.
+   *
+   * This was `cards.find((card) => card.isActionable)`, so a job she could not YET start produced
+   * no lead card at all -- no countdown, no Chalo, nothing to explain itself. From the handset:
+   * "why chalo is no there ?". The button was not disabled; the card it lives on did not exist.
+   *
+   * A cancelled or finished job is never the lead: those cards are news, and the lead card is
+   * work. The list arrives already ordered live-first, then upcoming, then done, so the first
+   * card that is still ahead of her IS the next thing she has to do.
+   */
+  const leadJob = cards.find((card) => !card.isCancelled) ?? null;
   const rest = useMemo(
     () => cards.filter((card) => card.bookingId !== leadJob?.bookingId),
     [cards, leadJob],

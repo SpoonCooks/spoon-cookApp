@@ -47,6 +47,14 @@ export interface JobCardModel {
   readonly action: JobAction;
   /** Server ruling that the `START` CTA is pressable. Never derived from a client clock. */
   readonly isActionable: boolean;
+  /**
+   * Why `CHALO` is not pressable, null when it is.
+   *
+   * The card used to be dropped entirely when she could not act on it, so a cook whose departure
+   * window had not opened -- or who had simply not marked present -- saw no button and no reason.
+   * "why chalo is no there ?", from the handset. The server decides; this carries its answer.
+   */
+  readonly blockedReason: StartTravelBlockedReason | null;
   /** Drives the `RUNNING LATE` badge (`434:2743`). Server-supplied. */
   readonly isRunningLate: boolean;
   /**
@@ -148,6 +156,44 @@ export function formatMinutes(minutes: number): string {
  * Eligibility is unaffected either way — whether the cook may leave stays `isActionable`, a server
  * ruling — so the open question costs a colour, never a command.
  */
+/**
+ * Why the server will not let her set off yet.
+ *
+ * Codes come from `commandEligibility.startTravelBlockedReason`; the sentences are here because
+ * they are hers -- Hinglish, on a small screen, telling her what to do rather than what failed.
+ */
+export const startTravelBlockedReasons = [
+  'NOT_PRESENT',
+  'ALREADY_STARTED',
+  'BUSY_ELSEWHERE',
+  'TOO_EARLY',
+] as const;
+export type StartTravelBlockedReason = (typeof startTravelBlockedReasons)[number];
+
+/**
+ * What the card says under a Chalo she cannot press.
+ *
+ * `null` for a reason this build does not know: a newer server may send a code that predates
+ * this app, and a wrong sentence is worse than none -- the button is visibly disabled either way,
+ * which already tells her more than its absence did.
+ */
+export function startTravelBlockedNote(reason: string | null | undefined): string | null {
+  switch (reason) {
+    case 'NOT_PRESENT':
+      // The step in front of her, and the one she can act on right now.
+      return 'Pehle Hazri tab me present mark kare.';
+    case 'ALREADY_STARTED':
+      return 'Yeh kaam pehle se shuru ho chuka hai.';
+    case 'BUSY_ELSEWHERE':
+      return 'Aap abhi doosre kaam par hai.';
+    case 'TOO_EARLY':
+      // Nothing is wrong. Saying so matters: this is the case she will meet most often.
+      return 'Abhi nikalne ka time nahi hua. Time hote hi Chalo chalu ho jayega.';
+    default:
+      return null;
+  }
+}
+
 export const jobUrgencies = ['soon', 'imminent', 'critical'] as const;
 export type JobUrgency = (typeof jobUrgencies)[number];
 

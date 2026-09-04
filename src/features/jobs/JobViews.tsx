@@ -7,6 +7,7 @@ import {
   formatMinutes,
   type JobCardModel,
   type JobUrgency,
+  startTravelBlockedNote,
 } from '@core/domain/job';
 import { color, figmaStroke, HelpPill, Text, useDesignScale, type DesignScale } from '@ui';
 
@@ -343,6 +344,7 @@ function LeadJobCard({
 }): React.ReactElement {
   const { s } = scale;
   const tier = TIER[urgency];
+  const blockedNote = job.isActionable ? null : startTravelBlockedNote(job.blockedReason);
 
   return (
     <Pressable
@@ -402,6 +404,23 @@ function LeadJobCard({
             {tier.ctaLabel}
           </Text>
         </Pressable>
+        {/*
+         * Why she cannot press it.
+         *
+         * A greyed button with no explanation is only marginally better than a missing one, and
+         * the commonest case here -- the departure window has not opened -- is not a failure at
+         * all. Saying so is the difference between "the app is broken" and "not yet".
+         */}
+        {blockedNote === null ? null : (
+          <Text
+            variant="noteMuted"
+            color={color.textSecondary}
+            align="center"
+            testID="job-lead-blocked"
+          >
+            {blockedNote}
+          </Text>
+        )}
       </View>
     </Pressable>
   );

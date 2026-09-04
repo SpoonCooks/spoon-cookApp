@@ -106,6 +106,7 @@ describe('groupJobsByDate', () => {
     travelMinutes: null,
     action: 'none',
     isActionable: false,
+    blockedReason: null,
     isRunningLate: false,
     isCancelled: false,
     urgency: 'soon',

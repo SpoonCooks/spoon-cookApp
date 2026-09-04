@@ -106,6 +106,7 @@ const currentJob: JobCardModel = {
   travelMinutes: 12,
   action: 'start_travel',
   isActionable: false,
+  blockedReason: null,
   isRunningLate: false,
   isCancelled: false,
   urgency: 'soon',
@@ -124,6 +125,7 @@ const upcomingJob: JobCardModel = {
   travelMinutes: null,
   action: 'none',
   isActionable: false,
+  blockedReason: null,
   scheduledStartIso: '2026-08-21T15:30:00+05:30',
 };
 
@@ -146,6 +148,7 @@ const v14Tile = (
   travelMinutes: null,
   action: 'none',
   isActionable: false,
+  blockedReason: null,
 });
 
 /**
@@ -197,6 +200,7 @@ const v14LeadJob = (minutesToDeadline: number): JobCardModel => ({
   serviceDurationMinutes: 90,
   minutesToDeadline,
   isActionable: true,
+  blockedReason: null,
   action: 'start_travel',
 });
 

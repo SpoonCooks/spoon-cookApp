@@ -285,6 +285,14 @@ export const cookJobSchema = z.object({
   commandEligibility: z
     .object({
       startTravel: z.boolean(),
+      /**
+       * Why she may not set off, absent when she may.
+       *
+       * Left open rather than pinned to an enum: an unknown code from a newer deployment must
+       * not fail the whole roster read. The app falls back to its general wording for anything
+       * it does not recognise, which is still better than a button that is simply not there.
+       */
+      startTravelBlockedReason: z.string().optional(),
       /** Fresh accepted in-radius evidence for the manual arrival fallback. */
       markArrived: z.boolean().optional(),
     })
