@@ -123,8 +123,27 @@ function buildProvenance(runtimeVersion: ExpoConfig['runtimeVersion']) {
 function resolveApiBaseUrl(): string | undefined {
   const explicit = process.env.EXPO_PUBLIC_API_BASE_URL;
   if (explicit !== undefined && explicit.length > 0) return explicit;
-  // A production build must be told which environment it talks to. Never default one in.
-  if (APP_ENV === 'production') return undefined;
+  /*
+   * A production build must be TOLD which environment it talks to, and must not build without it.
+   *
+   * This returned `undefined` and let the build carry on, which is a worse failure than the one
+   * it was guarding against. The refusal to guess a backend is right; shipping an app that has no
+   * backend at all is not. On 2026-09-04 a production cook build went out with no API base url,
+   * and the only symptom on the handset was every request failing as
+   * "Internet nahi mil raha. Connection check kare." on a phone with four bars of 4G -- a message
+   * that sends whoever reads it to look at the one thing that is definitely fine.
+   *
+   * Throwing moves that from a runtime mystery on a cook's phone to a build that stops with the
+   * name of the missing variable in it. The customer app has a `.env`; this app did not, and
+   * nothing anywhere said so until a cook could not log in.
+   */
+  if (APP_ENV === 'production') {
+    throw new Error(
+      'EXPO_PUBLIC_API_BASE_URL is required for a production build. ' +
+        'Set it in .env (see .env in the customer app) or export it before building. ' +
+        'Without it the app builds with no backend and reports every request as offline.',
+    );
+  }
   return DEV_FALLBACK_API_BASE_URL;
 }
 
