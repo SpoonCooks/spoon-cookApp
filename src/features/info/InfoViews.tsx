@@ -396,7 +396,16 @@ export function RuleSheetView({
           style={[
             styles.header,
             {
-              height: s(HEADER.height),
+              /*
+               * A floor, not a fixed height.
+               *
+               * The frame's 38 is shorter than the title actually needs: `screenTitle` is
+               * 24px on a 32 line and Android reserves the font's ascender and descender on
+               * top of that. The row cropped whatever did not fit, which is why the g in
+               * "Rating" came back cut after the type scale itself had already been widened
+               * — the line height was fine and the box around it was not.
+               */
+              minHeight: s(HEADER.height),
               paddingHorizontal: s(SHEET.blockPaddingH),
               paddingVertical: s(SHEET.blockPaddingV),
             },
@@ -590,7 +599,7 @@ function MatrixBody({
       ]}
     >
       <View
-        style={[styles.row, { columnGap: s(MATRIX.columnGap), height: s(MATRIX.headerHeight) }]}
+        style={[styles.row, { columnGap: s(MATRIX.columnGap), minHeight: s(MATRIX.headerHeight) }]}
       >
         {body.header.map((label, index) => (
           <View
@@ -615,7 +624,7 @@ function MatrixBody({
             styles.row,
             {
               columnGap: s(MATRIX.columnGap),
-              height: s(row.fill === '#f5f5f5' ? MATRIX.blockedHeight : MATRIX.rowHeight),
+              minHeight: s(row.fill === '#f5f5f5' ? MATRIX.blockedHeight : MATRIX.rowHeight),
             },
           ]}
         >
@@ -692,7 +701,7 @@ function PolicyBody({
           <View
             style={[
               styles.row,
-              { columnGap: s(POLICY.tableColumnGap), height: s(POLICY.cellHeight) },
+              { columnGap: s(POLICY.tableColumnGap), minHeight: s(POLICY.cellHeight) },
             ]}
           >
             {body.columns.map((label, index) => (
@@ -717,7 +726,7 @@ function PolicyBody({
             key={row[0]}
             style={[
               styles.row,
-              { columnGap: s(POLICY.tableColumnGap), height: s(POLICY.cellHeight) },
+              { columnGap: s(POLICY.tableColumnGap), minHeight: s(POLICY.cellHeight) },
             ]}
           >
             {row.map((cellText, index) => (

@@ -144,7 +144,13 @@ export function TopNavBar({
   const { s } = useDesignScale();
   return (
     <View
-      style={[styles.nav, { paddingHorizontal: s(20), paddingVertical: s(6), height: s(47) }]}
+      /*
+       * minHeight: the bar carries screenTitle at 24 on a 32 line, and 47 less its 12 units of
+       * padding leaves 35 for a box Android wants about 34 for once the font's own ascender and
+       * descender are reserved. That is not enough margin to bet a descender on, and the same
+       * arithmetic one row tighter is what cropped the g in 'Rating'.
+       */
+      style={[styles.nav, { paddingHorizontal: s(20), paddingVertical: s(6), minHeight: s(47) }]}
       testID={testID}
     >
       <View style={{ width: s(179) }}>
