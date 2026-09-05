@@ -185,8 +185,9 @@ describe('575:2135 — 3a, daily log in', () => {
     profile(null, true, { canCheckIn: false, reason: 'APPROVED_LEAVE' });
     render(<AttendanceScreen />);
     expect(screen.queryByTestId('attendance-mark-present')).toBeNull();
-    expect(screen.getByTestId('attendance-no-shift')).toHaveTextContent(
-      'Aaj aapki chutti approve hai.',
+    expect(screen.getByTestId('attendance-headline')).toHaveTextContent(
+      // The headline treatment uppercases, as every headline in the set is drawn.
+      'AAJ AAPKI CHUTTI APPROVE HAI.',
     );
   });
 
@@ -206,9 +207,58 @@ describe('575:2135 — 3a, daily log in', () => {
     profile(null, false);
     render(<AttendanceScreen />);
     expect(screen.queryByTestId('attendance-mark-present')).toBeNull();
-    expect(screen.getByTestId('attendance-no-shift')).toHaveTextContent(
-      'Aaj aapki koi shift nahi hai.',
+    expect(screen.getByTestId('attendance-headline')).toHaveTextContent(
+      'AAJ AAPKI KOI SHIFT NAHI HAI.',
     );
+  });
+
+  /**
+   * Reported off a handset: a cook with no shift saw the card ask "aaj aap kaam pai aaye hai?"
+   * above a "Mark Present" row with no button beneath it, while the sentence explaining why sat
+   * pinned to the bottom of the screen in muted twelve-point.
+   *
+   * Withholding the button was already right. What was left was a question the screen would not
+   * accept an answer to, and its answer seven hundred units away from it.
+   *
+   * The design has no frame for this day -- 3a/3b/3c/3d are all it draws -- so the treatment
+   * borrows 3c's: the red headline states the fact about the day, in the same place, and the
+   * card stops there.
+   */
+  it('does not ask a question it will not accept an answer to', () => {
+    profile(null, false);
+    render(<AttendanceScreen />);
+
+    // The question belongs to the button. With the button withheld, so is the question.
+    expect(screen.getByTestId('attendance-headline')).not.toHaveTextContent(
+      'AAJ AAP KAAM PAI AAYE HAI?',
+    );
+    // `Mark Present` is the BUTTON'S label, not a heading, and the button is gone.
+    expect(screen.queryByTestId('attendance-mark-label')).toBeNull();
+    // So is the green window row: there is no deadline to meet on a day with no shift.
+    expect(screen.queryByTestId('attendance-window')).toBeNull();
+  });
+
+  it('states the fact in the card, not at the foot of the screen', () => {
+    profile(null, false);
+    render(<AttendanceScreen />);
+
+    // In the card's own headline, which is where 3c states its fact too.
+    const card = screen.getByTestId('attendance-card');
+    expect(card.findByProps({ testID: 'attendance-headline' })).toBeTruthy();
+    // The bottom-pinned notice is now reserved for a genuinely failed command.
+    expect(screen.queryByTestId('attendance-notice')).toBeNull();
+  });
+
+  it('keeps the ordinary card when the server offers check-in', () => {
+    // The blocked treatment must not leak into the eligible state, which is the frame's own.
+    profile(null, true);
+    render(<AttendanceScreen />);
+
+    expect(screen.getByTestId('attendance-headline')).toHaveTextContent(
+      'AAJ AAP KAAM PAI AAYE HAI?',
+    );
+    expect(screen.getByTestId('attendance-mark-label')).toBeTruthy();
+    expect(screen.getByTestId('attendance-mark-present')).toBeTruthy();
   });
 
   it('surfaces a failed check-in instead of pretending it worked', () => {
@@ -262,7 +312,9 @@ describe('575:2137 — 3b, present', () => {
 
     expect(screen.getByTestId('attendance-mark-present')).toBeTruthy();
     // And no blocking message, because there is nothing blocking her.
-    expect(screen.queryByTestId('attendance-no-shift')).toBeNull();
+    expect(screen.getByTestId('attendance-headline')).toHaveTextContent(
+      'AAJ AAP KAAM PAI AAYE HAI?',
+    );
   });
 
   it('settles on the PRESENT frame once she has actually checked in', () => {

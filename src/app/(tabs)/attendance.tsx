@@ -245,6 +245,17 @@ export default function AttendanceScreen(): React.ReactElement {
     );
   }
 
+  /**
+   * The refusal, in the cook's language, or `null` when she may check in.
+   *
+   * `MARKED_PRESENT_BY_ADMIN` maps to empty copy on purpose (see the table above), and an empty
+   * string must not turn into a blocked card with nothing written on it — so it collapses to
+   * `null` and the screen keeps the frame's ordinary eligible state.
+   */
+  const blockedReason = today.canCheckIn
+    ? null
+    : blockedCopyFor(today.reason, today.checkInOpensAt) || null;
+
   return (
     <View style={styles.flex}>
       <DailyLogInView
@@ -262,26 +273,29 @@ export default function AttendanceScreen(): React.ReactElement {
         // The SERVER decides eligibility. `canCheckIn` already accounts for the shift, approved
         // leave, an existing record and cook status, so nothing is re-derived here.
         canMark={today.canCheckIn}
+        /*
+         * The reason travels INTO the card now.
+         *
+         * It used to be rendered here instead, pinned to the bottom of the screen — so a cook
+         * with no shift today saw a card asking "aaj aap kaam pai aaye hai?" above a "Mark
+         * Present" row with no button under it, and the sentence explaining why sat seven
+         * hundred units below in muted twelve-point. The card is where she looks for the
+         * button, so the card is where the answer belongs.
+         */
+        blockedReason={blockedReason}
         onMarkPresent={() => markPresent.mutate()}
         isSubmitting={markPresent.isPending}
       />
-      {(!today.canCheckIn || markPresent.isError) && (
+      {/*
+        A FAILED COMMAND only. This is genuinely an error and genuinely transient — the tap
+        happened, the server refused it — so it stays out of the card, which describes the day
+        rather than the last thing that went wrong.
+      */}
+      {markPresent.isError && (
         <View style={styles.notice} testID="attendance-notice">
-          {!today.canCheckIn && (
-            <Text variant="captionMuted" align="center" testID="attendance-no-shift">
-              {blockedCopyFor(today.reason, today.checkInOpensAt)}
-            </Text>
-          )}
-          {markPresent.isError && (
-            <Text
-              variant="caption"
-              align="center"
-              color={color.danger}
-              testID="attendance-mark-error"
-            >
-              {apiErrorMessage(markPresent.error)}
-            </Text>
-          )}
+          <Text variant="caption" align="center" color={color.danger} testID="attendance-mark-error">
+            {apiErrorMessage(markPresent.error)}
+          </Text>
         </View>
       )}
     </View>

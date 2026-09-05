@@ -475,6 +475,18 @@ export interface DailyLogInViewProps extends GreetingProps {
    * offered it to a cook on approved leave and let the server reject the tap with a 400.
    */
   readonly canMark?: boolean;
+  /**
+   * WHY she cannot check in, in her own language, drawn INSIDE the card.
+   *
+   * Removing the button was right and was not enough. The headline went on asking "aaj aap kaam
+   * pai aaye hai?" and the row went on reading "Mark Present", so the card kept posing a question
+   * with nothing left that could answer it — while the reason sat pinned to the bottom of the
+   * screen, some seven hundred units below the card that caused it, in muted twelve-point.
+   *
+   * Cause and consequence belong in the same place. When this is set the card states the
+   * situation where the call to action would have been, and does not ask the question at all.
+   */
+  readonly blockedReason?: string | null;
 }
 
 /**
@@ -492,8 +504,11 @@ export function DailyLogInView({
   onHelp,
   onProfile,
   canMark = true,
+  blockedReason = null,
 }: DailyLogInViewProps): React.ReactElement {
   const { s } = useDesignScale();
+  /** A refusal we can explain. Anything else keeps the frame's own eligible state. */
+  const blocked = !canMark && blockedReason !== null && blockedReason !== '';
 
   return (
     <Screen
@@ -505,9 +520,23 @@ export function DailyLogInView({
     >
       <Block>
         <Card testID="attendance-card">
-          <Headline testID="attendance-headline">aaj aap kaam pai aaye hai?</Headline>
+          {/*
+            The reason BECOMES the headline.
 
-          {markByTime !== null && (
+            Every red headline in the set states a fact about the day — `aaj aap kaam pai aaye
+            hai.` on 3b, `aaj aap kaam pai NAHI aaye hai.` on 3c — so a day with no shift is
+            stated the same way, in the same place, in the same treatment. The alternative was a
+            label over a body row, which invents a card shape the design does not have.
+
+            And it stops the screen asking what it will not answer: `aaj aap kaam pai aaye hai?`
+            is the question the PRESENT button exists to answer, so once the server has withheld
+            that button the question is a prompt to do something the screen forbids.
+          */}
+          <Headline testID="attendance-headline">
+            {blocked ? (blockedReason as string) : 'aaj aap kaam pai aaye hai?'}
+          </Headline>
+
+          {markByTime !== null && !blocked && (
             <View
               style={[
                 styles.windowRow,
@@ -534,37 +563,44 @@ export function DailyLogInView({
             </View>
           )}
 
-          <View style={[styles.markRow, { height: s(MARK_ROW.height), gap: s(MARK_ROW.gap) }]}>
-            <View style={{ width: s(MARK_ROW.glyphBoxWidth), height: s(MARK_ROW.height) }}>
-              <SvgXml
-                xml={ellipse4}
-                width={s(MARK_ROW.ellipseSize)}
-                height={s(MARK_ROW.ellipseSize)}
-                style={{
-                  position: 'absolute',
-                  left: s(MARK_ROW.ellipseLeft),
-                  top: s(MARK_ROW.ellipseTop),
-                }}
-              />
-              <Image
-                source={checkedUserMale}
-                style={{
-                  position: 'absolute',
-                  left: s(MARK_ROW.badgeLeft),
-                  top: s(MARK_ROW.badgeTop),
-                  width: s(MARK_ROW.badgeSize),
-                  height: s(MARK_ROW.badgeSize),
-                }}
-                resizeMode="contain"
-                accessibilityIgnoresInvertColors
-              />
+          {/*
+            The glyph and the words `Mark Present` are the BUTTON'S label, not a heading. They
+            were rendered unconditionally while the button beside them was conditional, so a
+            blocked cook was shown a control that had already been taken away from her.
+          */}
+          {!blocked && (
+            <View style={[styles.markRow, { height: s(MARK_ROW.height), gap: s(MARK_ROW.gap) }]}>
+              <View style={{ width: s(MARK_ROW.glyphBoxWidth), height: s(MARK_ROW.height) }}>
+                <SvgXml
+                  xml={ellipse4}
+                  width={s(MARK_ROW.ellipseSize)}
+                  height={s(MARK_ROW.ellipseSize)}
+                  style={{
+                    position: 'absolute',
+                    left: s(MARK_ROW.ellipseLeft),
+                    top: s(MARK_ROW.ellipseTop),
+                  }}
+                />
+                <Image
+                  source={checkedUserMale}
+                  style={{
+                    position: 'absolute',
+                    left: s(MARK_ROW.badgeLeft),
+                    top: s(MARK_ROW.badgeTop),
+                    width: s(MARK_ROW.badgeSize),
+                    height: s(MARK_ROW.badgeSize),
+                  }}
+                  resizeMode="contain"
+                  accessibilityIgnoresInvertColors
+                />
+              </View>
+              <View style={styles.markLabel}>
+                <Text variant="headingLgBold" testID="attendance-mark-label">
+                  Mark Present
+                </Text>
+              </View>
             </View>
-            <View style={styles.markLabel}>
-              <Text variant="headingLgBold" testID="attendance-mark-label">
-                Mark Present
-              </Text>
-            </View>
-          </View>
+          )}
 
           {canMark && (
             <LimeCta
@@ -574,6 +610,12 @@ export function DailyLogInView({
               testID="attendance-mark-present"
             />
           )}
+
+          {/*
+            Nothing else. 3c states its fact in the headline and shows a verdict disc beneath it;
+            there is no disc for "no shift today" — that is not a verdict on the cook, it is a
+            fact about the roster — so the card is the sentence and stops there.
+          */}
         </Card>
       </Block>
     </Screen>
