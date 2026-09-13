@@ -64,8 +64,23 @@ const deviceDependencies: PushDependencies = {
       name: 'Job alerts',
       importance: Notifications.AndroidImportance.HIGH,
       lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
-      // Assignment and cancellation alerts are time-critical; a silent channel would hide them.
-      sound: 'default',
+      /*
+       * Assignment and cancellation alerts are time-critical, so this channel must make a noise.
+       * It does — by NOT naming a sound.
+       *
+       * `sound` on a channel is a CUSTOM sound filename that has to be bundled through the
+       * `expo-notifications` plugin's `sounds` array. `'default'` is not a reserved word for the
+       * system tone; it was read as a file called `default`, which does not exist, so every app
+       * start threw `Custom sound 'default' not found in native app` and in a dev build the
+       * LogBox overlay it raised swallowed every tap on the screen behind it.
+       *
+       * Omitting the field is what actually selects the system notification sound. Combined with
+       * `HIGH` importance the channel still arrives as a heads-up alert with sound and vibration,
+       * which is the behaviour the previous line was reaching for.
+       *
+       * To ship a branded tone later: add the file to `sounds` in the plugin config, then name it
+       * here — `sound: 'spoon-alert.wav'`.
+       */
       vibrationPattern: [0, 250, 250, 250],
     });
   },
