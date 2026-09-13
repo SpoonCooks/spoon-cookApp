@@ -64,8 +64,23 @@ const deviceDependencies: PushDependencies = {
       name: 'Job alerts',
       importance: Notifications.AndroidImportance.HIGH,
       lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
-      // Assignment and cancellation alerts are time-critical; a silent channel would hide them.
-      sound: 'default',
+      /*
+       * Assignment and cancellation alerts are time-critical, so this channel must make a noise.
+       * It does — by NOT naming a sound.
+       *
+       * `sound` on a channel is a CUSTOM sound filename that has to be bundled through the
+       * `expo-notifications` plugin's `sounds` array. `'default'` is not a reserved word for the
+       * system tone; it was read as a file called `default`, which does not exist, so every app
+       * start threw `Custom sound 'default' not found in native app` and in a dev build the
+       * LogBox overlay it raised swallowed every tap on the screen behind it.
+       *
+       * Omitting the field is what actually selects the system notification sound. Combined with
+       * `HIGH` importance the channel still arrives as a heads-up alert with sound and vibration,
+       * which is the behaviour the previous line was reaching for.
+       *
+       * To ship a branded tone later: add the file to `sounds` in the plugin config, then name it
+       * here — `sound: 'spoon-alert.wav'`.
+       */
       vibrationPattern: [0, 250, 250, 250],
     });
   },
@@ -74,6 +89,39 @@ const deviceDependencies: PushDependencies = {
 
 export interface PushNotificationsState {
   readonly status: PushRegistrationStatus | 'pending';
+}
+
+/** Why each non-registered outcome happened, in terms of what the operator has to change. */
+const registrationDiagnosis: Record<Exclude<PushRegistrationStatus, 'registered'>, string> = {
+  permission_denied: 'the cook declined the notification permission',
+  unavailable:
+    'this build has no push identity — check google-services.json is present for THIS package',
+  failed: 'PUT /me/push-token was rejected, or the token could not be read',
+};
+
+/**
+ * Say out loud when this device will not receive push.
+ *
+ * A failed registration is invisible from inside the app: the cook sees a working screen, and the
+ * backend simply records `no_device` against every alert it tries to send. That is not
+ * hypothetical — `app.config.ts` records 2026-09-02, when twelve start alerts went out, none were
+ * delivered, and nothing anywhere said so until the database was inspected.
+ *
+ * `registerForPushNotifications` already returns a precise status; it was thrown away by the one
+ * caller. Logging it is the cheapest thing that makes the next outage observable, and it is a
+ * console line rather than cook-facing UI on purpose: a cook can do nothing about a missing FCM
+ * identity, and no Figma frame covers this.
+ *
+ * Deliberately not dev-only. Production is exactly where a silent push outage costs a cook their
+ * jobs, so the line must survive into a release build and be picked up by whatever crash/log
+ * reporter is attached later. It never touches the token itself — that stays a credential.
+ */
+function reportPushRegistration(status: PushRegistrationStatus): void {
+  if (status === 'registered') return;
+  console.warn(
+    `[spoon-push] not registered (${status}): ${registrationDiagnosis[status]}. ` +
+      'This device will receive no job alerts.',
+  );
 }
 
 /**
@@ -96,7 +144,9 @@ export function usePushNotifications(
     void registerForPushNotifications(deps).then((next) => {
       // Resolved asynchronously, so this is a subscription result rather than a render-time
       // state write.
-      if (!cancelled) setRegistration(next);
+      if (cancelled) return;
+      reportPushRegistration(next);
+      setRegistration(next);
     });
     return () => {
       cancelled = true;

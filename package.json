@@ -6,6 +6,9 @@
   "scripts": {
     "start": "expo start",
     "android": "expo run:android",
+    "android:debug": "SPOON_RELEASE_SHA=$(git rev-parse HEAD) expo prebuild --platform android && cd android && SPOON_RELEASE_SHA=$(git rev-parse HEAD) ./gradlew assembleDebug -PreactNativeArchitectures=arm64-v8a",
+    "android:release": "SPOON_RELEASE_SHA=$(git rev-parse HEAD) expo prebuild --platform android && cd android && SPOON_RELEASE_SHA=$(git rev-parse HEAD) ./gradlew assembleRelease -PreactNativeArchitectures=arm64-v8a",
+    "android:install": "adb install -r android/app/build/outputs/apk/debug/app-debug.apk",
     "typecheck": "tsc --noEmit",
     "lint": "eslint . --max-warnings=0",
     "lint:fix": "eslint . --fix",
