@@ -1,28 +1,31 @@
 import { render, screen, fireEvent } from '@testing-library/react-native';
 
 import AttendanceScreen from '@/app/(tabs)/attendance';
-import SingleDayLeaveScreen from '@/app/leave/single';
-import RangeLeaveScreen from '@/app/leave/range';
 
 /**
- * Attendance-section render tests.
+ * Attendance render tests — the V13 `log in flow` section (`592:1068`).
  *
- * The Android emulator could not boot in this environment (see the implementation report §11), so
- * these mount the real screens and assert the rendered projection instead. That is NOT a substitute
- * for device verification and is not reported as one — but it does prove that each of the three
- * server-driven attendance states renders its own Figma copy, that `Mark Present` never marks
- * locally, and that the leave flow cannot claim a leave the backend never recorded.
+ * These mount the real screen and assert the rendered projection. They are not a substitute for
+ * the device comparison in `docs/visual-verification/v13/log-in-flow/`, and are not reported as
+ * one — what they prove is the state SELECTION: that each server-driven state renders its own
+ * frame's copy, that `Mark Present` never marks locally, and that the check-in deadline the frame
+ * draws is withheld until the backend publishes one.
+ *
+ * The leave surfaces moved to the `leave` section in V13; their coverage is in
+ * `leaveScreens.test.tsx`.
  */
 
 const mockMutate = jest.fn();
 let mockProfileState: Record<string, unknown>;
 let mockAttendanceState: Record<string, unknown>;
 let mockMarkPresentState: Record<string, unknown>;
+let mockLeavesState: Record<string, unknown>;
 
 jest.mock('@core/api/queries', () => ({
   useCookProfile: () => mockProfileState,
   useMonthlyAttendance: () => mockAttendanceState,
   useMarkPresent: () => mockMarkPresentState,
+  useLeaves: () => mockLeavesState,
 }));
 
 jest.mock('expo-router', () => ({
@@ -45,7 +48,16 @@ function shift(): Record<string, unknown> {
   };
 }
 
-function profile(attendance: Record<string, unknown> | null, withShift = true): void {
+/**
+ * @param overrides lets a test drive the SERVER's eligibility ruling directly. The defaults mirror
+ * how the backend derives `canCheckIn`/`reason`, so the harness stays contract-accurate rather
+ * than asserting against a shape the API never returns.
+ */
+function profile(
+  attendance: Record<string, unknown> | null,
+  withShift = true,
+  overrides: Record<string, unknown> = {},
+): void {
   mockProfileState = {
     isPending: false,
     isError: false,
@@ -65,7 +77,14 @@ function profile(attendance: Record<string, unknown> | null, withShift = true): 
         workingDays: [1, 2, 3, 4, 5],
         shift: withShift ? shift() : null,
         attendance,
+        canCheckIn: withShift && attendance === null,
+        // The backend has no approved opening rule, so the live API always sends null here.
+        checkInOpensAt: null,
+        shiftStartsAt: withShift ? '2026-08-21T03:30:00.000Z' : null,
+        checkedInAt: null,
+        reason: !withShift ? 'NO_SHIFT' : attendance === null ? 'READY' : 'ATTENDANCE_RECORDED',
         availability: null,
+        ...overrides,
       },
       currentAssignment: null,
       serverTime: '2026-08-21T08:23:00.000Z',
@@ -93,21 +112,82 @@ beforeEach(() => {
     },
   };
   mockMarkPresentState = { mutate: mockMutate, isPending: false, isError: false, error: null };
+  mockLeavesState = {
+    isPending: false,
+    isError: false,
+    isFetching: false,
+    error: null,
+    refetch: jest.fn(),
+    data: { leaves: [], fromDate: '2026-08-21', toDate: '2026-08-31', timezone: 'Asia/Kolkata' },
+  };
 });
 
-describe('Page 11 — no attendance record yet (506:1986)', () => {
-  it('asks the question and offers Mark Present', () => {
+describe('575:2135 — 3a, daily log in', () => {
+  it('asks the question and offers PRESENT', () => {
     render(<AttendanceScreen />);
     expect(screen.getByTestId('attendance-headline')).toHaveTextContent(
-      'aaj aap kaam pai aaye hai?',
+      'AAJ AAP KAAM PAI AAYE HAI?',
     );
     expect(screen.getByTestId('attendance-mark-present')).toBeTruthy();
   });
 
-  it('shows the shift-window hint verbatim', () => {
+  it('greets the cook with the server name and the server shift window', () => {
     render(<AttendanceScreen />);
-    expect(screen.getByTestId('attendance-present-hint')).toHaveTextContent(
-      'Shift se 30 mins pehle tak button dabaye',
+    expect(screen.getByTestId('attendance-name')).toHaveTextContent('Namaste, Rekha!');
+    // `09:00:00`/`18:00:00` from the shift fixture, in the pill's own `6 AM se 6 PM` shape.
+    expect(screen.getByTestId('attendance-shift-pill')).toHaveTextContent('9 AM se 6 PM');
+  });
+
+  it('hides the shift pill rather than inventing a window when there is no shift', () => {
+    profile(null, false);
+    render(<AttendanceScreen />);
+    expect(screen.queryByTestId('attendance-shift-pill')).toBeNull();
+  });
+
+  /*
+   * There IS a deadline now, and it is the shift start.
+   *
+   * This used to assert the opposite -- "the backend does not enforce a check-in deadline" -- and
+   * that was true: printing one would have stated a restriction nothing applied. The founder's
+   * rule of 2026-09-04 makes it real. A cook who has not marked present by her shift start, plus
+   * a grace period, is recorded absent for the day and earns no base pay for it, so the deadline
+   * is the single most useful thing this row can say.
+   */
+  it('says nothing when the server publishes no shift start to be late for', () => {
+    // No instant, no deadline. An older deployment sends none, and a time drawn from nothing
+    // would be invented -- which is the fault this row has already had once, in the other
+    // direction.
+    profile(null, true, { shiftStartsAt: null });
+    render(<AttendanceScreen />);
+    expect(screen.queryByTestId('attendance-window')).toBeNull();
+    expect(screen.queryByText(/button dabaye/)).toBeNull();
+  });
+
+  it('names the deadline, not the moment the button starts working', () => {
+    /*
+     * Both instants are published and they are an hour apart. `checkInOpensAt` decides when the
+     * button begins to work and `canMark` already carries that; `shiftStartsAt` is the one she is
+     * measured against. Drawing the opening under "se pehle tak" told a cook on a 5am shift to
+     * mark herself present before 4am -- an hour before the button worked, and everyone late by
+     * that reading.
+     */
+    profile(null, true, {
+      checkInOpensAt: '2026-08-20T23:00:00.000Z',
+      shiftStartsAt: '2026-08-21T00:00:00.000Z',
+    });
+    render(<AttendanceScreen />);
+    expect(screen.getByTestId('attendance-window')).toHaveTextContent(/se pehle tak button dabaye/);
+  });
+
+  it('withholds the button when the SERVER says the cook cannot check in', () => {
+    // Approved leave: an earlier local rule (`has shift && no record`) offered the button here and
+    // let the backend reject the tap with a 400.
+    profile(null, true, { canCheckIn: false, reason: 'APPROVED_LEAVE' });
+    render(<AttendanceScreen />);
+    expect(screen.queryByTestId('attendance-mark-present')).toBeNull();
+    expect(screen.getByTestId('attendance-headline')).toHaveTextContent(
+      // The headline treatment uppercases, as every headline in the set is drawn.
+      'AAJ AAPKI CHUTTI APPROVE HAI.',
     );
   });
 
@@ -118,7 +198,7 @@ describe('Page 11 — no attendance record yet (506:1986)', () => {
     // the server's record may change it.
     expect(mockMutate).toHaveBeenCalledTimes(1);
     expect(screen.getByTestId('attendance-headline')).toHaveTextContent(
-      'aaj aap kaam pai aaye hai?',
+      'AAJ AAP KAAM PAI AAYE HAI?',
     );
     expect(screen.queryByTestId('attendance-verdict')).toBeNull();
   });
@@ -127,7 +207,58 @@ describe('Page 11 — no attendance record yet (506:1986)', () => {
     profile(null, false);
     render(<AttendanceScreen />);
     expect(screen.queryByTestId('attendance-mark-present')).toBeNull();
-    expect(screen.getByTestId('attendance-no-shift')).toBeTruthy();
+    expect(screen.getByTestId('attendance-headline')).toHaveTextContent(
+      'AAJ AAPKI KOI SHIFT NAHI HAI.',
+    );
+  });
+
+  /**
+   * Reported off a handset: a cook with no shift saw the card ask "aaj aap kaam pai aaye hai?"
+   * above a "Mark Present" row with no button beneath it, while the sentence explaining why sat
+   * pinned to the bottom of the screen in muted twelve-point.
+   *
+   * Withholding the button was already right. What was left was a question the screen would not
+   * accept an answer to, and its answer seven hundred units away from it.
+   *
+   * The design has no frame for this day -- 3a/3b/3c/3d are all it draws -- so the treatment
+   * borrows 3c's: the red headline states the fact about the day, in the same place, and the
+   * card stops there.
+   */
+  it('does not ask a question it will not accept an answer to', () => {
+    profile(null, false);
+    render(<AttendanceScreen />);
+
+    // The question belongs to the button. With the button withheld, so is the question.
+    expect(screen.getByTestId('attendance-headline')).not.toHaveTextContent(
+      'AAJ AAP KAAM PAI AAYE HAI?',
+    );
+    // `Mark Present` is the BUTTON'S label, not a heading, and the button is gone.
+    expect(screen.queryByTestId('attendance-mark-label')).toBeNull();
+    // So is the green window row: there is no deadline to meet on a day with no shift.
+    expect(screen.queryByTestId('attendance-window')).toBeNull();
+  });
+
+  it('states the fact in the card, not at the foot of the screen', () => {
+    profile(null, false);
+    render(<AttendanceScreen />);
+
+    // In the card's own headline, which is where 3c states its fact too.
+    const card = screen.getByTestId('attendance-card');
+    expect(card.findByProps({ testID: 'attendance-headline' })).toBeTruthy();
+    // The bottom-pinned notice is now reserved for a genuinely failed command.
+    expect(screen.queryByTestId('attendance-notice')).toBeNull();
+  });
+
+  it('keeps the ordinary card when the server offers check-in', () => {
+    // The blocked treatment must not leak into the eligible state, which is the frame's own.
+    profile(null, true);
+    render(<AttendanceScreen />);
+
+    expect(screen.getByTestId('attendance-headline')).toHaveTextContent(
+      'AAJ AAP KAAM PAI AAYE HAI?',
+    );
+    expect(screen.getByTestId('attendance-mark-label')).toBeTruthy();
+    expect(screen.getByTestId('attendance-mark-present')).toBeTruthy();
   });
 
   it('surfaces a failed check-in instead of pretending it worked', () => {
@@ -143,7 +274,7 @@ describe('Page 11 — no attendance record yet (506:1986)', () => {
   });
 });
 
-describe('Page 12a — present (526:292)', () => {
+describe('575:2137 — 3b, present', () => {
   beforeEach(() => {
     profile({ status: 'present', checkInAt: '2026-08-21T03:29:00.000Z', onTime: true });
   });
@@ -151,133 +282,99 @@ describe('Page 12a — present (526:292)', () => {
   it('renders the PRESENT verdict', () => {
     render(<AttendanceScreen />);
     expect(screen.getByTestId('attendance-headline')).toHaveTextContent(
-      'aaj aap kaam pai aaye hai.',
+      'AAJ AAP KAAM PAI AAYE HAI.',
     );
     expect(screen.getByTestId('attendance-verdict')).toHaveTextContent('Aaj ke liye PRESENT!');
   });
 
-  it('shows the break card with the server shift window', () => {
+  it('offers KAAM DEKHE and withdraws the check-in button', () => {
     render(<AttendanceScreen />);
-    // Regex matchers: the card concatenates several Text nodes, so an exact match would fail.
-    const card = screen.getByTestId('attendance-break-card');
-    expect(card).toHaveTextContent(/aaj ka break/);
-    expect(card).toHaveTextContent(/Duration: 2 hrs/);
-    expect(card).toHaveTextContent(/12:15 PM/);
-    expect(card).toHaveTextContent(/2:15 PM/);
+    expect(screen.getByTestId('attendance-see-work')).toBeTruthy();
+    expect(screen.queryByTestId('attendance-mark-present')).toBeNull();
   });
 
-  it('withdraws the Mark Present button once checked in', () => {
+  /**
+   * An Admin recording attendance is NOT the cook arriving.
+   *
+   * The screen used to return the PRESENT frame on `status === 'present'` alone, so a cook whose
+   * attendance an Admin had written was shown "Aaj ke liye PRESENT!" for a day she had never
+   * checked into, with the button gone and no way to correct it. `canCheckIn` is the server's own
+   * ruling and stays TRUE in that state -- `checkInCook` rejects only an existing `check_in_at`,
+   * never a status an Admin wrote -- so the button has to be offered.
+   */
+  it('still offers PRESENT when only an Admin recorded the attendance', () => {
+    profile({ status: 'present', checkInAt: null, onTime: null }, true, {
+      canCheckIn: true,
+      checkedInAt: null,
+      reason: 'MARKED_PRESENT_BY_ADMIN',
+    });
     render(<AttendanceScreen />);
+
+    expect(screen.getByTestId('attendance-mark-present')).toBeTruthy();
+    // And no blocking message, because there is nothing blocking her.
+    expect(screen.getByTestId('attendance-headline')).toHaveTextContent(
+      'AAJ AAP KAAM PAI AAYE HAI?',
+    );
+  });
+
+  it('settles on the PRESENT frame once she has actually checked in', () => {
+    profile({ status: 'present', checkInAt: '2026-08-21T03:29:00.000Z', onTime: true }, true, {
+      canCheckIn: false,
+      checkedInAt: '2026-08-21T03:29:00.000Z',
+      reason: 'COOK_CHECKED_IN',
+    });
+    render(<AttendanceScreen />);
+
+    expect(screen.getByTestId('attendance-see-work')).toBeTruthy();
     expect(screen.queryByTestId('attendance-mark-present')).toBeNull();
   });
 });
 
-describe('Page 12b — absent (525:132)', () => {
+describe('575:2138 — 3c, absent', () => {
   it('renders the ABSENT verdict with the negated headline', () => {
     profile({ status: 'absent', checkInAt: null, onTime: null });
     render(<AttendanceScreen />);
     expect(screen.getByTestId('attendance-headline')).toHaveTextContent(
-      'aaj aap kaam pai NAHI aaye hai.',
+      'AAJ AAP KAAM PAI NAHI AAYE HAI.',
     );
     expect(screen.getByTestId('attendance-verdict')).toHaveTextContent('Aaj ke liye ABSENT!');
     expect(screen.queryByTestId('attendance-mark-present')).toBeNull();
+    expect(screen.queryByTestId('attendance-see-work')).toBeNull();
+  });
+
+  it('shows the same ABSENT frame for an approved leave day', () => {
+    profile({ status: 'leave', checkInAt: null, onTime: null });
+    render(<AttendanceScreen />);
+    expect(screen.getByTestId('attendance-verdict')).toHaveTextContent('Aaj ke liye ABSENT!');
   });
 });
 
-describe('month tiles', () => {
-  it('shows server totals and the server on-time percentage', () => {
+describe('575:2136 — 3d, shift finished', () => {
+  it('shows the rest photograph once a PRESENT shift has ended', () => {
+    // `endLocalTime: 00:00:00` makes "has the shift ended?" true at every clock time, so this
+    // asserts the state selection rather than the runner's wall clock.
+    profile({ status: 'present', checkInAt: '2026-08-21T03:29:00.000Z', onTime: true }, true, {
+      shift: { ...shift(), endLocalTime: '00:00:00' },
+    });
     render(<AttendanceScreen />);
-    const tiles = screen.getByTestId('attendance-tiles');
-    expect(tiles).toHaveTextContent(/22/);
-    expect(tiles).toHaveTextContent(/98%/);
+    expect(screen.getByTestId('attendance-rest-photo')).toBeTruthy();
+    expect(screen.getByTestId('attendance-rest-caption')).toHaveTextContent(
+      'Aaj ka kaam khatam ho gaya, aaram kare!',
+    );
   });
 
-  it('renders a dash rather than 0% when the server has no percentage', () => {
-    mockAttendanceState = {
-      ...mockAttendanceState,
-      data: { ...(mockAttendanceState['data'] as object), onTimePercentage: null },
-    };
+  it('stays on the PRESENT frame while the shift is still running', () => {
+    profile({ status: 'present', checkInAt: '2026-08-21T03:29:00.000Z', onTime: true }, true, {
+      shift: { ...shift(), endLocalTime: '23:59:00' },
+    });
     render(<AttendanceScreen />);
-    expect(screen.getByTestId('attendance-tiles')).toHaveTextContent(/—/);
-  });
-
-  it('shows an error for the month without destroying the check-in surface', () => {
-    mockAttendanceState = {
-      isPending: false,
-      isError: true,
-      isFetching: false,
-      error: { name: 'ApiError' },
-      refetch: jest.fn(),
-      data: undefined,
-    };
-    render(<AttendanceScreen />);
-    expect(screen.getByTestId('attendance-month-error')).toBeTruthy();
-    expect(screen.getByTestId('attendance-present-card')).toBeTruthy();
+    expect(screen.queryByTestId('attendance-rest-photo')).toBeNull();
+    expect(screen.getByTestId('attendance-verdict')).toHaveTextContent('Aaj ke liye PRESENT!');
   });
 });
 
-describe('Chutti lagaye block', () => {
-  it('states plainly that leave cannot be applied from the app yet', () => {
-    render(<AttendanceScreen />);
-    expect(screen.getByTestId('attendance-leave-blocked')).toBeTruthy();
-  });
-
-  it('still lets the cook open both pickers — navigation is not a mutation', () => {
-    render(<AttendanceScreen />);
-    expect(
-      screen.getByTestId('attendance-leave-single').props.accessibilityState?.disabled,
-    ).toBeFalsy();
-    expect(
-      screen.getByTestId('attendance-leave-range').props.accessibilityState?.disabled,
-    ).toBeFalsy();
-  });
-});
-
-describe('Pages 14a/14b — 1 din ki chutti (528:483 / 529:1259)', () => {
-  it('renders the confirmation copy', () => {
-    render(<SingleDayLeaveScreen />);
-    expect(screen.getByText('Chutti pakka hai?')).toBeTruthy();
-    expect(screen.getByText('Aap jitne din aaye, utne din ke paise milenge')).toBeTruthy();
-  });
-
-  it('counts a single day', () => {
-    render(<SingleDayLeaveScreen />);
-    expect(screen.getByTestId('leave-single-total')).toHaveTextContent('Total din 1');
-  });
-
-  it('keeps Pakka disabled while the backend has no leave write', () => {
-    render(<SingleDayLeaveScreen />);
-    expect(screen.getByTestId('leave-single-confirm').props.accessibilityState.disabled).toBe(true);
-    expect(screen.getByTestId('leave-single-blocked')).toBeTruthy();
-  });
-
-  it('never claims the leave was applied', () => {
-    render(<SingleDayLeaveScreen />);
-    fireEvent.press(screen.getByTestId('leave-single-confirm'));
-    expect(screen.queryByText('Chutti lag gyi')).toBeNull();
-  });
-});
-
-describe('Pages 13a/13b — lambi chutti (528:659 / 530:1349)', () => {
-  it('starts with an empty selection and Total din 0', () => {
-    render(<RangeLeaveScreen />);
-    expect(screen.getByTestId('leave-range-total')).toHaveTextContent('0');
-  });
-
-  it('counts an inclusive range across two taps', () => {
-    render(<RangeLeaveScreen />);
-    const first = screen.getAllByTestId(/^leave-range-day-/)[0];
-    const tenth = screen.getAllByTestId(/^leave-range-day-/)[9];
-    fireEvent.press(first!);
-    fireEvent.press(tenth!);
-    expect(screen.getByTestId('leave-range-total')).toHaveTextContent('10');
-  });
-
-  it('keeps Pakka disabled even with a valid range', () => {
-    render(<RangeLeaveScreen />);
-    const days = screen.getAllByTestId(/^leave-range-day-/);
-    fireEvent.press(days[0]!);
-    fireEvent.press(days[4]!);
-    expect(screen.getByTestId('leave-range-confirm').props.accessibilityState.disabled).toBe(true);
-  });
-});
+/*
+ * The break card, the month tiles and the `Chutti lagaye` block are no longer part of this
+ * screen. V13 moves them to the `leave` section (`540:416`), whose own screen carries `AAJ KA
+ * BREAK` and the leave surfaces; their coverage lives with that screen.
+ */

@@ -106,11 +106,31 @@ async function refreshSession(): Promise<StoredSession | null> {
         body: JSON.stringify({ refreshToken: current.refreshToken }),
       });
       if (!response.ok) {
-        await clearSession();
-        return null;
+        /*
+         * Only a REFUSED token ends the session. A busy server does not.
+         *
+         * This cleared the session on any non-OK response at all, so a 429 from the rate limiter
+         * destroyed a perfectly valid refresh token and the caller then reported UNAUTHENTICATED --
+         * signing the cook out and sending her to Login. Reported from the handset on 2026-09-02:
+         * repeated Chalo presses tripped the limiter, and the app "getting out, says bahut
+         * request". A cook losing her session mid-shift because she tapped a button too often is a
+         * far worse failure than the tap being refused.
+         *
+         * 401 and 403 are the server saying this token is no good, which is the one case where
+         * there is nothing to keep. Everything else -- 429, 5xx, a proxy hiccup -- is transient and
+         * the token survives it, so the failure is raised for the caller to surface and retry
+         * rather than swallowed as an expiry.
+         */
+        if (response.status === 401 || response.status === 403) {
+          await clearSession();
+          return null;
+        }
+        throw await readServerError(response);
       }
       const parsed = envelope(refreshedSessionSchema).safeParse(await response.json());
       if (!parsed.success) {
+        // A 200 the app cannot read is a contract failure, not a busy server: there is no token to
+        // keep, because the server believes it issued one and this build cannot use it.
         await clearSession();
         return null;
       }

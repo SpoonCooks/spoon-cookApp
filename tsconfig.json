@@ -26,5 +26,5 @@
     "app.config.ts",
     "jest.setup.ts"
   ],
-  "exclude": ["node_modules", "dist", ".expo"]
+  "exclude": ["node_modules", "dist", ".expo", "docs"]
 }

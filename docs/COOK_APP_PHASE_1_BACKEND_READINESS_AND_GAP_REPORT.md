@@ -1,3 +1,13 @@
+> **PARTLY SUPERSEDED — 2026-08-23.**
+>
+> The gap numbering below is still the reference for Phase 1, but several entries are now CLOSED by
+> the backend commit `a3bb590`, which was verified running on `spoon-api-kalc.onrender.com`:
+> the Cook read model, `POST /v1/cook/attendance/present`, `POST /v1/cook/leaves` (GAP-21) and the
+> reversal-safe earnings breakdown (GAP-25) all exist and are connected.
+>
+> Current gaps carry `GAP-V12-*` ids in
+> **`COOK_APP_FIGMA_V12_BACKEND_AND_VISUAL_CLOSURE.md`**, which is authoritative for the V12 state.
+
 # Cook App — Phase 1 Backend Readiness and Gap Report
 
 > **STATUS UPDATE — 2026-08-21 (supersedes §0–§0.6 and the "Phase 1 Implementation Status" section

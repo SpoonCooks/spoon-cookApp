@@ -4,5 +4,15 @@ const prettier = require('eslint-config-prettier');
 module.exports = [
   ...expoConfig,
   prettier,
-  { ignores: ['node_modules/**', '.expo/**', 'dist/**', 'android/**', 'coverage/**'] },
+  {
+    ignores: [
+      'node_modules/**',
+      '.expo/**',
+      'dist/**',
+      'android/**',
+      'coverage/**',
+      // Verbatim Figma reference code kept for provenance — never compiled or imported.
+      'docs/**',
+    ],
+  },
 ];

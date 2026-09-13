@@ -11,7 +11,7 @@ import { ArrivalView, CookingView, StartOtpView, TravelView } from '@features/se
  */
 
 function stateFrom(key: keyof typeof serviceFixtures) {
-  return projectServiceState(serviceFixtures[key]());
+  return projectServiceState(serviceFixtures[key]())!;
 }
 
 describe('TravelView — three distinct states, two sharing a Figma label', () => {

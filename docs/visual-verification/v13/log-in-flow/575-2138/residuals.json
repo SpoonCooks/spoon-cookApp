@@ -1,0 +1,13 @@
+{
+  "node": "575:2138",
+  "section": "log in flow",
+  "comparedPx": 266770,
+  "differingPx": 9282,
+  "differingPercent": 3.4794,
+  "edgePx": 9140,
+  "edgeShareOfDiffering": 98.47,
+  "areaPx": 142,
+  "areaPercentOfScreen": 0.0532,
+  "areaBlobs": [],
+  "note": "`edge` pixels sit on a gradient in the reference and are rasterisation. `area` pixels sit in a flat region and are a real difference; the blobs locate them. Neither figure adjusts the headline percentage in result.json."
+}

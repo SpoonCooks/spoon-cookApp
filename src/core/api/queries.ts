@@ -12,8 +12,10 @@
  *    the real state.
  */
 
+import { AppState } from 'react-native';
 import {
   QueryClient,
+  focusManager,
   useMutation,
   useQuery,
   useQueryClient,
@@ -24,10 +26,17 @@ import {
 import * as api from './cook';
 import { isApiError } from './errors';
 import type {
+  CookEarningsPolicy,
+  CookAttendanceRangeResponse,
+  CookCycleDetailResponse,
   CookCyclesResponse,
+  CookWeeksResponse,
+  CookWeekDetailResponse,
   CookEarningsResponse,
+  CookEarningsPeriodResponse,
   CookJobResponse,
   CookJobsListResponse,
+  CookLeaveRequestResponse,
   CookLeavesResponse,
   CookPresentResponse,
   CookProfileResponse,
@@ -40,6 +49,35 @@ function retryPolicy(failureCount: number, error: unknown): boolean {
   if (!isApiError(error)) return false;
   return error.kind === 'offline' || error.kind === 'timeout';
 }
+
+/**
+ * Teach TanStack Query what "focused" means on a phone.
+ *
+ * `refetchOnWindowFocus: true` below was set and INERT. The library's built-in focus detection
+ * listens for the DOM's `visibilitychange` and `focus` events, which do not exist in React
+ * Native, so nothing ever told it the app had come back. A cook opened Kaam, backgrounded the
+ * app for an hour, returned — and read an hour-old list.
+ *
+ * The roster also polls now ({@link useJobs}), because a list that looks static is not: CHALO
+ * appears on its own when the departure window opens, and a cancellation removes a job. Focus
+ * alone was never going to carry either.
+ *
+ * Registered once, at module scope, because `focusManager` is a library-wide singleton and a
+ * second listener would double every refetch. It returns the unsubscribe the manager expects, so
+ * a client teardown in a test detaches the AppState subscription rather than leaking it.
+ *
+ * `active` is the only focused state. `inactive` is the iOS app-switcher and the moment a system
+ * dialog covers the app — treating it as focused would fire a refetch every time a cook glanced
+ * at another app and came straight back.
+ */
+focusManager.setEventListener((handleFocus) => {
+  const subscription = AppState.addEventListener('change', (status) => {
+    handleFocus(status === 'active');
+  });
+  return () => {
+    subscription.remove();
+  };
+});
 
 export function createQueryClient(): QueryClient {
   return new QueryClient({
@@ -60,13 +98,39 @@ export const queryKeys = {
   currentJob: ['cook', 'jobs', 'current'] as const,
   job: (bookingId: string) => ['cook', 'jobs', bookingId] as const,
   attendanceMonth: (month: string) => ['cook', 'attendance', 'month', month] as const,
+  attendanceRange: (from: string, to: string) => ['cook', 'attendance', 'range', from, to] as const,
   leaves: (from?: string, to?: string) => ['cook', 'leaves', from ?? null, to ?? null] as const,
   earnings: ['cook', 'earnings'] as const,
+  earningsDay: (serviceDate: string) => ['cook', 'earnings', 'day', serviceDate] as const,
   cycles: ['cook', 'earnings', 'cycles'] as const,
   cycle: (cycleId: string) => ['cook', 'earnings', 'cycles', cycleId] as const,
+  weeks: ['cook', 'earnings', 'weeks'] as const,
+  week: (startDate: string) => ['cook', 'earnings', 'weeks', startDate] as const,
+  earningsPolicy: ['cook', 'policies', 'earnings'] as const,
 };
 
 /* ---------------------------------------------------------------- reads --- */
+
+/**
+ * The active published earnings policy.
+ *
+ * Long-lived on purpose. This changes when an owner publishes a policy version, not when a cook
+ * opens a screen, so it is cached for the session and refetched on the server's own five-minute
+ * `max-age` rather than on every mount. A publication still reaches a running app without a
+ * release — that is the whole point of the route — it simply does not cost a request per render.
+ *
+ * There is deliberately **no fallback**. A Niyam sheet with no policy shows that it has no policy;
+ * it does not quietly draw last year's tariff, which is what the hardcoded tables did.
+ */
+export function useEarningsPolicy(enabled = true): UseQueryResult<CookEarningsPolicy> {
+  return useQuery({
+    queryKey: queryKeys.earningsPolicy,
+    queryFn: ({ signal }) => api.getEarningsPolicy({ signal }),
+    enabled,
+    staleTime: 5 * 60_000,
+    gcTime: 60 * 60_000,
+  });
+}
 
 export function useCookProfile(enabled = true): UseQueryResult<CookProfileResponse> {
   return useQuery({
@@ -76,6 +140,20 @@ export function useCookProfile(enabled = true): UseQueryResult<CookProfileRespon
   });
 }
 
+/**
+ * How often the day's roster re-reads itself.
+ *
+ * It was not polled at all, on the reasoning that a roster is not a live surface. It is: the
+ * CHALO button appears on its own when the departure window opens, a booking the customer
+ * cancels has to stop being offered, and a reassignment moves a job onto or off this list.
+ * None of that is something the cook does, so without a poll she sits looking at a screen that
+ * is quietly wrong until she thinks to pull it down — which is exactly how it was reported.
+ *
+ * Thirty seconds. The window that matters most is CHALO opening, and being up to half a minute
+ * late to offer it is invisible; being ten minutes late is a cook standing still.
+ */
+const ROSTER_POLL_MS = 30_000;
+
 export function useJobs(
   params: { readonly from?: string; readonly to?: string; readonly limit?: number } = {},
   enabled = true,
@@ -84,6 +162,7 @@ export function useJobs(
     queryKey: queryKeys.jobs(params.from, params.to),
     queryFn: ({ signal }) => api.listJobs(params, { signal }),
     enabled,
+    refetchInterval: ROSTER_POLL_MS,
   });
 }
 
@@ -105,11 +184,23 @@ export function useCurrentJob(
   });
 }
 
-export function useJob(bookingId: string, enabled = true): UseQueryResult<CookJobResponse> {
+/**
+ * One booking's projection.
+ *
+ * `pollMs` exists for the same reason as on {@link useCurrentJob}: while a service is live the
+ * screen must learn about a customer cancellation, a reassignment or a confirmed extension without
+ * waiting for a push. Push is a refresh hint, never the source of truth.
+ */
+export function useJob(
+  bookingId: string,
+  enabled = true,
+  pollMs: number | false = false,
+): UseQueryResult<CookJobResponse> {
   return useQuery({
     queryKey: queryKeys.job(bookingId),
     queryFn: ({ signal }) => api.getJob(bookingId, { signal }),
     enabled: enabled && bookingId.length > 0,
+    refetchInterval: pollMs,
   });
 }
 
@@ -124,14 +215,26 @@ export function useMonthlyAttendance(
   });
 }
 
-export function useApprovedLeaves(
+export function useLeaves(
   params: { readonly from?: string; readonly to?: string } = {},
   enabled = true,
 ): UseQueryResult<CookLeavesResponse> {
   return useQuery({
     queryKey: queryKeys.leaves(params.from, params.to),
-    queryFn: ({ signal }) => api.listApprovedLeaves(params, { signal }),
+    queryFn: ({ signal }) => api.listLeaves(params, { signal }),
     enabled,
+  });
+}
+
+/** Stored attendance for an explicit window — the cycle frame's Mon–Sun strip. */
+export function useAttendanceRange(
+  params: { readonly from: string; readonly to: string },
+  enabled = true,
+): UseQueryResult<CookAttendanceRangeResponse> {
+  return useQuery({
+    queryKey: queryKeys.attendanceRange(params.from, params.to),
+    queryFn: ({ signal }) => api.listAttendanceRange(params, { signal }),
+    enabled: enabled && params.from.length === 10 && params.to.length === 10,
   });
 }
 
@@ -140,6 +243,49 @@ export function useEarnings(enabled = true): UseQueryResult<CookEarningsResponse
     queryKey: queryKeys.earnings,
     queryFn: ({ signal }) => api.getEarnings({}, { signal }),
     enabled,
+  });
+}
+
+/**
+ * One past service day.
+ *
+ * A finished day does not change, so this is cached far longer than the live `useEarnings`
+ * window. It is still refetched on mount for today, because today is not finished.
+ */
+export function useEarningsDay(
+  serviceDate: string,
+  enabled = true,
+): UseQueryResult<CookEarningsPeriodResponse> {
+  return useQuery({
+    queryKey: queryKeys.earningsDay(serviceDate),
+    queryFn: ({ signal }) => api.getEarningsDay(serviceDate, { signal }),
+    enabled: enabled && serviceDate.length === 10,
+    staleTime: 5 * 60_000,
+  });
+}
+
+/**
+ * The WEEKS a cook has earned in — the period the Kamai screens call a cycle.
+ *
+ * Distinct from {@link useEarningsCycles}, which reads the 28-day payout periods the attendance
+ * bonuses resolve over.
+ */
+export function useEarningsWeeks(enabled = true): UseQueryResult<CookWeeksResponse> {
+  return useQuery({
+    queryKey: queryKeys.weeks,
+    queryFn: ({ signal }) => api.listEarningsWeeks({}, { signal }),
+    enabled,
+  });
+}
+
+export function useEarningsWeek(
+  startDate: string,
+  enabled = true,
+): UseQueryResult<CookWeekDetailResponse> {
+  return useQuery({
+    queryKey: queryKeys.week(startDate),
+    queryFn: ({ signal }) => api.getEarningsWeek(startDate, { signal }),
+    enabled: enabled && startDate.length === 10,
   });
 }
 
@@ -154,7 +300,7 @@ export function useEarningsCycles(enabled = true): UseQueryResult<CookCyclesResp
 export function useEarningsCycle(
   cycleId: string,
   enabled = true,
-): UseQueryResult<CookEarningsResponse> {
+): UseQueryResult<CookCycleDetailResponse> {
   return useQuery({
     queryKey: queryKeys.cycle(cycleId),
     queryFn: ({ signal }) => api.getEarningsCycle(cycleId, { signal }),
@@ -227,10 +373,83 @@ export function useVerifyStartOtp(): UseMutationResult<
   return useJobCommand((args) => api.verifyStartOtp(args));
 }
 
+/**
+ * End OTP.
+ *
+ * Completion changes money, so the earnings and cycle reads are invalidated too — otherwise the
+ * cook finishes a job and My Money still shows the pre-service figures until the cache goes stale.
+ */
 export function useVerifyEndOtp(): UseMutationResult<
   void,
   unknown,
   { bookingId: string; otp: string; assignmentVersion: number; idempotencyKey: string }
 > {
-  return useJobCommand((args) => api.verifyEndOtp(args));
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (args: {
+      bookingId: string;
+      otp: string;
+      assignmentVersion: number;
+      idempotencyKey: string;
+    }) => api.verifyEndOtp(args),
+    onSuccess: async () => {
+      await Promise.all([
+        client.invalidateQueries({ queryKey: ['cook', 'jobs'] }),
+        client.invalidateQueries({ queryKey: queryKeys.earnings }),
+        client.invalidateQueries({ queryKey: queryKeys.cycles }),
+        client.invalidateQueries({ queryKey: queryKeys.profile }),
+      ]);
+    },
+  });
+}
+
+/**
+ * Alert acknowledgement.
+ *
+ * Responsiveness evidence, nothing more (backend DEC-059). A local dismissal is NOT an
+ * acknowledgement, so the projection is only re-read after the server has accepted the command.
+ */
+export function useAcknowledgeAlert(): UseMutationResult<
+  void,
+  unknown,
+  {
+    bookingId: string;
+    alertType: 'start_alert' | 'start_escalation' | 'move_alert';
+    assignmentVersion?: number | undefined;
+  }
+> {
+  return useJobCommand((args) => api.acknowledgeAlert(args));
+}
+
+/**
+ * Cook-initiated leave request.
+ *
+ * Answers `pending`. Both leave lists and the month are invalidated so the calendar shows the
+ * request the server actually stored, in the state the server gave it.
+ */
+export function useRequestLeave(
+  month: string,
+): UseMutationResult<
+  CookLeaveRequestResponse,
+  unknown,
+  { startDateIso: string; endDateIso: string; reason?: string; idempotencyKey: string }
+> {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (args: {
+      startDateIso: string;
+      endDateIso: string;
+      reason?: string;
+      idempotencyKey: string;
+    }) => api.requestLeave(args),
+    onSuccess: async () => {
+      await Promise.all([
+        client.invalidateQueries({ queryKey: ['cook', 'leaves'] }),
+        client.invalidateQueries({ queryKey: ['cook', 'attendance'] }),
+        ...(month.length === 7
+          ? [client.invalidateQueries({ queryKey: queryKeys.attendanceMonth(month) })]
+          : []),
+      ]);
+    },
+  });
 }

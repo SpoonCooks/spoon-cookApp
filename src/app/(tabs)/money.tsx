@@ -1,48 +1,121 @@
 import { router } from 'expo-router';
-import { useState } from 'react';
-import { Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useMemo, useState } from 'react';
+import { RefreshControl } from 'react-native';
 
-import { toBonusProgress } from '@core/api/adapters';
+import {
+  periodResponseFor,
+  serviceDatesBetween,
+  toBonusProgress,
+  toDailyHoursView,
+  toEarningsPeriodView,
+} from '@core/api/adapters';
 import { apiErrorMessage, isSessionExpired } from '@core/api/errors';
-import { useEarnings } from '@core/api/queries';
+import { useAttendanceRange, useCookProfile, useEarnings } from '@core/api/queries';
 import {
   earningsPeriodLabels,
   earningsPeriods,
-  formatRupees,
   type EarningsPeriod,
+  type RatingView,
 } from '@core/domain/money';
 import { useSession } from '@core/session/store';
-import { color, EmptyState, ErrorState, LoadingState, radius, spacing, Text } from '@ui';
+import { MoneyPeriodView } from '@features/performance/PerformanceViews';
+import { ErrorState, LoadingState, type DayStripEntry } from '@ui';
 
 /**
- * My Money — "Kaam aur Paise". Figma section `Performance & earnings` (`540:397`).
+ * My Money — Figma V13 section `performance` (`575:1741`).
  *
- *   `Aaj — 1 din`     → `Page 3- money daily`   (`485:5062`)
- *   `Cycle — 7 din`   → `Page 4 - money 7 days` (`492:5336`)
- *   `Mahina — 28 din` → `Page 7- money monthly` (`502:192`)
+ * Three frames, one screen, selected by the `Aaj / Cycle / Mahina` control:
  *
- * ## What is connected, and what is not
+ *   `575:1744` `12- money daily`   → `earnings.daily`     (today, IST service date)
+ *   `575:1884` `13- money weekly`  → `earnings.sevenDay`  (today-6 … today)
+ *   `575:2013` `16- money monthly` → `earnings.monthly`   (month start … today)
  *
- * `GET /v1/cook/earnings` supplies server-computed period totals (`daily`, `sevenDay`,
- * `currentCycle`) and `bonus`, all of which are rendered directly. The bonus threshold comes from
- * `bonus.thresholdDays` — no screen hardcodes 5, 7 or 27.
+ * ## Composition
  *
- * The Figma frames additionally show a CATEGORISED breakdown — base, bonus, tips, no-show and late
- * deductions, and a `final kamai`. The backend returns only a flat `events[]` ledger plus totals;
- * it computes no such categories.
+ * The frames themselves live in `@features/performance/PerformanceViews` so `/dev` can render the
+ * identical screen from a fixture. This route owns only the data: which period is selected, what
+ * the contract returned, and where a tap navigates.
  *
- * Summing that ledger by `eventType` here would be wrong, not merely disallowed: a `reversal`
- * carries its own type, so a reversed `base_earning` would leave "base" overstated while the
- * offsetting line landed in a different bucket. The categories are therefore left unrendered and
- * recorded as GAP-25 rather than approximated. `totalPaise` IS the server's net and is shown as-is.
+ * ## Every figure here is the server's
+ *
+ * The period totals come from `GET /v1/cook/earnings`, whose `breakdown` is the backend's
+ * reversal-safe `CookEarningsBreakdown`: fourteen signed categories where a reversal keeps its own
+ * bucket. Nothing on this screen adds those categories together — `grossPaise`, `netPaise` and
+ * `totalDeductionsPaise` are all computed by the ledger query itself.
+ *
+ * The bonus bar's threshold and segment count come from `bonus.thresholdDays` / `bonus.targetDays`,
+ * so neither the design's literal `7` nor the disputed five-hour variant is hardcoded.
+ *
+ * ## `Mahina — 28 din`
+ *
+ * The tab is labelled `28 din` but the deployed `monthly` period is month-start-to-today, not a
+ * rolling 28 days. The label is the design's; the window is the server's, and the frame prints the
+ * real `startDate`/`endDate` beneath it rather than implying 28 days were measured.
  */
 export default function MoneyScreen(): React.ReactElement {
-  const insets = useSafeAreaInsets();
   const signOut = useSession((s) => s.signOut);
   const [period, setPeriod] = useState<EarningsPeriod>('day');
 
   const earnings = useEarnings();
+  const profile = useCookProfile();
+
+  // The Mon–Sun strip is stored attendance for the seven-day window, not an earnings fact.
+  const week = earnings.data?.sevenDay ?? null;
+  const attendance = useAttendanceRange(
+    { from: week?.startDate ?? '', to: week?.endDate ?? '' },
+    period === 'cycle' && week !== null,
+  );
+
+  const hoursBonus = useMemo(
+    () => (earnings.data === undefined ? null : toDailyHoursView(earnings.data)),
+    [earnings.data],
+  );
+
+  const view = useMemo(
+    () =>
+      earnings.data === undefined
+        ? null
+        : toEarningsPeriodView(
+            period,
+            periodResponseFor(earnings.data, period),
+            hoursBonus,
+            // `536:207` — the rate the ledger would pay her today, not a total divided by days.
+            earnings.data.perDayBasePaise,
+          ),
+    [earnings.data, period, hoursBonus],
+  );
+
+  const bonus = useMemo(
+    () => (earnings.data === undefined ? null : toBonusProgress(earnings.data)),
+    [earnings.data],
+  );
+
+  const rating: RatingView | null = useMemo(
+    () =>
+      profile.data === undefined
+        ? null
+        : { average: profile.data.cook.rating.average, count: profile.data.cook.rating.count },
+    [profile.data],
+  );
+
+  const days: readonly DayStripEntry[] = useMemo(() => {
+    if (week === null) return [];
+    const marks = new Map((attendance.data ?? []).map((row) => [row.serviceDate, row.status]));
+    return serviceDatesBetween(week.startDate, week.endDate).map((dateIso) => {
+      const status = marks.get(dateIso);
+      return {
+        label: weekdayLabel(dateIso),
+        // A date with no stored record is `none`, never `missed`: the backend only returns days
+        // it actually has a record for, so absence of a row is absence of information.
+        state:
+          status === 'present'
+            ? ('present' as const)
+            : status === undefined
+              ? ('none' as const)
+              : ('missed' as const),
+      };
+    });
+  }, [week, attendance.data]);
 
   if (earnings.isPending) return <LoadingState testID="money-loading" />;
 
@@ -60,162 +133,46 @@ export default function MoneyScreen(): React.ReactElement {
     );
   }
 
-  const data = earnings.data;
-  const bonus = toBonusProgress(data);
+  if (view === null) return <LoadingState testID="money-loading" />;
 
-  // Each period total is a distinct server figure, never a slice of another one.
-  const periodTotal =
-    period === 'day'
-      ? data.daily.totalPaise
-      : period === 'cycle'
-        ? data.sevenDay.totalPaise
-        : (data.currentCycle?.finalAmountPaise ?? data.totalPaise);
-
-  const periodCount =
-    period === 'day' ? data.daily.eventCount : period === 'cycle' ? data.sevenDay.eventCount : null;
-
-  const isMonthly = period === 'month';
-  const grossLabel = isMonthly
-    ? 'mahine ki kamai'
-    : period === 'cycle'
-      ? 'cycle ki kamai'
-      : 'Aaj ki kamaai';
+  const tabs = earningsPeriods.map((key) => ({
+    key,
+    title: earningsPeriodLabels[key].title,
+    subtitle: earningsPeriodLabels[key].subtitle,
+  }));
 
   return (
-    <View style={styles.flex}>
-      <View style={[styles.banner, { paddingTop: insets.top + spacing.s }]}>
-        <Text variant="headingLg">Kaam aur Paise</Text>
-      </View>
-
-      <View style={styles.filterRow} accessibilityRole="tablist">
-        {earningsPeriods.map((value) => {
-          const isActive = value === period;
-          const label = earningsPeriodLabels[value];
-          return (
-            <Pressable
-              key={value}
-              accessibilityRole="tab"
-              accessibilityState={{ selected: isActive }}
-              onPress={() => setPeriod(value)}
-              testID={`money-filter-${value}`}
-              style={[styles.filter, isActive && styles.filterActive]}
-            >
-              <Text variant="captionStrong">{label.title}</Text>
-              <Text variant="label">{label.subtitle}</Text>
-            </Pressable>
-          );
-        })}
-      </View>
-
-      <ScrollView
-        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + spacing.huge }]}
-        refreshControl={
-          <RefreshControl
-            refreshing={earnings.isFetching}
-            onRefresh={() => void earnings.refetch()}
-          />
-        }
-        testID="money-scroll"
-      >
-        <View style={styles.card}>
-          <Text variant="label">{grossLabel}</Text>
-          <Text variant="displayLg" testID="money-period-total">
-            {formatRupees(periodTotal)}
-          </Text>
-          {periodCount !== null && <Text variant="captionMuted">{`${periodCount} entries`}</Text>}
-        </View>
-
-        {bonus !== null ? (
-          <View style={styles.card} testID="money-bonus">
-            <Text variant="label">Bonus</Text>
-            <Text variant="bodyStrong">
-              {`${bonus.completedHours}/${bonus.thresholdHours} din`}
-            </Text>
-            <Text variant="captionMuted">
-              {bonus.remainingHours === 0
-                ? 'Bonus pura ho gaya'
-                : `Bonus ke liye ${bonus.remainingHours} din aur`}
-            </Text>
-          </View>
-        ) : (
-          <View style={styles.card} testID="money-bonus-unavailable">
-            <Text variant="label">Bonus</Text>
-            <Text variant="captionMuted">Abhi koi cycle chalu nahi hai.</Text>
-          </View>
-        )}
-
-        {data.events.length === 0 ? (
-          <EmptyState message="Abhi koi kamaai nahi hai." />
-        ) : (
-          <View style={styles.card} testID="money-events">
-            <Text variant="labelStrong">Entries</Text>
-            {data.events.slice(0, 20).map((event) => (
-              <View key={event.id} style={styles.eventRow} testID={`money-event-${event.id}`}>
-                <View style={styles.eventLabel}>
-                  <Text variant="caption">{event.eventType.replace(/_/g, ' ')}</Text>
-                  {event.reason.length > 0 && <Text variant="captionMuted">{event.reason}</Text>}
-                </View>
-                <Text
-                  variant="captionStrong"
-                  color={event.amountPaise < 0 ? color.danger : color.textPrimary}
-                >
-                  {formatRupees(event.amountPaise)}
-                </Text>
-              </View>
-            ))}
-          </View>
-        )}
-
-        <Pressable
-          accessibilityRole="button"
-          onPress={() => router.push('/money/cycles')}
-          testID="money-past-cycles"
-          style={styles.linkRow}
-        >
-          <Text variant="bodyStrong">Pichle cycles</Text>
-        </Pressable>
-      </ScrollView>
-    </View>
+    <MoneyPeriodView
+      period={period}
+      view={view}
+      bonus={bonus}
+      hoursBonus={hoursBonus}
+      rating={rating}
+      days={days}
+      tabs={tabs}
+      onChangePeriod={setPeriod}
+      onOpenDays={() => router.push('/money/days')}
+      onOpenCycles={() => router.push('/money/cycles')}
+      refreshControl={
+        <RefreshControl
+          refreshing={earnings.isFetching}
+          onRefresh={() => void earnings.refetch()}
+        />
+      }
+    />
   );
 }
 
-const styles = StyleSheet.create({
-  flex: { flex: 1 },
-  banner: { paddingHorizontal: spacing.xl, paddingBottom: spacing.m },
-  filterRow: {
-    flexDirection: 'row',
-    gap: spacing.s,
-    paddingHorizontal: spacing.xl,
-    paddingBottom: spacing.m,
-  },
-  filter: {
-    flex: 1,
-    alignItems: 'center',
-    paddingVertical: spacing.s,
-    borderRadius: radius.m,
-    backgroundColor: color.surface,
-    borderWidth: 2,
-    borderColor: color.grey100,
-  },
-  filterActive: { backgroundColor: color.yellow300, borderColor: color.black },
-  content: { paddingHorizontal: spacing.xl, gap: spacing.l },
-  card: {
-    backgroundColor: color.surface,
-    borderRadius: radius.xxl,
-    padding: spacing.l,
-    gap: spacing.xs,
-  },
-  eventRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: spacing.xs,
-  },
-  eventLabel: { flex: 1, paddingRight: spacing.m },
-  linkRow: {
-    paddingVertical: spacing.l,
-    alignItems: 'center',
-    borderRadius: radius.xxl,
-    backgroundColor: color.surface,
-  },
-});
+const WEEKDAYS = ['Sun', 'Mon', 'Tues', 'Wed', 'Thurs', 'Fri', 'Sat'] as const;
+
+/**
+ * `2026-07-24` → `Fri`, using the Figma's own abbreviations.
+ *
+ * Parsed as UTC midnight so the label is a property of the service DATE rather than of the
+ * device's timezone — a cook in a different offset must not see the strip shift by a day.
+ */
+function weekdayLabel(dateIso: string): string {
+  const at = Date.parse(`${dateIso}T00:00:00Z`);
+  if (Number.isNaN(at)) return '';
+  return WEEKDAYS[new Date(at).getUTCDay()] ?? '';
+}

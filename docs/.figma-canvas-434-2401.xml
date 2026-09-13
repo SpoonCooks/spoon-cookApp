@@ -3711,7 +3711,7 @@
       <frame id="528:573" name="div.flex-1" x="10" y="447" width="370" height="486">
         <frame id="528:606" name="CTA" x="16" y="420" width="338" height="50">
           <frame id="528:607" name="button.w-full" x="4" y="2" width="330" height="46">
-            <text id="528:608" name="Pakka" x="127.5" y="8" width="75" height="30" />
+            <text id="528:608" name="Pakka" x="127.5" y="8" width="75" height="34" />
           </frame>
         </frame>
         <frame id="528:574" name="top banner" x="16" y="16" width="338" height="38">

@@ -1,0 +1,481 @@
+const imgDone = "https://www.figma.com/api/mcp/asset/e549bdd5-7b7e-4d98-89f1-298c0aa6de48.png";
+const imgMultiply = "https://www.figma.com/api/mcp/asset/5bf7ba50-32d3-463f-99fb-1a08937a72a7.png";
+const imgStar = "https://www.figma.com/api/mcp/asset/253b9171-ed77-4853-90ba-7d4ff63566be.png";
+const imgTimer = "https://www.figma.com/api/mcp/asset/aa6fd7bd-aa6f-4432-8c3a-06e81372e9cd.png";
+const imgClock = "https://www.figma.com/api/mcp/asset/57f0294f-82a7-4a71-af49-7d669795cae8.png";
+const imgCalendar = "https://www.figma.com/api/mcp/asset/bcc742e7-f2e8-48f0-ac39-172b6f37bf94.png";
+const imgVector = "https://www.figma.com/api/mcp/asset/8a09db95-2ace-46ab-a261-a87a1b45959d.svg";
+const imgVector1 = "https://www.figma.com/api/mcp/asset/0da40939-901e-49e8-9306-e4d18bdb082a.svg";
+const imgFrame = "https://www.figma.com/api/mcp/asset/92d89e5e-61fc-4e71-b817-e3464d8cf5f8.svg";
+const imgFrame1 = "https://www.figma.com/api/mcp/asset/64f5452e-b346-43b2-ab7e-529bbf43da89.svg";
+const imgEllipse2 = "https://www.figma.com/api/mcp/asset/8a38c7a1-dc7a-4857-83a7-bc5014544cc5.svg";
+const imgEllipse3 = "https://www.figma.com/api/mcp/asset/1b980902-9032-49e2-8260-9be30419cf36.svg";
+const imgBack = "https://www.figma.com/api/mcp/asset/6b32f177-ba9b-4703-bc83-61c675c3a7c8.svg";
+
+function Component1({ className }: { className?: string }) {
+  return (
+    <div className={className || "h-[32px] relative w-[370px]"} data-node-id="575:1743" data-name="Component 1">
+      <div className="absolute bg-[var(--color\/white\/solid,white)] content-stretch flex gap-[var(--item-spacing\/237_7,237.7px)] h-[32px] items-center left-0 pb-[4px] pl-[24px] pr-[23.99px] pt-[12px] top-0 w-[370.44px]" data-node-id="434:3336" data-name="div.w-full">
+        <div className="content-stretch flex flex-col items-start relative shrink-0" data-node-id="434:3337" data-name="span">
+          <div className="[word-break:break-word] flex flex-col font-[family-name:var(--font-family\/font-1,'Livvic:Bold')] justify-center leading-[0] not-italic relative shrink-0 text-[color:var(--color\/black\/solid,black)] text-[length:var(--corner-radius\/12,12px)] whitespace-nowrap" data-node-id="434:3338">
+            <p className="leading-[var(--corner-radius\/16,16px)]">8:29</p>
+          </div>
+        </div>
+        <div className="content-stretch flex gap-[var(--item-spacing\/6,6px)] items-center relative shrink-0" data-node-id="434:3339" data-name="div.flex">
+          <div className="h-[13.33px] relative shrink-0 w-[13.85px]" data-node-id="434:3340" data-name="span.font-extrabold">
+            <div className="-translate-y-1/2 [word-break:break-word] absolute flex flex-col font-[family-name:var(--font-family\/font-1,'Livvic:Black')] justify-center leading-[0] left-0 not-italic text-[color:var(--color\/black\/solid,black)] text-[length:var(--font-size\/10,10px)] top-[6.22px] uppercase w-[14.164px]" data-node-id="434:3341">
+              <p className="leading-[var(--line-height\/13_33,13.33px)]">5G</p>
+            </div>
+          </div>
+          <div className="content-stretch flex gap-[var(--item-spacing\/xxxs,2px)] h-[10px] items-end relative shrink-0" data-node-id="434:3342" data-name="div.flex">
+            <div className="bg-[var(--color\/black\/solid,black)] h-[4px] relative shrink-0 w-[2px]" data-node-id="434:3343" data-name="span.h-1" />
+            <div className="bg-[var(--color\/black\/solid,black)] h-[6px] relative shrink-0 w-[2px]" data-node-id="434:3344" data-name="span.bg-black" />
+            <div className="bg-[var(--color\/black\/solid,black)] h-[8px] relative shrink-0 w-[2px]" data-node-id="434:3345" data-name="span.h-2" />
+            <div className="bg-[var(--color\/black\/solid,black)] h-[10px] relative shrink-0 w-[2px]" data-node-id="434:3346" data-name="span.bg-black" />
+          </div>
+          <div className="border-[length:var(--stroke-weight\/1,1px)] border-[var(--color\/black\/solid,black)] border-solid content-stretch flex h-[10px] items-center p-[1.889px] relative rounded-[var(--corner-radius\/2,2px)] shrink-0 w-[20px]" data-node-id="434:3347" data-name="div.w-5">
+            <div className="bg-[var(--color\/black\/solid,black)] h-full relative shrink-0 w-[12px]" data-node-id="434:3348" data-name="div.w-3" />
+          </div>
+        </div>
+      </div>
+      <div className="absolute bg-[var(--color\/black\/solid,black)] bottom-1/4 content-stretch flex items-center justify-center left-[32.66%] right-[32.78%] rounded-bl-[var(--corner-radius\/16,16px)] rounded-br-[var(--corner-radius\/16,16px)] top-0" data-node-id="434:3351" data-name="div.absolute">
+        <div className="bg-[var(--color\/azure\/17,#1e2939)] h-[4px] relative rounded-[var(--corner-radius\/29826200,29826200px)] shrink-0 w-[48px]" data-node-id="434:3352" data-name="div.w-12" />
+        <div className="absolute bg-[var(--color\/azure\/11-2,#101828)] border-[length:var(--stroke-weight\/1,1px)] border-[var(--color\/azure\/27-2,#364153)] border-solid right-[19.85px] rounded-[var(--corner-radius\/29826200,29826200px)] size-[10px] top-[7px]" data-node-id="434:3353" data-name="div.bg-gray-900" />
+      </div>
+    </div>
+  );
+}
+
+export default function Component13MoneyWeekly() {
+  return (
+    <div className="content-stretch flex flex-col items-center relative size-full" data-node-id="575:1884" data-name="13- money weekly">
+      <Component1 className="h-[32px] relative shrink-0 w-full" />
+      <div className="bg-[var(--color\/white\/solid,white)] content-stretch flex flex-col gap-[16px] isolate items-center overflow-auto p-[16px] relative shrink-0 w-full" data-node-id="492:5339" data-name="13- money weekly">
+        <div className="[word-break:break-word] gap-x-[10px] gap-y-[10px] grid grid-cols-[repeat(3,minmax(0,1fr))] grid-rows-[repeat(1,fit-content(100%))] leading-[0] not-italic p-[4px] relative rounded-[20px] shrink-0 text-center w-full whitespace-nowrap z-[6]" data-node-id="492:5340" data-name="timline">
+          <div className="bg-[#ffef99] col-1 content-stretch flex flex-col items-center justify-center justify-self-stretch py-[8px] relative rounded-[12px] row-1 self-start shrink-0" data-node-id="492:5341" data-name="button.flex-1">
+            <div className="flex flex-col font-[family-name:var(--font-family\/font-1,'Livvic:Black')] justify-center relative shrink-0 text-[color:var(--color\/grey\/4,#0a0a0a)] text-[length:var(--font-size\/16,16px)] tracking-[var(--letter-spacing\/-0_4,-0.4px)]" data-node-id="492:5342">
+              <p className="leading-[var(--line-height\/24,24px)]">Aaj</p>
+            </div>
+            <div className="flex flex-col font-[family-name:var(--font-family\/font-1,'Livvic:Bold')] justify-center relative shrink-0 text-[color:var(--color\/black\/-80\%,rgba(0,0,0,0.8))] text-[length:var(--font-size\/14,14px)]" data-node-id="492:5343">
+              <p className="leading-[var(--line-height\/20,20px)]">1 din</p>
+            </div>
+          </div>
+          <div className="bg-[#ffde33] col-2 content-stretch flex flex-col items-center justify-center justify-self-stretch py-[8px] relative rounded-[12px] row-1 self-start shrink-0" data-node-id="492:5344" data-name="button.flex-1">
+            <div className="flex flex-col font-[family-name:var(--font-family\/font-1,'Livvic:Black')] justify-center relative shrink-0 text-[color:var(--color\/black\/solid,black)] text-[length:var(--font-size\/16,16px)] tracking-[var(--letter-spacing\/-0_4,-0.4px)]" data-node-id="492:5345">
+              <p className="leading-[var(--line-height\/24,24px)]">Cycle</p>
+            </div>
+            <div className="flex flex-col font-[family-name:var(--font-family\/font-1,'Livvic:Bold')] justify-center relative shrink-0 text-[color:var(--color\/black\/-80\%,rgba(0,0,0,0.8))] text-[length:var(--font-size\/14,14px)]" data-node-id="492:5346">
+              <p className="leading-[var(--line-height\/20,20px)]">7 din</p>
+            </div>
+          </div>
+          <div className="bg-[#ffef99] col-3 content-stretch flex flex-col items-center justify-center justify-self-stretch py-[8px] relative rounded-[12px] row-1 self-start shrink-0" data-node-id="492:5347" data-name="button.flex-1">
+            <div className="flex flex-col font-[family-name:var(--font-family\/font-1,'Livvic:Black')] justify-center relative shrink-0 text-[color:var(--color\/black\/solid,black)] text-[length:var(--font-size\/16,16px)] tracking-[var(--letter-spacing\/-0_4,-0.4px)]" data-node-id="492:5348">
+              <p className="leading-[var(--line-height\/24,24px)]">Mahina</p>
+            </div>
+            <div className="flex flex-col font-[family-name:var(--font-family\/font-1,'Livvic:Bold')] justify-center relative shrink-0 text-[color:var(--color\/black\/-80\%,rgba(0,0,0,0.8))] text-[length:var(--font-size\/14,14px)]" data-node-id="492:5349">
+              <p className="leading-[var(--line-height\/20,20px)]">28 din</p>
+            </div>
+          </div>
+        </div>
+        <div className="content-stretch flex gap-[var(--item-spacing\/xxs,4px)] items-start p-[4px] relative rounded-[20px] shrink-0 w-full z-[5]" data-node-id="505:1857" data-name="timline">
+          <div className="flex-[1_0_0] gap-x-[4px] gap-y-[4px] grid grid-cols-[repeat(7,minmax(0,1fr))] grid-rows-[repeat(1,fit-content(100%))] min-w-px relative" data-node-id="505:1240" data-name="div.grid">
+            <div className="col-1 content-stretch flex flex-col gap-[var(--item-spacing\/6,6px)] items-center justify-self-stretch relative row-1 self-stretch shrink-0" data-node-id="505:1241" data-name="button.flex">
+              <div className="overflow-clip relative shrink-0 size-[35px]" data-node-id="505:1243" data-name="Frame">
+                <div className="absolute inset-[1.43%_1.02%_1.43%_1.84%] opacity-[var(--opacity\/100,1)]" data-node-id="505:1244" data-name="Vector">
+                  <img alt="" className="absolute block inset-0 max-w-none size-full" src={imgVector} />
+                </div>
+                <div className="absolute left-[2.64px] size-[30px] top-[2.5px]" data-node-id="506:1868" data-name="Done">
+                  <img alt="" className="absolute inset-0 max-w-none object-contain pointer-events-none size-full" src={imgDone} />
+                </div>
+              </div>
+              <div className="content-stretch flex flex-col items-center relative shrink-0 w-full" data-node-id="505:1248" data-name="span.block">
+                <div className="[word-break:break-word] flex flex-col font-[family-name:var(--font-family\/font-1,'Livvic:Bold')] justify-center leading-[0] not-italic relative shrink-0 text-[color:var(--color\/black\/solid,black)] text-[length:var(--corner-radius\/12,12px)] text-center whitespace-nowrap" data-node-id="505:1249">
+                  <p className="leading-[var(--corner-radius\/16,16px)]">Mon</p>
+                </div>
+              </div>
+            </div>
+            <div className="col-2 content-stretch flex flex-col gap-[var(--item-spacing\/6,6px)] items-center justify-self-stretch relative row-1 self-stretch shrink-0" data-node-id="506:1869" data-name="button.flex">
+              <div className="overflow-clip relative shrink-0 size-[35px]" data-node-id="506:1870" data-name="Frame">
+                <div className="absolute inset-[1.43%_3.06%_1.43%_-0.2%] opacity-[var(--opacity\/100,1)]" data-node-id="506:1871" data-name="Vector">
+                  <img alt="" className="absolute block inset-0 max-w-none size-full" src={imgVector1} />
+                </div>
+                <div className="absolute left-[-0.07px] size-[34px] top-[0.5px]" data-node-id="506:1876" data-name="Multiply">
+                  <img alt="" className="absolute inset-0 max-w-none object-contain pointer-events-none size-full" src={imgMultiply} />
+                </div>
+              </div>
+              <div className="content-stretch flex flex-col items-center relative shrink-0 w-full" data-node-id="506:1873" data-name="span.block">
+                <div className="[word-break:break-word] flex flex-col font-[family-name:var(--font-family\/font-1,'Livvic:Bold')] justify-center leading-[0] not-italic relative shrink-0 text-[color:var(--color\/black\/solid,black)] text-[length:var(--corner-radius\/12,12px)] text-center whitespace-nowrap" data-node-id="506:1874">
+                  <p className="leading-[var(--corner-radius\/16,16px)]">Tues</p>
+                </div>
+              </div>
+            </div>
+            <div className="col-3 content-stretch flex flex-col gap-[var(--item-spacing\/6,6px)] items-center justify-self-stretch relative row-1 self-stretch shrink-0" data-node-id="506:1877" data-name="button.flex">
+              <div className="overflow-clip relative shrink-0 size-[35px]" data-node-id="506:1878" data-name="Frame">
+                <div className="absolute inset-[1.43%_1.02%_1.43%_1.84%] opacity-[var(--opacity\/100,1)]" data-node-id="506:1879" data-name="Vector">
+                  <img alt="" className="absolute block inset-0 max-w-none size-full" src={imgVector} />
+                </div>
+                <div className="absolute left-[2.64px] size-[30px] top-[2.5px]" data-node-id="506:1880" data-name="Done">
+                  <img alt="" className="absolute inset-0 max-w-none object-contain pointer-events-none size-full" src={imgDone} />
+                </div>
+              </div>
+              <div className="content-stretch flex flex-col items-center relative shrink-0 w-full" data-node-id="506:1881" data-name="span.block">
+                <div className="[word-break:break-word] flex flex-col font-[family-name:var(--font-family\/font-1,'Livvic:Bold')] justify-center leading-[0] not-italic relative shrink-0 text-[color:var(--color\/black\/solid,black)] text-[length:var(--corner-radius\/12,12px)] text-center whitespace-nowrap" data-node-id="506:1882">
+                  <p className="leading-[var(--corner-radius\/16,16px)]">Wed</p>
+                </div>
+              </div>
+            </div>
+            <div className="col-4 content-stretch flex flex-col gap-[var(--item-spacing\/6,6px)] items-center justify-self-stretch relative row-1 self-stretch shrink-0" data-node-id="506:1884" data-name="button.flex">
+              <div className="overflow-clip relative shrink-0 size-[35px]" data-node-id="506:1885" data-name="Frame">
+                <div className="absolute inset-[1.43%_1.02%_1.43%_1.84%] opacity-[var(--opacity\/100,1)]" data-node-id="506:1886" data-name="Vector">
+                  <img alt="" className="absolute block inset-0 max-w-none size-full" src={imgVector} />
+                </div>
+                <div className="absolute left-[2.64px] size-[30px] top-[2.5px]" data-node-id="506:1887" data-name="Done">
+                  <img alt="" className="absolute inset-0 max-w-none object-contain pointer-events-none size-full" src={imgDone} />
+                </div>
+              </div>
+              <div className="content-stretch flex flex-col items-center relative shrink-0 w-full" data-node-id="506:1888" data-name="span.block">
+                <div className="[word-break:break-word] flex flex-col font-[family-name:var(--font-family\/font-1,'Livvic:Bold')] justify-center leading-[0] not-italic relative shrink-0 text-[color:var(--color\/black\/solid,black)] text-[length:var(--corner-radius\/12,12px)] text-center whitespace-nowrap" data-node-id="506:1889">
+                  <p className="leading-[var(--corner-radius\/16,16px)]">Thurs</p>
+                </div>
+              </div>
+            </div>
+            <div className="col-5 content-stretch flex flex-col gap-[var(--item-spacing\/6,6px)] items-center justify-self-stretch relative row-1 self-stretch shrink-0" data-node-id="506:1891" data-name="button.flex">
+              <div className="overflow-clip relative shrink-0 size-[35px]" data-node-id="506:1892" data-name="Frame">
+                <div className="absolute inset-[1.43%_1.02%_1.43%_1.84%] opacity-[var(--opacity\/100,1)]" data-node-id="506:1893" data-name="Vector">
+                  <img alt="" className="absolute block inset-0 max-w-none size-full" src={imgVector} />
+                </div>
+                <div className="absolute left-[2.64px] size-[30px] top-[2.5px]" data-node-id="506:1894" data-name="Done">
+                  <img alt="" className="absolute inset-0 max-w-none object-contain pointer-events-none size-full" src={imgDone} />
+                </div>
+              </div>
+              <div className="content-stretch flex flex-col items-center relative shrink-0 w-full" data-node-id="506:1895" data-name="span.block">
+                <div className="[word-break:break-word] flex flex-col font-[family-name:var(--font-family\/font-1,'Livvic:Bold')] justify-center leading-[0] not-italic relative shrink-0 text-[color:var(--color\/black\/solid,black)] text-[length:var(--corner-radius\/12,12px)] text-center whitespace-nowrap" data-node-id="506:1896">
+                  <p className="leading-[var(--corner-radius\/16,16px)]">Fri</p>
+                </div>
+              </div>
+            </div>
+            <div className="col-6 content-stretch flex flex-col gap-[var(--item-spacing\/6,6px)] items-center justify-self-stretch relative row-1 self-stretch shrink-0" data-node-id="506:1905" data-name="button.flex">
+              <div className="relative shrink-0 size-[35px]" data-node-id="506:1906" data-name="Frame">
+                <img alt="" className="absolute block inset-0 max-w-none size-full" src={imgFrame} />
+              </div>
+              <div className="content-stretch flex flex-col items-center relative shrink-0 w-full" data-node-id="506:1909" data-name="span.block">
+                <div className="[word-break:break-word] flex flex-col font-[family-name:var(--font-family\/font-1,'Livvic:Bold')] justify-center leading-[0] not-italic relative shrink-0 text-[color:var(--color\/black\/solid,black)] text-[length:var(--corner-radius\/12,12px)] text-center whitespace-nowrap" data-node-id="506:1910">
+                  <p className="leading-[var(--corner-radius\/16,16px)]">Sat</p>
+                </div>
+              </div>
+            </div>
+            <div className="col-7 content-stretch flex flex-col gap-[var(--item-spacing\/6,6px)] items-center justify-self-stretch relative row-1 self-stretch shrink-0" data-node-id="506:1898" data-name="button.flex">
+              <div className="relative shrink-0 size-[35px]" data-node-id="506:1899" data-name="Frame">
+                <img alt="" className="absolute block inset-0 max-w-none size-full" src={imgFrame1} />
+              </div>
+              <div className="content-stretch flex flex-col items-center relative shrink-0 w-full" data-node-id="506:1902" data-name="span.block">
+                <div className="[word-break:break-word] flex flex-col font-[family-name:var(--font-family\/font-1,'Livvic:Bold')] justify-center leading-[0] not-italic relative shrink-0 text-[color:var(--color\/black\/solid,black)] text-[length:var(--corner-radius\/12,12px)] text-center whitespace-nowrap" data-node-id="506:1903">
+                  <p className="leading-[var(--corner-radius\/16,16px)]">Sun</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className="content-stretch flex flex-col gap-[var(--item-spacing\/14_01,14.010000228881836px)] items-start px-[4px] py-[6px] relative shrink-0 w-[340px] z-[4]" data-node-id="492:5389" data-name="jobs">
+          <div className="border-[#ffd600] border-[length:var(--stroke-weight\/1,1px)] border-solid content-stretch flex flex-col gap-[16px] items-start p-[12px] relative rounded-[15px] shrink-0 w-full" data-node-id="492:5390" data-name="div.bg-gradient-to-br">
+            <div className="content-stretch flex flex-col items-start relative shrink-0 w-[308.46px]" data-node-id="492:5391" data-name="p.font-extrabold">
+              <div className="[word-break:break-word] flex flex-col font-[family-name:var(--font-family\/font-1,'Livvic:Black')] justify-center leading-[0] not-italic relative shrink-0 text-[length:var(--font-size\/14,14px)] text-[red] tracking-[1px] uppercase whitespace-nowrap" data-node-id="502:369">
+                <p className="leading-[var(--line-height\/20,20px)]">cycle ka kaam</p>
+              </div>
+            </div>
+            <div className="content-stretch flex flex-col gap-[10px] items-start relative shrink-0 w-full" data-node-id="492:5393">
+              <div className="gap-x-[21px] gap-y-[10px] grid grid-cols-[repeat(2,minmax(0,1fr))] grid-rows-[repeat(1,fit-content(100%))] relative shrink-0 w-full" data-node-id="492:5394" data-name="div.flex">
+                <div className="bg-[#ecff9b] col-1 content-stretch flex flex-col gap-[6px] h-[113px] items-start justify-self-stretch px-[12px] py-[8px] relative rounded-[7px] row-1 self-start shrink-0" data-node-id="492:5395" data-name="div.bg-white">
+                  <div className="content-stretch flex flex-col gap-[6px] items-start relative shrink-0 w-full" data-node-id="492:5396" data-name="div.flex">
+                    <div className="content-stretch flex gap-[12px] items-center relative shrink-0 w-full" data-node-id="492:5397" data-name="div.flex">
+                      <div className="bg-white content-stretch flex flex-col items-center justify-center pb-[2px] pl-px pr-[2px] pt-px relative rounded-[14px] shrink-0 size-[28px]" data-node-id="492:5398" data-name="div.rounded-xl">
+                        <div className="relative shrink-0 size-[25px]" data-node-id="502:131" data-name="Star">
+                          <img alt="" className="absolute inset-0 max-w-none object-contain pointer-events-none size-full" src={imgStar} />
+                        </div>
+                      </div>
+                      <div className="flex flex-row items-center self-stretch" data-node-id="492:5400">
+                        <div className="content-stretch flex flex-col h-full items-start justify-center relative shrink-0" data-name="span.text-xs">
+                          <div className="[word-break:break-word] flex flex-col font-[family-name:var(--font-family\/font-1,'Livvic:Bold')] justify-center leading-[0] not-italic relative shrink-0 text-[color:var(--color\/grey\/9,#171717)] text-[length:var(--font-size\/20,20px)] whitespace-nowrap" data-node-id="492:5401">
+                            <p className="leading-[var(--line-height\/28,28px)]">5+</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="content-stretch flex flex-col items-start overflow-clip relative shrink-0 w-full" data-node-id="492:5402" data-name="span.font-semibold">
+                      <div className="[word-break:break-word] flex flex-col font-[family-name:var(--font-family\/font-1,'Livvic:SemiBold')] justify-center leading-[0] not-italic relative shrink-0 text-[color:var(--color\/black\/-80\%,rgba(0,0,0,0.8))] text-[length:var(--font-size\/12,12px)] text-center w-full" data-node-id="492:5403">
+                        <p className="leading-[var(--line-height\/16,16px)]">Bohot accha kaam</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="content-stretch flex gap-[var(--item-spacing\/xxs,4px)] items-center justify-center pb-[1.77px] relative shrink-0 w-full" data-node-id="492:5404" data-name="div.flex">
+                    <div className="[word-break:break-word] flex flex-col font-[family-name:var(--font-family\/font-1,'Livvic:Black')] justify-center leading-[0] not-italic relative shrink-0 text-[color:var(--color\/grey\/4,#0a0a0a)] text-[length:var(--font-size\/30,30px)] w-[18px]" data-node-id="492:5405">
+                      <p className="leading-[var(--line-height\/36,36px)]">1</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-[#ecff9b] col-2 content-stretch flex flex-col gap-[6px] items-start justify-self-stretch px-[12px] py-[8px] relative rounded-[7px] row-1 self-start shrink-0" data-node-id="492:5406" data-name="div.bg-white">
+                  <div className="content-stretch flex flex-col gap-[6px] items-start relative shrink-0 w-full" data-node-id="492:5407" data-name="div.flex">
+                    <div className="content-stretch flex gap-[12px] items-center relative shrink-0 w-full" data-node-id="492:5408" data-name="div.flex">
+                      <div className="relative rounded-[100px] shrink-0 size-[28px]" data-node-id="502:132" data-name="div.rounded-xl">
+                        <div className="absolute left-[0.5px] size-[28px] top-0" data-node-id="502:133">
+                          <img alt="" className="absolute block inset-0 max-w-none size-full" src={imgEllipse2} />
+                        </div>
+                        <div className="absolute left-[0.5px] size-[28px] top-0" data-node-id="502:136" data-name="Timer">
+                          <img alt="" className="absolute inset-0 max-w-none object-contain pointer-events-none size-full" src={imgTimer} />
+                        </div>
+                      </div>
+                      <div className="[word-break:break-word] flex flex-col font-[family-name:var(--font-family\/font-1,'Livvic:Bold')] justify-center leading-[0] not-italic relative shrink-0 text-[color:var(--color\/grey\/9,#171717)] text-[length:var(--font-size\/20,20px)] whitespace-nowrap" data-node-id="492:5412">
+                        <p className="leading-[var(--line-height\/28,28px)]">Ghante</p>
+                      </div>
+                    </div>
+                    <div className="content-stretch flex flex-col items-start overflow-clip relative shrink-0 w-full" data-node-id="492:5413" data-name="span.font-semibold">
+                      <div className="[word-break:break-word] flex flex-col font-[family-name:var(--font-family\/font-1,'Livvic:SemiBold')] justify-center leading-[0] not-italic relative shrink-0 text-[color:var(--color\/black\/-80\%,rgba(0,0,0,0.8))] text-[length:var(--font-size\/12,12px)] text-center w-full" data-node-id="492:5414">
+                        <p className="leading-[var(--line-height\/16,16px)]">7 hr ke upar kaam</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="content-stretch flex gap-[var(--item-spacing\/xxs,4px)] items-center justify-center pb-[1.77px] relative shrink-0 w-full" data-node-id="492:5415" data-name="div.flex">
+                    <div className="[word-break:break-word] flex flex-col font-[family-name:var(--font-family\/font-1,'Livvic:Black')] justify-center leading-[0] not-italic relative shrink-0 text-[color:var(--color\/grey\/4,#0a0a0a)] text-[length:var(--font-size\/30,30px)] w-[18px]" data-node-id="492:5416">
+                      <p className="leading-[var(--line-height\/36,36px)]">8</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="gap-x-[21px] gap-y-[10px] grid grid-cols-[repeat(2,minmax(0,1fr))] grid-rows-[repeat(1,fit-content(100%))] relative shrink-0 w-full" data-node-id="492:5417" data-name="div.flex">
+                <div className="bg-[rgba(236,255,155,0.6)] col-1 content-stretch flex flex-col items-center justify-center justify-self-stretch px-[12px] py-[8px] relative rounded-[7px] row-1 self-start shrink-0" data-node-id="492:5418" data-name="div.bg-white">
+                  <div className="[word-break:break-word] flex flex-col font-[family-name:var(--font-family\/font-1,'Livvic:Bold')] justify-center leading-[0] not-italic relative shrink-0 text-[color:var(--color\/black\/solid,black)] text-[length:var(--font-size\/20,20px)] text-center w-full" data-node-id="492:5419">
+                    <p className="leading-[var(--line-height\/28,28px)]">+₹50</p>
+                  </div>
+                </div>
+                <div className="bg-[rgba(236,255,155,0.6)] col-2 content-stretch flex flex-col items-center justify-center justify-self-stretch px-[12px] py-[8px] relative rounded-[7px] row-1 self-start shrink-0" data-node-id="492:5420" data-name="div.bg-white">
+                  <div className="[word-break:break-word] flex flex-col font-[family-name:var(--font-family\/font-1,'Livvic:Bold')] justify-center leading-[0] not-italic relative shrink-0 text-[color:var(--color\/black\/solid,black)] text-[length:var(--font-size\/20,20px)] text-center w-full" data-node-id="492:5421">
+                    <p className="leading-[var(--line-height\/28,28px)]">+₹100</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="bg-[#ecff9b] content-stretch flex flex-col gap-[var(--item-spacing\/9_99,9.989999771118164px)] items-start p-[16px] relative rounded-[var(--corner-radius\/16,16px)] shrink-0 w-full" data-node-id="502:106" data-name="div.bg-neutral-950">
+              <div className="content-stretch flex gap-[2px] items-start relative shrink-0 w-full" data-node-id="502:108" data-name="div">
+                <div className="[word-break:break-word] content-stretch flex flex-[1_0_0] flex-col items-start leading-[0] min-w-px not-italic relative self-stretch whitespace-nowrap" data-node-id="502:109" data-name="p.font-extrabold">
+                  <div className="flex flex-col font-[family-name:var(--font-family\/font-1,'Livvic:Black')] justify-center relative shrink-0 text-[length:var(--font-size\/14,14px)] text-[red] tracking-[1px] uppercase" data-node-id="502:110">
+                    <p className="leading-[var(--line-height\/20,20px)]">rating</p>
+                  </div>
+                  <div className="flex flex-col font-[family-name:var(--font-family\/font-1,'Livvic:SemiBold')] justify-center relative shrink-0 text-[length:var(--font-size\/12,12px)] text-[rgba(0,0,0,0.8)]" data-node-id="532:197">
+                    <p className="leading-[var(--line-height\/16,16px)]">Last 50 kaam</p>
+                  </div>
+                </div>
+                <div className="content-stretch flex gap-[12px] items-center pb-[0.88px] relative shrink-0 w-[93px]" data-node-id="502:111" data-name="h4.text-2xl">
+                  <div className="overflow-clip relative shrink-0 size-[38px]" data-node-id="502:388">
+                    <div className="absolute left-0 size-[38px] top-[-0.06px]" data-node-id="502:389">
+                      <img alt="" className="absolute block inset-0 max-w-none size-full" src={imgEllipse3} />
+                    </div>
+                    <div className="absolute left-px size-[36px] top-px" data-node-id="502:390" data-name="Star">
+                      <img alt="" className="absolute inset-0 max-w-none object-contain pointer-events-none size-full" src={imgStar} />
+                    </div>
+                  </div>
+                  <div className="[word-break:break-word] flex flex-col font-[family-name:var(--font-family\/font-1,'Livvic:Black')] justify-center leading-[0] not-italic relative shrink-0 text-[color:var(--color\/black\/solid,black)] text-[length:var(--font-size\/24,24px)] whitespace-nowrap" data-node-id="502:112">
+                    <p className="leading-[var(--line-height\/32,32px)]">4.7</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="bg-[#ecff9b] content-stretch flex flex-col gap-[var(--item-spacing\/9_99,9.99px)] items-start p-[16px] relative rounded-[var(--corner-radius\/16,16px)] shrink-0 w-full" data-node-id="537:226" data-name="div.bg-neutral-950">
+              <div className="content-stretch flex gap-[var(--item-spacing\/87_41,87.41000366210938px)] items-center relative shrink-0 w-full" data-node-id="537:227" data-name="div.flex">
+                <div className="content-stretch flex flex-[1_0_0] flex-col gap-[2px] items-start min-w-px relative" data-node-id="537:228" data-name="div">
+                  <div className="content-stretch flex flex-col items-start relative shrink-0 w-full" data-node-id="537:229" data-name="p.font-extrabold">
+                    <div className="[word-break:break-word] flex flex-col font-[family-name:var(--font-family\/font-1,'Livvic:Black')] justify-center leading-[0] not-italic relative shrink-0 text-[length:var(--font-size\/14,14px)] text-[red] tracking-[1px] uppercase whitespace-nowrap" data-node-id="537:230">
+                      <p className="leading-[var(--line-height\/20,20px)]">cycle ki kamai</p>
+                    </div>
+                  </div>
+                  <div className="content-stretch flex flex-col items-start pb-[0.88px] relative shrink-0 w-full" data-node-id="537:231" data-name="h4.text-2xl">
+                    <div className="[word-break:break-word] flex flex-col font-[family-name:var(--font-family\/font-1,'Livvic:Black')] justify-center leading-[0] not-italic relative shrink-0 text-[color:var(--color\/black\/solid,black)] text-[length:var(--font-size\/24,24px)] w-full" data-node-id="537:232">
+                      <p className="leading-[var(--line-height\/32,32px)]">₹9,739</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="gap-x-[12px] gap-y-[8px] grid grid-cols-[repeat(3,minmax(0,1fr))] grid-rows-[repeat(1,fit-content(100%))] relative shrink-0 w-full" data-node-id="537:233" data-name="div.grid">
+                <div className="bg-white border-2 border-[#cfff04] border-solid col-1 content-stretch flex flex-col gap-[var(--item-spacing\/-0_95,0px)] items-center justify-center justify-self-stretch p-[6px] relative rounded-[7px] row-1 self-stretch shrink-0" data-node-id="537:234" data-name="div">
+                  <div className="[word-break:break-word] content-stretch flex flex-col items-center leading-[0] not-italic relative rounded-[7px] shrink-0 text-[color:var(--color\/black\/solid,black)] w-full" data-node-id="537:235" data-name="span.text-neutral-400">
+                    <div className="flex flex-col font-[family-name:var(--font-family\/font-1,'Livvic:SemiBold')] justify-center min-w-full relative shrink-0 text-[length:var(--font-size\/12,12px)] text-center w-[min-content]" data-node-id="537:236">
+                      <p className="leading-[var(--line-height\/16,16px)]">Base</p>
+                    </div>
+                    <div className="flex flex-col font-[family-name:var(--font-family\/font-1,'Livvic:Bold')] justify-center relative shrink-0 text-[length:var(--font-size\/18,18px)] whitespace-nowrap" data-node-id="537:237">
+                      <p className="leading-[var(--line-height\/28,28px)]">₹8500</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-white border-2 border-[#cfff04] border-solid col-2 content-stretch flex flex-col gap-[var(--item-spacing\/-0_95,0px)] items-start justify-self-stretch p-[6px] relative rounded-[7px] row-1 self-stretch shrink-0" data-node-id="537:238" data-name="div">
+                  <div className="[word-break:break-word] content-stretch flex flex-col items-center leading-[0] not-italic relative rounded-[7px] shrink-0 text-[color:var(--color\/black\/solid,black)] w-full" data-node-id="537:239" data-name="span.text-neutral-400">
+                    <div className="flex flex-col font-[family-name:var(--font-family\/font-1,'Livvic:SemiBold')] justify-center min-w-full relative shrink-0 text-[length:var(--font-size\/12,12px)] text-center w-[min-content]" data-node-id="537:240">
+                      <p className="leading-[var(--line-height\/16,16px)]">Bonus</p>
+                    </div>
+                    <div className="flex flex-col font-[family-name:var(--font-family\/font-1,'Livvic:Bold')] justify-center relative shrink-0 text-[length:var(--font-size\/18,18px)] whitespace-nowrap" data-node-id="537:241">
+                      <p className="leading-[var(--line-height\/28,28px)]">₹150</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-white border-2 border-[#cfff04] border-solid col-3 content-stretch flex flex-col gap-[var(--item-spacing\/-0_95,0px)] items-start justify-self-stretch p-[6px] relative rounded-[7px] row-1 self-stretch shrink-0" data-node-id="537:242" data-name="div">
+                  <div className="[word-break:break-word] content-stretch flex flex-col items-center leading-[0] not-italic relative rounded-[7px] shrink-0 text-[color:var(--color\/black\/solid,black)] w-full" data-node-id="537:243" data-name="span.text-neutral-400">
+                    <div className="flex flex-col font-[family-name:var(--font-family\/font-1,'Livvic:SemiBold')] justify-center min-w-full relative shrink-0 text-[length:var(--font-size\/12,12px)] text-center w-[min-content]" data-node-id="537:244">
+                      <p className="leading-[var(--line-height\/16,16px)]">Tip</p>
+                    </div>
+                    <div className="flex flex-col font-[family-name:var(--font-family\/font-1,'Livvic:Bold')] justify-center relative shrink-0 text-[length:var(--font-size\/18,18px)] whitespace-nowrap" data-node-id="537:245">
+                      <p className="leading-[var(--line-height\/28,28px)]">₹600</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className="content-stretch flex flex-col items-start px-[4px] py-[6px] relative shrink-0 w-full z-[3]" data-node-id="537:289" data-name="deducations">
+          <div className="border-[length:var(--stroke-weight\/1,1px)] border-[red] border-solid content-stretch flex flex-col gap-[12px] items-start p-[12px] relative rounded-[15px] shrink-0 w-full" data-node-id="537:290" data-name="div.bg-gradient-to-br">
+            <div className="content-stretch flex flex-col items-start relative shrink-0 w-[308.46px]" data-node-id="537:291" data-name="p.font-extrabold">
+              <div className="[word-break:break-word] flex flex-col font-[family-name:var(--font-family\/font-1,'Livvic:Black')] justify-center leading-[0] not-italic relative shrink-0 text-[length:var(--font-size\/14,14px)] text-[red] tracking-[1px] uppercase whitespace-nowrap" data-node-id="537:292">
+                <p className="leading-[var(--line-height\/20,20px)]">cycle ki galtiyaan</p>
+              </div>
+            </div>
+            <div className="content-stretch flex flex-col gap-[10px] items-start relative shrink-0 w-full" data-node-id="537:293">
+              <div className="gap-x-[21px] gap-y-[10px] grid grid-cols-[repeat(2,minmax(0,1fr))] grid-rows-[repeat(1,fit-content(100%))] relative shrink-0 w-full" data-node-id="537:294" data-name="div.flex">
+                <div className="bg-[#ffef99] col-1 content-stretch flex flex-col gap-[6px] items-start justify-self-stretch px-[12px] py-[8px] relative rounded-[7px] row-1 self-start shrink-0" data-node-id="537:295" data-name="div.bg-white">
+                  <div className="content-stretch flex flex-col gap-[6px] items-start relative shrink-0 w-[117px]" data-node-id="537:296" data-name="div.flex">
+                    <div className="content-stretch flex gap-[12px] items-center relative shrink-0 w-full" data-node-id="537:297" data-name="div.flex">
+                      <div className="relative rounded-[100px] shrink-0 size-[28px]" data-node-id="537:298" data-name="div.rounded-xl">
+                        <div className="absolute left-0 size-[28px] top-0" data-node-id="537:299">
+                          <img alt="" className="absolute block inset-0 max-w-none size-full" src={imgEllipse2} />
+                        </div>
+                        <div className="absolute left-0 size-[28px] top-[0.25px]" data-node-id="537:300" data-name="Multiply">
+                          <img alt="" className="absolute inset-0 max-w-none object-contain pointer-events-none size-full" src={imgMultiply} />
+                        </div>
+                      </div>
+                      <div className="flex flex-row items-center self-stretch" data-node-id="537:301">
+                        <div className="content-stretch flex flex-col h-full items-start justify-center relative shrink-0 w-[77px]" data-name="span.text-xs">
+                          <div className="[word-break:break-word] flex flex-col font-[family-name:var(--font-family\/font-1,'Livvic:Bold')] justify-center leading-[0] not-italic relative shrink-0 text-[color:var(--color\/grey\/9,#171717)] text-[length:var(--font-size\/18,18px)] whitespace-nowrap" data-node-id="537:302">
+                            <p className="leading-[var(--line-height\/28,28px)]">No show</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="content-stretch flex flex-col h-[15px] items-start overflow-clip relative shrink-0 w-full" data-node-id="537:303" data-name="span.font-semibold">
+                      <div className="[word-break:break-word] flex flex-col font-[family-name:var(--font-family\/font-1,'Livvic:SemiBold')] justify-center leading-[0] not-italic relative shrink-0 text-[color:var(--color\/black\/-80\%,rgba(0,0,0,0.8))] text-[length:var(--font-size\/12,12px)] w-full" data-node-id="537:304">
+                        <p className="leading-[var(--line-height\/16,16px)]">Kaam pe NAHI gaye</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="content-stretch flex gap-[var(--item-spacing\/xxs,4px)] items-center justify-center pb-[1.77px] relative shrink-0 w-[117px]" data-node-id="537:305" data-name="div.flex">
+                    <div className="[word-break:break-word] flex flex-col font-[family-name:var(--font-family\/font-1,'Livvic:Black')] justify-center leading-[0] not-italic relative shrink-0 text-[color:var(--color\/grey\/4,#0a0a0a)] text-[length:var(--font-size\/30,30px)] w-[18px]" data-node-id="537:306">
+                      <p className="leading-[var(--line-height\/36,36px)]">1</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-[#ffef99] col-2 content-stretch flex flex-col gap-[6px] items-start justify-self-stretch px-[12px] py-[8px] relative rounded-[7px] row-1 self-start shrink-0" data-node-id="537:307" data-name="div.bg-white">
+                  <div className="content-stretch flex flex-col gap-[6px] items-start relative shrink-0 w-full" data-node-id="537:308" data-name="div.flex">
+                    <div className="content-stretch flex gap-[12px] items-center relative shrink-0 w-full" data-node-id="537:309" data-name="div.flex">
+                      <div className="relative rounded-[100px] shrink-0 size-[28px]" data-node-id="537:310" data-name="div.rounded-xl">
+                        <div className="absolute left-0 size-[28px] top-0" data-node-id="537:311">
+                          <img alt="" className="absolute block inset-0 max-w-none size-full" src={imgEllipse2} />
+                        </div>
+                        <div className="absolute left-[0.5px] size-[28px] top-[-0.25px]" data-node-id="537:312" data-name="Clock">
+                          <img alt="" className="absolute inset-0 max-w-none object-contain pointer-events-none size-full" src={imgClock} />
+                        </div>
+                      </div>
+                      <div className="flex flex-row items-center self-stretch" data-node-id="537:313">
+                        <div className="content-stretch flex flex-col h-full items-start justify-center relative shrink-0" data-name="span.text-xs">
+                          <div className="[word-break:break-word] flex flex-col font-[family-name:var(--font-family\/font-1,'Livvic:Bold')] justify-center leading-[0] not-italic relative shrink-0 text-[color:var(--color\/grey\/9,#171717)] text-[length:var(--font-size\/18,18px)] whitespace-nowrap" data-node-id="537:314">
+                            <p className="leading-[var(--line-height\/28,28px)]">Late</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="content-stretch flex flex-col items-start overflow-clip relative shrink-0 w-full" data-node-id="537:315" data-name="span.font-semibold">
+                      <div className="[word-break:break-word] flex flex-col font-[family-name:var(--font-family\/font-1,'Livvic:SemiBold')] justify-center leading-[0] not-italic relative shrink-0 text-[color:var(--color\/black\/-80\%,rgba(0,0,0,0.8))] text-[length:var(--font-size\/12,12px)] w-full" data-node-id="537:316">
+                        <p className="leading-[var(--line-height\/16,16px)]">Kaam pe LATE gaye</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="content-stretch flex gap-[var(--item-spacing\/xxs,4px)] items-center justify-center pb-[1.77px] relative shrink-0 w-full" data-node-id="537:317" data-name="div.flex">
+                    <div className="[word-break:break-word] flex flex-col font-[family-name:var(--font-family\/font-1,'Livvic:Black')] justify-center leading-[0] not-italic relative shrink-0 text-[color:var(--color\/grey\/4,#0a0a0a)] text-[length:var(--font-size\/30,30px)] w-[18px]" data-node-id="537:318">
+                      <p className="leading-[var(--line-height\/36,36px)]">2</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="gap-x-[21px] gap-y-[10px] grid grid-cols-[repeat(2,minmax(0,1fr))] grid-rows-[repeat(1,fit-content(100%))] relative shrink-0 w-full" data-node-id="537:319" data-name="div.flex">
+                <div className="bg-[#ffe666] col-1 content-stretch flex flex-col items-center justify-center justify-self-stretch px-[12px] py-[8px] relative rounded-[7px] row-1 self-start shrink-0" data-node-id="537:320" data-name="div.bg-white">
+                  <div className="[word-break:break-word] flex flex-col font-[family-name:var(--font-family\/font-1,'Livvic:Bold')] justify-center leading-[0] not-italic relative shrink-0 text-[color:var(--color\/black\/solid,black)] text-[length:var(--font-size\/20,20px)] text-center w-full" data-node-id="537:321">
+                    <p className="leading-[var(--line-height\/28,28px)]">-₹250</p>
+                  </div>
+                </div>
+                <div className="bg-[#ffe666] col-2 content-stretch flex flex-col items-center justify-center justify-self-stretch px-[12px] py-[8px] relative rounded-[7px] row-1 self-start shrink-0" data-node-id="537:322" data-name="div.bg-white">
+                  <div className="[word-break:break-word] flex flex-col font-[family-name:var(--font-family\/font-1,'Livvic:Bold')] justify-center leading-[0] not-italic relative shrink-0 text-[color:var(--color\/black\/solid,black)] text-[length:var(--font-size\/20,20px)] text-center w-full" data-node-id="537:323">
+                    <p className="leading-[var(--line-height\/28,28px)]">-₹50</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="bg-[#fff7cc] content-stretch flex flex-col gap-[var(--item-spacing\/9_99,9.989999771118164px)] items-start p-[16px] relative rounded-[var(--corner-radius\/16,16px)] shrink-0 w-full" data-node-id="537:324" data-name="div.bg-neutral-950">
+              <div className="content-stretch flex gap-[var(--item-spacing\/87_41,87.41000366210938px)] items-center relative shrink-0 w-full" data-node-id="537:325" data-name="div.flex">
+                <div className="content-stretch flex flex-[1_0_0] flex-col gap-[2px] items-start min-w-px relative" data-node-id="537:326" data-name="div">
+                  <div className="content-stretch flex flex-col items-start relative shrink-0 w-full" data-node-id="537:327" data-name="p.font-extrabold">
+                    <div className="[word-break:break-word] flex flex-col font-[family-name:var(--font-family\/font-1,'Livvic:Black')] justify-center leading-[0] not-italic relative shrink-0 text-[length:var(--font-size\/14,14px)] text-[red] tracking-[1px] uppercase whitespace-nowrap" data-node-id="537:328">
+                      <p className="leading-[var(--line-height\/20,20px)]">cycle ki katauti</p>
+                    </div>
+                  </div>
+                  <div className="content-stretch flex flex-col items-start pb-[0.88px] relative shrink-0 w-full" data-node-id="537:329" data-name="h4.text-2xl">
+                    <div className="[word-break:break-word] flex flex-col font-[family-name:var(--font-family\/font-1,'Livvic:Black')] justify-center leading-[0] not-italic relative shrink-0 text-[color:var(--color\/black\/solid,black)] text-[length:var(--font-size\/24,24px)] w-full" data-node-id="537:330">
+                      <p className="leading-[var(--line-height\/32,32px)]">-₹250</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className="content-stretch flex flex-col gap-[var(--item-spacing\/14_01,14.010000228881836px)] items-start px-[4px] py-[6px] relative shrink-0 w-[340px] z-[2]" data-node-id="492:5429" data-name="jobs">
+          <div className="bg-[#ecff9b] content-stretch flex flex-col items-start p-[12px] relative rounded-[15px] shrink-0 w-full" data-node-id="492:5430" data-name="div.bg-gradient-to-br">
+            <div className="content-stretch flex gap-[var(--item-spacing\/87_41,87.41000366210938px)] items-center relative shrink-0 w-full" data-node-id="492:5431" data-name="div.flex">
+              <div className="content-stretch flex flex-[1_0_0] flex-col gap-[2px] items-start min-w-px relative" data-node-id="492:5432" data-name="div">
+                <div className="content-stretch flex flex-col items-start relative shrink-0 w-full" data-node-id="492:5433" data-name="p.font-extrabold">
+                  <div className="[word-break:break-word] flex flex-col font-[family-name:var(--font-family\/font-1,'Livvic:Black')] justify-center leading-[0] not-italic relative shrink-0 text-[length:var(--font-size\/14,14px)] text-[red] tracking-[1px] uppercase whitespace-nowrap" data-node-id="504:932">
+                    <p className="leading-[var(--line-height\/20,20px)]">final cycle kamai</p>
+                  </div>
+                </div>
+                <div className="content-stretch flex flex-col items-start pb-[0.88px] relative shrink-0 w-full" data-node-id="492:5435" data-name="h4.text-2xl">
+                  <div className="[word-break:break-word] flex flex-col font-[family-name:var(--font-family\/font-1,'Livvic:Black')] justify-center leading-[0] not-italic relative shrink-0 text-[color:var(--color\/black\/solid,black)] text-[length:var(--font-size\/24,24px)] w-full" data-node-id="492:5436">
+                    <p className="leading-[var(--line-height\/32,32px)]">₹10,389</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className="content-stretch flex items-center justify-center px-[4px] py-[6px] relative shrink-0 w-full z-[1]" data-node-id="532:142" data-name="Details">
+          <div className="border border-[#ffd600] border-solid content-stretch flex flex-[1_0_0] gap-[7px] items-center min-w-px overflow-clip px-[12px] py-[6px] relative rounded-[15px]" data-node-id="532:143" data-name="Booking details">
+            <div className="overflow-clip relative shrink-0 size-[35px]" data-node-id="532:144">
+              <div className="absolute left-0 size-[35px] top-[-0.4px]" data-node-id="532:145" data-name="Calendar">
+                <img alt="" className="absolute inset-0 max-w-none object-contain pointer-events-none size-full" src={imgCalendar} />
+              </div>
+            </div>
+            <div className="[word-break:break-word] flex flex-col font-[family-name:var(--font-family\/font-1,'Livvic:Black')] justify-center leading-[0] not-italic relative shrink-0 text-[length:var(--font-size\/20,20px)] text-black w-[222px]" data-node-id="532:146">
+              <p className="leading-[var(--line-height\/25,25px)]">Cycle ke din</p>
+            </div>
+            <div className="flex items-center justify-center relative shrink-0 size-[32.248px]" data-node-id="532:147">
+              <div className="flex-none rotate-[179.55deg]">
+                <div className="relative size-[32px]" data-name="back">
+                  <img alt="" className="absolute block inset-0 max-w-none size-full" src={imgBack} />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}SUPER CRITICAL: The generated React+Tailwind code MUST be converted to match the target project's technology stack and styling system.
+1. Analyze the target codebase to identify: technology stack, styling approach, component patterns, and design tokens
+2. Convert React syntax to the target framework/library
+3. Transform all Tailwind classes to the target styling system while preserving exact visual design
+4. Follow the project's existing patterns and conventions
+DO NOT install any Tailwind as a dependency unless the user instructs you to do so.
+Node ids have been added to the code as data attributes, e.g. `data-node-id="1:2"`.These styles are contained in the design: aistudio.google.com/Black: #000000, aistudio.google.com/Livvic/Bold: Font(family: "font family/Font 1", style: Bold, size: font size/20, weight: font weight/700, lineHeight: line height/28, letterSpacing: 0), aistudio.google.com/Livvic/Black upper: Font(family: "font family/Font 1", style: Black, size: font size/10, weight: font weight/900, lineHeight: line height/13_33, letterSpacing: 0), aistudio.google.com/White: #FFFFFF, aistudio.google.com/Mirage: #1E2939, aistudio.google.com/Ebony: #101828, aistudio.google.com/Oxford Blue: #364153, aistudio.google.com/Cod Gray: #0A0A0A, aistudio.google.com/Livvic/Black: Font(family: "font family/Font 1", style: Black, size: font size/20, weight: font weight/900, lineHeight: line height/25, letterSpacing: 0), aistudio.google.com/Livvic/SemiBold: Font(family: "font family/Font 1", style: SemiBold, size: font size/12, weight: font weight/600, lineHeight: line height/16, letterSpacing: 0).Images and SVGs will be stored as constants, e.g. const image = 'https://www.figma.com/api/mcp/asset/550e8400-e29b-41d4-a716-446655440000.png'. These constants will be used in the code as the source for the image, ex: <img src={image} />. Image assets are stored on a remote server for 7 days and can be fetched using the provided URLs until they expire.

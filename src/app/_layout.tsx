@@ -7,6 +7,10 @@ import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { createQueryClient } from '@core/api/queries';
+import { logBuildProvenance } from '@core/buildProvenance';
+import { TrackingBridge } from '@core/location/TrackingBridge';
+import { usePushNotifications } from '@core/notifications/usePushNotifications';
+import { selectIsSignedIn, useSession } from '@core/session/store';
 import { color } from '@ui';
 
 // Held until Livvic is ready so the first paint is never in a fallback face.
@@ -33,6 +37,10 @@ export default function RootLayout(): React.ReactElement | null {
   });
 
   useEffect(() => {
+    logBuildProvenance();
+  }, []);
+
+  useEffect(() => {
     // Hide on error too, otherwise a missing font file bricks the app behind the splash.
     if (fontsLoaded || fontError !== null) void SplashScreen.hideAsync();
   }, [fontsLoaded, fontError]);
@@ -41,6 +49,8 @@ export default function RootLayout(): React.ReactElement | null {
 
   return (
     <QueryClientProvider client={queryClient}>
+      <TrackingBridge />
+      <PushBridge />
       <SafeAreaProvider>
         <StatusBar style="dark" />
         <Stack
@@ -53,4 +63,19 @@ export default function RootLayout(): React.ReactElement | null {
       </SafeAreaProvider>
     </QueryClientProvider>
   );
+}
+
+/**
+ * Push registration and notification routing.
+ *
+ * A component rather than a call in `RootLayout` because `usePushNotifications` needs the query
+ * client from context, and the provider is created in the same render. It draws nothing.
+ *
+ * Gated on a signed-in session: `PUT /v1/me/push-token` is authenticated, and registering a token
+ * before sign-in would attach this device to no account.
+ */
+function PushBridge(): null {
+  const isSignedIn = useSession(selectIsSignedIn);
+  usePushNotifications(isSignedIn);
+  return null;
 }

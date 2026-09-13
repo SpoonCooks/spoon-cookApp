@@ -1,8 +1,10 @@
+import { useCallback, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { formatDurationHours, formatMinutes } from '@core/domain/job';
 import { otpLength } from '@core/domain/otp';
 import type { ArrivalTiming, JobSummary, TravelTiming } from '@core/domain/serviceState';
+import { isNavigableGate, openGateNavigation } from '@core/location/navigation';
 import { Button, color, OtpInput, radius, shadow, spacing, Text } from '@ui';
 
 /** The reasons a live service can terminate without completing. */
@@ -53,9 +55,33 @@ function ServiceHeader({ onHelp }: { onHelp?: (() => void) | undefined }): React
  * The flat/floor details are displayed exactly as the Figma specifies. They are DISPLAY ONLY:
  * `Map dekhe` targets the society GATE, never the flat, and arrival is detected at the gate.
  * See GAP-14 for the open privacy question of whether these should appear before gate arrival.
+ *
+ * ## `Map dekhe` routes to the operational gate
+ *
+ * The handler is given `job.gate` and nothing else, so it cannot route to the flat even by
+ * mistake — `openGateNavigation` accepts only a `GateTarget`. A gate the backend never supplied
+ * (or a zeroed coordinate) disables the button instead of opening a maps app at Null Island.
+ *
+ * ## `Call kare` is backend-blocked, and says so
+ *
+ * There is no cook-to-customer contact route: `GET /v1/bookings/:id/cook-contact` is guarded by
+ * `requireCustomer` and hands the CUSTOMER the cook's number, not the reverse. The control is
+ * rendered because the Figma shows it, but it is disabled rather than wired to nothing — a button
+ * that silently does nothing is worse than one that is visibly unavailable, because a cook stuck
+ * at a gate will keep pressing it.
  */
 function CustomerBlock({ job }: { job: JobSummary }): React.ReactElement {
-  const { address } = job;
+  const { address, gate } = job;
+  const [navError, setNavError] = useState<string | null>(null);
+  const canNavigate = isNavigableGate(gate);
+
+  const openMap = useCallback(() => {
+    setNavError(null);
+    void openGateNavigation(gate).then((opened) => {
+      if (!opened) setNavError('Map app nahi khul payi.');
+    });
+  }, [gate]);
+
   return (
     <View style={styles.card} testID="service-customer-block">
       <View style={styles.rowBetween}>
@@ -69,24 +95,42 @@ function CustomerBlock({ job }: { job: JobSummary }): React.ReactElement {
       <Text variant="captionMuted">{address.floor ?? ''}</Text>
       <Text variant="captionMuted">{address.flatOrHouse ?? ''}</Text>
 
+      {/* Gate entry guidance from the operational snapshot. Rendered only when the backend has
+          one — an empty row would read as "no instructions needed", which is a different claim. */}
+      {gate?.accessInstructions != null && gate.accessInstructions.length > 0 && (
+        <View style={styles.accessNote} testID="service-gate-access">
+          <Text variant="captionStrong">{gate.label ?? 'Gate'}</Text>
+          <Text variant="captionMuted">{gate.accessInstructions}</Text>
+        </View>
+      )}
+
       <View style={styles.actionRow}>
         <Button
           label="Map dekhe"
           tone="dark"
           fullWidth={false}
+          disabled={!canNavigate}
+          onPress={canNavigate ? openMap : undefined}
           style={styles.flexAction}
           testID="service-map"
         />
-        {/* Founder decision #147 (resolved): the Call option stays available from travel onward,
-            because without it a cook who cannot find the address has no recourse. */}
+        {/* Founder decision #147 asked for a Call option from travel onward. No cook-side contact
+            route exists on the backend, so this stays disabled until one does. */}
         <Button
           label="Call kare"
           tone="accent"
           fullWidth={false}
+          disabled
           style={styles.flexAction}
           testID="service-call"
         />
       </View>
+
+      {navError !== null && (
+        <Text variant="caption" color={color.danger} testID="service-map-error">
+          {navError}
+        </Text>
+      )}
     </View>
   );
 }
@@ -405,6 +449,13 @@ const styles = StyleSheet.create({
     borderRadius: radius.full,
     paddingHorizontal: spacing.m,
     paddingVertical: spacing.xs,
+  },
+  accessNote: {
+    gap: spacing.xs,
+    paddingTop: spacing.s,
+    marginTop: spacing.s,
+    borderTopWidth: 1,
+    borderTopColor: color.grey300,
   },
   actionRow: { flexDirection: 'row', gap: spacing.m, paddingTop: spacing.s },
   flexAction: { flex: 1 },

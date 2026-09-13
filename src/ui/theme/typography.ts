@@ -34,6 +34,451 @@ export const textStyle = {
     lineHeight: lineHeight.display,
     color: color.textPrimary,
   },
+  /**
+   * `505:1666` / `572:701` — the lime call to action on the `log in flow` frames. Livvic Black
+   * 24 on a 30 line with 1 unit of tracking; the design sets a tighter line than `display`.
+   */
+  actionLabel: {
+    fontFamily: fontFamily.black,
+    fontSize: fontSize.display,
+    lineHeight: lineHeight.displayTight,
+    letterSpacing: 1,
+    color: color.textPrimary,
+  },
+  /**
+   * `523:14` / `526:299` / `525:223` — the red uppercase headline inside the attendance card.
+   * Same metrics as `bodyStrong`, plus the 1-unit tracking the design sets on it.
+   */
+  overline: {
+    fontFamily: fontFamily.black,
+    fontSize: fontSize.l,
+    lineHeight: lineHeight.l,
+    letterSpacing: 1,
+    color: color.textPrimary,
+  },
+  /**
+   * `571:601` — the shift pill. Livvic SemiBold 20 on a **16** line: the design deliberately sets
+   * a line box shorter than the type so the pill stays 32 units tall.
+   */
+  pillLabel: {
+    fontFamily: fontFamily.semibold,
+    fontSize: fontSize.xxxl,
+    lineHeight: 25,
+    color: color.textPrimary,
+  },
+  /** `572:604` — the small white note beside the check-in time. Livvic SemiBold 13/16. */
+  noteMuted: {
+    fontFamily: fontFamily.semibold,
+    fontSize: fontSize.md,
+    lineHeight: lineHeight.s,
+    color: color.textPrimary,
+  },
+  /**
+   * `528:663` / `528:608` — `Pakka`. Same metrics as `actionLabel` but with NO tracking: the
+   * `log in flow` CTAs set 1 unit, the leave sheets set none, and sharing one variant would put a
+   * unit of drift into every character of a centred button label.
+   */
+  /**
+   * `Pakka`, and the lime CTAs like it.
+   *
+   * The frame sets 24px type on a 30px line, and 30 is what this used to pass through. Livvic
+   * Black's own ascent-plus-descent at 24px is taller than 30, and `Text` turns
+   * `includeFontPadding` off so the box is exactly `lineHeight` — so the glyph overflowed and
+   * Android clipped it at the bottom. `textAlignVertical: 'center'` shared the overflow across
+   * both edges but did not create room, and the word still came off the handset cut.
+   *
+   * 32 is the natural leading for this size (`lineHeight.display`) and the smallest value that
+   * holds the face without trimming. A documented two-unit deviation from the frame, taken
+   * because a button whose label is visibly sliced is further from the design than one two units
+   * taller — and the CTA it sits in is 45+ units tall, so nothing reflows.
+   */
+  actionLabelPlain: {
+    fontFamily: fontFamily.black,
+    fontSize: fontSize.display,
+    lineHeight: lineHeight.display,
+    color: color.textPrimary,
+  },
+  /** `526:338` / `528:656` — `CHUTTI LAGAYE`. Livvic Black 20 on a 20 line, 1 unit of tracking. */
+  overlineXl: {
+    fontFamily: fontFamily.black,
+    fontSize: fontSize.xxxl,
+    lineHeight: 25,
+    letterSpacing: 1,
+    color: color.textPrimary,
+  },
+  /** `528:469` — `AAJ KA BREAK`. Livvic Black 18 on a 20 line, 1 unit of tracking. */
+  overlineLg: {
+    fontFamily: fontFamily.black,
+    fontSize: fontSize.xxl,
+    lineHeight: 23,
+    letterSpacing: 1,
+    color: color.textPrimary,
+  },
+  /**
+   * `572:826` — the start time on a V14 job tile. Livvic Black 24 on a **24** line with -0.6
+   * tracking.
+   *
+   * Not `display`, which sets the same size on a 32 line: the job tile packs the time into a
+   * 36-unit head row, and the taller line box pushes the building name off the card.
+   */
+  cardTime: {
+    fontFamily: fontFamily.black,
+    fontSize: fontSize.display,
+    lineHeight: 30,
+    letterSpacing: -0.6,
+    color: color.textPrimary,
+  },
+  /** `572:830` — the building name on a job tile. Livvic Black 18/28, -0.45 tracking. */
+  cardTitle: {
+    fontFamily: fontFamily.black,
+    fontSize: fontSize.xxl,
+    lineHeight: lineHeight.xxl,
+    letterSpacing: -0.45,
+    color: color.textPrimary,
+  },
+  /**
+   * `572:1083` — the countdown on the actionable job card. Livvic Black 30/36, no tracking.
+   *
+   * The lead card drops the tile's negative tracking as well as growing the type, which is why
+   * this is a separate variant rather than a size override on `cardTime`.
+   */
+  cardCountdown: {
+    fontFamily: fontFamily.black,
+    fontSize: fontSize.displayLg,
+    lineHeight: lineHeight.displayLg,
+    color: color.textPrimary,
+  },
+  /**
+   * `573:1222` — the `CHALO` CTA. Livvic Black 24 on a 30 line with **-0.6** tracking.
+   *
+   * `actionLabel` sets the same size and line with **+1**. The two sit one card apart in V14 and
+   * the 1.6-unit difference accumulates across a six-glyph word, so neither substitutes for the
+   * other.
+   */
+  ctaLabelTight: {
+    fontFamily: fontFamily.black,
+    fontSize: fontSize.display,
+    lineHeight: lineHeight.displayTight,
+    letterSpacing: -0.6,
+    color: color.textPrimary,
+  },
+  /**
+   * `597:1148` / `614:432` — a V14 screen title. Livvic Black 24 on a 30 line, no tracking.
+   *
+   * The V14 sections split here: `leave` still titles at 20/28 (`headingLg`), while `Service
+   * flow`, `job flow` and `Info` title at 24/30. Four units of type and two of leading over a
+   * word like `Jaankari` is a visible difference, so the two are separate variants.
+   */
+  screenTitle: {
+    fontFamily: fontFamily.black,
+    fontSize: fontSize.display,
+    // 24 on 32, not the frame's 30. `displayTight` is the case the Text primitive's own comment
+    // names as overflowing — Livvic Black at 24 does not fit a 30 box once `includeFontPadding`
+    // is off, and `Rating` came back with its g clipped (2026-09-02). Two units is the whole fix.
+    lineHeight: lineHeight.display,
+    color: color.textPrimary,
+  },
+  /** `598:1360` — a rating-matrix cell. Livvic SemiBold 16 on a **16** line. */
+  ruleCell: {
+    fontFamily: fontFamily.semibold,
+    fontSize: fontSize.xl,
+    lineHeight: 20,
+    color: color.textPrimary,
+  },
+  /**
+   * `603:1902` / `605:2131` — a policy-table cell on a **two-column** sheet. Livvic SemiBold 20
+   * on a 16 line.
+   */
+  policyCell: {
+    fontFamily: fontFamily.semibold,
+    fontSize: fontSize.xxxl,
+    lineHeight: 25,
+    color: color.textPrimary,
+  },
+  /**
+   * `603:1967` / `609:331` — a policy-table cell on a **three-column** sheet. Livvic SemiBold
+   * **18** on the same 16 line.
+   *
+   * The two are not one variant. `Extra hours` and `5+ rating` have to fit `+₹13,500` into a
+   * 100-unit column and `+₹4,800` into an 86-unit one, so V14 drops them two points; the
+   * two-column sheets have 96 units for `-₹300` and keep 20. Rendering all four at 20 widened
+   * every figure on the two bonus sheets.
+   */
+  policyCellSm: {
+    fontFamily: fontFamily.semibold,
+    fontSize: fontSize.xxl,
+    lineHeight: 23,
+    color: color.textPrimary,
+  },
+  /**
+   * `603:1961` / `609:325` — a policy-table **header** chip. Livvic Bold 18 on a 28 line.
+   *
+   * Not `ruleCell`: the rating matrix's header (`598:1355`) is Bold 16 on a 24 line and these are
+   * Bold 18 on a 28. Two design units of type and four of leading across `Ghante`, `Din` and
+   * `Mahina` is a visible difference, and the chips they sit in carry a 15-unit radius against the
+   * data cells' 5.
+   */
+  policyHeaderCell: {
+    fontFamily: fontFamily.bold,
+    fontSize: fontSize.xxl,
+    lineHeight: lineHeight.xxl,
+    color: color.textPrimary,
+  },
+  /**
+   * `603:1918` / `605:2143` — the footnote under a **penalty** policy table. Livvic SemiBold 18
+   * on a **27** line with 0.18 tracking, with Bold spans for the emphasised figures.
+   */
+  ruleFootnote: {
+    fontFamily: fontFamily.semibold,
+    fontSize: fontSize.xxl,
+    lineHeight: 27,
+    letterSpacing: 0.18,
+    color: color.textPrimary,
+  },
+  ruleFootnoteStrong: {
+    fontFamily: fontFamily.bold,
+    fontSize: fontSize.xxl,
+    lineHeight: 27,
+    letterSpacing: 0.18,
+    color: color.textPrimary,
+  },
+  /**
+   * `603:1973` / `609:349` — the same footnote on a **bonus** sheet, with NO tracking.
+   *
+   * V14 sets 0.18 on the two penalty sheets and none on the two bonus ones. It is 0.18 of a unit
+   * per character, which sounds like nothing until a 28-character line is two units wider than
+   * its box and wraps a word early: `Har ghar se 5+ laane ka ₹100` came off the first line on
+   * `605:2027` and took `bonus hai` down with it. Named after `actionLabelPlain`, which exists
+   * for the same reason.
+   */
+  ruleFootnotePlain: {
+    fontFamily: fontFamily.semibold,
+    fontSize: fontSize.xxl,
+    lineHeight: 27,
+    color: color.textPrimary,
+  },
+  ruleFootnotePlainStrong: {
+    fontFamily: fontFamily.bold,
+    fontSize: fontSize.xxl,
+    lineHeight: 27,
+    color: color.textPrimary,
+  },
+  /** `462:3729` — an address line on the customer card. Livvic Black 18 on a **20** line. */
+  addressLine: {
+    fontFamily: fontFamily.black,
+    fontSize: fontSize.xxl,
+    lineHeight: 23,
+    color: color.textPrimary,
+  },
+  /** `463:3759` — the `1.5 hrs` chip beside the customer name. Livvic Bold 16 on a 16 line. */
+  durationChip: {
+    fontFamily: fontFamily.bold,
+    fontSize: fontSize.xl,
+    lineHeight: 20,
+    color: color.textPrimary,
+  },
+  /** `462:3602` / `614:408` — `Map dekhe` / `Call kare`. Livvic Bold 18 on a 22 line. */
+  actionChip: {
+    fontFamily: fontFamily.bold,
+    fontSize: fontSize.xxl,
+    // The old 16pt line clipped the bottom of the `p` in `Map dekhe` on Android. This still fits
+    // the 35pt action chip after its vertical padding and leaves the descender inside the box.
+    lineHeight: 22,
+    color: color.textPrimary,
+  },
+  /**
+   * `468:3942` / `622:1024` / `473:4196` — a full-width service headline or promo caption.
+   * Livvic Bold 20 on a 28 line.
+   */
+  travelHeadline: {
+    fontFamily: fontFamily.bold,
+    fontSize: fontSize.xxxl,
+    lineHeight: lineHeight.xxl,
+    color: color.textPrimary,
+  },
+  /**
+   * `617:454` — the headline card above a travel countdown. Livvic Bold 20 on a 26 line.
+   *
+   * The frame reads 16, and transcribing that literally put 20px type in a 16px box — a line
+   * SHORTER than the font itself. With `includeFontPadding` off the box is exactly `lineHeight`,
+   * so every descender was shaved: `Aap LATE hai!` lost the tail of its p on the handset,
+   * reported 2026-09-02. Centring cannot rescue a box that is four units too short to begin with;
+   * it only splits the loss between top and bottom.
+   *
+   * 26 is the smallest line that clears Livvic Bold's descender at this size. The card is 47 units
+   * tall and holds it; the original 16 was chosen to keep the countdown inside a 150-unit column,
+   * and ten units on one headline does not threaten that.
+   */
+  travelPill: {
+    fontFamily: fontFamily.bold,
+    fontSize: fontSize.xxxl,
+    lineHeight: 26,
+    color: color.textPrimary,
+  },
+  /** `463:3777` — the travel countdown. Livvic Black **32** on a 25 line, 0.32 tracking. */
+  travelCountdown: {
+    fontFamily: fontFamily.black,
+    fontSize: 32,
+    lineHeight: 40,
+    letterSpacing: 0.32,
+    color: color.textPrimary,
+  },
+  /** `476:4236` — `Start OTP` / `End OTP`. Livvic Black 24 on a 30 line, 0.96 tracking. */
+  otpLabel: {
+    fontFamily: fontFamily.black,
+    fontSize: fontSize.display,
+    lineHeight: lineHeight.displayTight,
+    letterSpacing: 0.96,
+    color: color.textPrimary,
+  },
+  /** `476:4250` — the `Start` / `End` pill. Livvic Bold **25** on a 28 line. */
+  otpAction: {
+    fontFamily: fontFamily.bold,
+    fontSize: 25,
+    lineHeight: 32,
+    color: color.textPrimary,
+  },
+  /** `622:1211` — the cooking timer. Livvic Black **35** on a **40** line. */
+  timerValue: {
+    fontFamily: fontFamily.black,
+    fontSize: 35,
+    lineHeight: 44,
+    color: color.textPrimary,
+  },
+  /** `628:1230` — the `Extension` chip. Livvic Bold 24 on a **16** line. */
+  extensionLabel: {
+    fontFamily: fontFamily.bold,
+    fontSize: fontSize.display,
+    lineHeight: 30,
+    color: color.textPrimary,
+  },
+  /** `628:1232` — the granted minutes. Livvic Black **28** on a 25 line, 0.28 tracking. */
+  extensionValue: {
+    fontFamily: fontFamily.black,
+    fontSize: 28,
+    lineHeight: 35,
+    letterSpacing: 0.28,
+    color: color.textPrimary,
+  },
+  /** `485:4932` — the completed headline. Livvic Bold 30 on a 36 line. */
+  completedHeadline: {
+    fontFamily: fontFamily.bold,
+    fontSize: fontSize.displayLg,
+    // 30 on 40, not 36. At 1.2 the box could not hold Livvic Bold's descenders with the font
+    // padding off: `Agle booking mein bhi accha kaam kare!` lost the tails of both g's.
+    lineHeight: lineHeight.displayXl,
+    color: color.textPrimary,
+  },
+  /** `528:475` — the break window times. Livvic Bold 18 on a 28 line, wider than `heading`. */
+  timeStrong: {
+    fontFamily: fontFamily.bold,
+    fontSize: fontSize.xxl,
+    lineHeight: lineHeight.xxl,
+    color: color.textPrimary,
+  },
+  /** `528:391` / `528:458` — the `Chutti` chip and `Dates chunein`. Livvic Black 20 on a 25 line. */
+  chipLabel: {
+    fontFamily: fontFamily.black,
+    fontSize: fontSize.xxxl,
+    lineHeight: lineHeight.chip,
+    color: color.textPrimary,
+  },
+  /**
+   * `434:2934` / `502:198` — a `performance` period tab (`Aaj` / `Cycle` / `Mahina`). Livvic
+   * Black 16 on a 24 line with **negative** tracking; the design tightens this one label rather
+   * than the sub-line under it, so the two cannot share a variant.
+   */
+  tabLabel: {
+    fontFamily: fontFamily.black,
+    fontSize: fontSize.xl,
+    lineHeight: lineHeight.xl,
+    letterSpacing: -0.4,
+    color: color.textPrimary,
+  },
+  /** `491:5161` / `502:199` — the `1 din` / `7 din` / `28 din` line under a period tab. Bold 14/20. */
+  tabSubLabel: {
+    fontFamily: fontFamily.bold,
+    fontSize: fontSize.l,
+    lineHeight: lineHeight.l,
+    color: color.black80,
+  },
+  /**
+   * `634:2483` and its siblings — a label under a V14 bottom-nav icon. Livvic Bold 12 on a 16
+   * line, and **pure black** rather than `textPrimary`.
+   *
+   * Not `caption`, which is otherwise identical: the nav is the one place V14 writes `text-black`
+   * (`#000000`) instead of the `color/black/solid` variable every other 12px Bold run uses, and
+   * `caption` resolves to `#0a0a0a`. Ten levels is invisible alone but the label repeats five
+   * times across the bar, so it is stated exactly rather than approximated.
+   */
+  navLabel: {
+    fontFamily: fontFamily.bold,
+    fontSize: fontSize.m,
+    lineHeight: lineHeight.m,
+    color: color.black,
+  },
+  /**
+   * `434:2892` / `537:732` — `Bonus ke liye: N se zyada …`. Livvic Black **11** on a 16.5 line,
+   * the smallest Black run in the section. Shares its metrics with `calendarDay` and is kept
+   * separate because the two carry different node provenance and would drift independently.
+   */
+  bonusHint: {
+    fontFamily: fontFamily.black,
+    fontSize: fontSize.s,
+    lineHeight: lineHeight.dayCell,
+    color: color.textPrimary,
+  },
+  /**
+   * `532:93` / `532:98` / `540:123` — the unit word beside a large numeral (`ghante`, `mins`,
+   * `Kamai:`). Livvic SemiBold **16** on a 16 line: the design sets a line box equal to the type
+   * so the word sits on the numeral's baseline rather than below it.
+   */
+  unitLabel: {
+    fontFamily: fontFamily.semibold,
+    fontSize: fontSize.xl,
+    /*
+     * `lineHeight.l` (20), not `lineHeight.s` (16), which is the font size itself.
+     *
+     * Figma draws this on a 16-high box and gets away with it; React Native on Android does not.
+     * An explicit line height equal to the font size leaves no room below the baseline, so the
+     * descender is clipped -- "ghante" lost the tail of its `g` on the device, which is the only
+     * word in the app where it shows.
+     *
+     * Safe for layout: both users sit in rows with `alignItems: 'center'` beside a 30/32 figure,
+     * so the row's height is set by the number and a taller word box changes nothing.
+     */
+    lineHeight: lineHeight.l,
+    color: color.textPrimary,
+  },
+  /** `502:631` — a past-cycle row title, `18 Jul - 21 Jul`. Black 18/28, tracking `-0.45`. */
+  cycleRowTitle: {
+    fontFamily: fontFamily.black,
+    fontSize: fontSize.xxl,
+    lineHeight: lineHeight.xxl,
+    letterSpacing: -0.45,
+    color: color.textPrimary,
+  },
+  /** `505:1249` — a `Mon…Sun` label under a day disc. Livvic Bold 12 on its auto 13.2 line. */
+  dayStripLabel: {
+    fontFamily: fontFamily.bold,
+    fontSize: fontSize.m,
+    lineHeight: 15,
+    color: color.textPrimary,
+  },
+  /** `505:1702` — a calendar day. Livvic Black 11 on a 16.5 line. */
+  calendarDay: {
+    fontFamily: fontFamily.black,
+    fontSize: fontSize.s,
+    lineHeight: lineHeight.dayCell,
+    color: color.textPrimary,
+  },
+  /** `528:670` — the compact Help pill in a sheet header. Livvic Bold 12 on a 15.2 line. */
+  helpPill: {
+    fontFamily: fontFamily.bold,
+    fontSize: fontSize.m,
+    lineHeight: lineHeight.helpPill,
+    color: color.textPrimary,
+  },
   /** Screen headings — `Namaste, Rekha`, `OTP verification`. */
   headingLg: {
     fontFamily: fontFamily.black,
@@ -87,7 +532,7 @@ export const textStyle = {
   bodyMuted: {
     fontFamily: fontFamily.semibold,
     fontSize: fontSize.l,
-    lineHeight: lineHeight.s,
+    lineHeight: 18,
     color: color.textSecondary,
   },
   /** Card meta — `1.5 hrs`, `Building/ Society`. */

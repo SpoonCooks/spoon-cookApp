@@ -1,8 +1,10 @@
+import { Platform } from 'react-native';
+
 /**
  * Cook App design tokens.
  *
  * Values are taken from the authoritative Cook App Figma
- * (`N44dO2hqLQBw5I5TKh0wmu`, page `Cook App` = `434:2401`) by walking every node's fills,
+ * (`DfnWJV2wQxSWfFb1QcBZpG`, page `Cook App` = `434:2401`, V12) by walking every node's fills,
  * strokes, text styles and corner radii. Where the founder-provided brand list and Figma agree,
  * they are the same value; where Figma is more specific (neutrals, semantic reds, slate), Figma
  * wins per the Phase 1 source priority.
@@ -20,6 +22,11 @@ export const brand = {
   lime600: '#cfff04',
   lime400: '#e2ff68',
   lime300: '#ecff9b',
+  /** V12 `performance` tints, sampled from the section's own renders. */
+  lime200: '#f0ffaf',
+  lime100: '#f4ffc3',
+  lime50: '#faffe8',
+  yellow100: '#fffadf',
   black: '#000000',
   white: '#ffffff',
 } as const;
@@ -27,8 +34,27 @@ export const brand = {
 /** Neutrals observed in the Figma, ordered light to dark. */
 export const neutral = {
   cream: '#fffdf5',
+  /**
+   * Figma variable `color/black/ 70%` (`#000000b2`). The muted-copy colour on the Login flow —
+   * over the flow's white background it resolves to `#4d4d4d`, which is what the V12 render
+   * samples to. Kept as the translucent original so it composites correctly on any background.
+   */
+  black70: 'rgba(0, 0, 0, 0.7)',
+  /**
+   * Figma variable `color/black/ -80%` (`rgba(0,0,0,0.8)`). The `performance` section's secondary
+   * ink: the `1 din` line under a period tab and every `Kaam pe …` tile caption. Distinct from
+   * `black70`, which the Login flow uses, and both appear in V13 — over white they resolve to
+   * `#333333` and `#4d4d4d`, nearly seven levels apart, so neither substitutes for the other.
+   */
+  black80: 'rgba(0, 0, 0, 0.8)',
   grey50: '#f9fafb',
   grey100: '#f3f4f6',
+  /**
+   * `529:1016` and its siblings — a calendar day outside the bookable window. Distinct from
+   * `grey100` (`#f3f4f6`), which the `leave` status bar uses for its hairline in the same frame,
+   * so the two cannot be collapsed.
+   */
+  smoke: '#f5f5f5',
   grey300: '#cad5e2',
   grey400: '#a1a1a1',
   grey500: '#737373',
@@ -39,10 +65,50 @@ export const neutral = {
 /** Semantic colours. `danger` is the countdown/late red used on both travel-risk states. */
 export const semantic = {
   danger: '#ff0000',
+  /**
+   * `575:2138`'s absent disc (`#ff0909`). Very close to `danger` but not equal, and the two sit on
+   * the same screen — the headline is `red` and the disc is `#ff0909` — so collapsing them would
+   * paint one of the pair wrong.
+   */
+  dangerDisc: '#ff0909',
+  /**
+   * Figma variable `color/spring green/24`. The ONLY green in the V12 `performance` section: it
+   * emphasises the backend-supplied bonus threshold inside `Bonus ke liye: N se zyada ghante
+   * kaam`. Never used to signal success generally.
+   */
+  success: '#007a55',
+  /**
+   * Figma variable `color/spring green/30` (`#009966`). The `log in flow` check-in window row and
+   * the present-verdict disc. Distinct from `success` (`#007a55`), which the `performance` section
+   * uses for the bonus threshold; both greens appear in V13 and neither substitutes for the other.
+   */
+  springGreen30: '#009966',
   dangerDeep: '#e7000b',
   slate: '#0f172b',
   slate800: '#1e2939',
   slate900: '#101828',
+  /** `592:563` / `592:888` — the scrim a leave bottom sheet is presented over. */
+  scrim: 'rgba(0, 0, 0, 0.8)',
+  /** `528:662` — `Pakka` before a range is chosen. A fill, not an opacity on the live button. */
+  disabledFill: 'rgba(0, 0, 0, 0.07)',
+  /**
+   * `575:1493` / `575:1496` — the pale red behind the icon disc and duration chip on a job that
+   * is under five minutes away.
+   *
+   * The only tint in this palette that is a *desaturated* red rather than a yellow or a lime, and
+   * the last step of the `583:427` -> `583:453` -> `583:479` escalation. Distinct from `danger`,
+   * which is the border and CTA fill on the same card; the two sit side by side, so neither
+   * substitutes for the other.
+   */
+  dangerSoft: '#fdd2d2',
+  /**
+   * `609:390` / `609:392` — the pale red behind the `No Show` and `Late` chips on the Niyam index.
+   *
+   * Three levels lighter than `dangerSoft` (`#fdd2d2`), which the job card uses. They never share
+   * a screen, but the two are separate design decisions and collapsing them would silently repaint
+   * one of the pair.
+   */
+  dangerTint: '#ffd7d7',
 } as const;
 
 export const color = {
@@ -87,6 +153,8 @@ export const fontSize = {
   xs: 10,
   s: 11,
   m: 12,
+  /** `572:604` — the white note beside the check-in time. */
+  md: 13,
   l: 14,
   xl: 16,
   xxl: 18,
@@ -108,6 +176,24 @@ export const lineHeight = {
   xxl: 28,
   xxxl: 28,
   display: 32,
+  /** `505:1666` / `572:701` — the lime CTA sets 24px type on a 30px line, not the usual 32. */
+  displayTight: 30,
+  /** `528:669` — the compact Help pill inside a leave sheet header. */
+  helpPill: 15.2,
+  /** `505:1702` — a calendar day cell. */
+  dayCell: 16.5,
+  /**
+   * `505:1249` — the `Mon…Sun` label under a day disc.
+   *
+   * The design's export reads `leading-[var(--corner-radius/16,16px)]`: the line height is bound
+   * to a **corner-radius** token, which is an authoring slip rather than a type decision, and the
+   * node Figma actually lays out is 13 units tall — auto leading for 12px Bold. Using the 16 the
+   * variable names makes each of the seven cells three units too tall, which walks the card below
+   * the strip four rows down the screen.
+   */
+  dayStrip: 13.2,
+  /** `528:391` / `528:458` — the `Chutti` chip and the `Dates chunein` row. */
+  chip: 25,
   displayLg: 36,
   displayXl: 40,
   hero: 40,
@@ -176,14 +262,49 @@ export const shadow = {
 
 /**
  * Figma frames are 390x830 with a 370-wide content column, i.e. a 10pt gutter each side.
- * `navHeight` is the fixed bottom nav (`nav.fixed`, 96 tall in Figma).
+ * `navHeight` is the V14 five-tab bottom nav (`634:2478`): a 52-unit row inside 8 units of
+ * vertical padding, so 68 units total. V13 had no designed nav and this token carried V12's
+ * 96, which described a bar the app never drew.
  */
+/**
+ * A Figma drop shadow, applied only where the platform can draw it without damaging the fill.
+ *
+ * ## Why Android gets nothing
+ *
+ * V13's shadows are all faint ambient ones (`0 0 2px rgba(0,0,0,.15)`, `0 4px 20px rgba(0,0,0,.03)`)
+ * and in the reference renders they are barely present: under the help pill the darkest row samples
+ * `#f6f6f6`, nine levels off white, across three rows. Both ways of drawing that on Android cost
+ * far more than they buy:
+ *
+ *   * `boxShadow` composites **over** the view rather than behind it. The help pill's `#ffd600`
+ *     fill rendered as `#ecc600` — a uniform x0.925 on both channels across the whole fill, 19
+ *     levels off, measured. Removing the shadow returned it to exactly `#ffd600`.
+ *   * `elevation` draws outside correctly but far heavier than the design, and it tinted the same
+ *     pill identically. Switching the cards to it pushed `575:2135` from 4.88% to 9.35% differing
+ *     pixels.
+ *
+ * A missing shadow costs at most nine levels over three rows and stays inside the comparison
+ * tolerance; a tinted fill costs nineteen levels over the whole element and does not. So Android
+ * omits it, which is measurably closer to the design than either way of drawing it.
+ *
+ * iOS composites shadows behind the view correctly and keeps the props.
+ */
+export function dropShadow(blur: number, alpha: number, offsetY = 0) {
+  if (Platform.OS === 'android') return {};
+  return {
+    shadowColor: brand.black,
+    shadowOpacity: alpha,
+    shadowRadius: blur,
+    shadowOffset: { width: 0, height: offsetY },
+  } as const;
+}
+
 export const layout = {
   designWidth: 390,
   designHeight: 830,
   contentWidth: 370,
   gutter: 10,
-  navHeight: 96,
+  navHeight: 68,
   bannerHeight: 74,
   minTouchTarget: 44,
 } as const;

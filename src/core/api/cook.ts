@@ -14,28 +14,45 @@
 
 import { request, type RequestOptions } from './client';
 import {
+  cookEarningsPolicySchema,
+  type CookEarningsPolicy,
   authSessionSchema,
   commandAckSchema,
   cookCyclesSchema,
+  cookWeeksSchema,
+  cookWeekDetailSchema,
   cookEarningsSchema,
   cookJobSchema,
+  cookAttendanceRangeSchema,
+  cookCycleDetailSchema,
   cookJobsListSchema,
+  cookLeaveRequestSchema,
   cookLeavesSchema,
   cookLocationSchema,
+  cookPresenceLocationSchema,
   cookPresentSchema,
   cookProfileSchema,
   currentCookJobSchema,
+  customerContactSchema,
+  earningsPeriodSchema,
   monthlyAttendanceSchema,
   otpSendSchema,
   type AuthSessionResponse,
+  type CookEarningsPeriodResponse,
   type CookCyclesResponse,
+  type CookWeeksResponse,
+  type CookWeekDetailResponse,
   type CookEarningsResponse,
   type CookJobResponse,
+  type CookAttendanceRangeResponse,
+  type CookCycleDetailResponse,
   type CookJobsListResponse,
+  type CookLeaveRequestResponse,
   type CookLeavesResponse,
   type CookLocationResponse,
   type CookPresentResponse,
   type CookProfileResponse,
+  type CustomerContactResponse,
   type MonthlyAttendanceResponse,
 } from './schemas';
 
@@ -101,6 +118,19 @@ export async function getCookProfile(opts: Opts = {}): Promise<CookProfileRespon
   return request('/cook/me', cookProfileSchema, opts);
 }
 
+/* --------------------------------------------------------------- policy --- */
+
+/**
+ * The active published earnings policy.
+ *
+ * Read once per session and cached: it changes when an owner publishes, not per request. The
+ * server sends an ETag and a five-minute `max-age`, so a publication reaches a running app
+ * without a release and without polling it hard.
+ */
+export async function getEarningsPolicy(opts: Opts = {}): Promise<CookEarningsPolicy> {
+  return request('/cook/policies/earnings', cookEarningsPolicySchema, opts);
+}
+
 /* ----------------------------------------------------------------- jobs --- */
 
 export async function listJobs(
@@ -129,6 +159,26 @@ export async function getCurrentJob(opts: Opts = {}): Promise<CookJobResponse | 
 
 export async function getJob(bookingId: string, opts: Opts = {}): Promise<CookJobResponse> {
   return request(`/cook/jobs/${bookingId}`, cookJobSchema, opts);
+}
+
+/**
+ * The customer's number for THIS job — read at the moment "Call kare" is pressed.
+ *
+ * V0 contact is a direct dial in both directions (owner decision 2026-08-18): no masking layer,
+ * no in-app VoIP. Because the response carries a household's real number, it is deliberately a
+ * one-shot read rather than a field on the job projection, so the number does not ride along on
+ * every poll of the live job screen and is never cached.
+ *
+ * The server answers `RESOURCE_NOT_FOUND` for every ineligible case -- another cook's booking, a
+ * superseded assignment, a finished or cancelled job -- and does not say which, because naming the
+ * gate would confirm the booking exists. The caller must therefore render a 404 as "number not
+ * available right now", never as "no such job".
+ */
+export async function getCustomerContact(
+  bookingId: string,
+  opts: Opts = {},
+): Promise<CustomerContactResponse> {
+  return request(`/cook/jobs/${bookingId}/customer-contact`, customerContactSchema, opts);
 }
 
 /* --------------------------------------------------------- service flow --- */
@@ -222,6 +272,40 @@ export async function verifyEndOtp(
  * a finding against the cook. When `arrived` comes back true the backend has committed the
  * transition and the client should stop reporting.
  */
+/**
+ * Reports where the cook is while she is NOT on a job.
+ *
+ * `reportLocation` is the evidence stream and needs a booking and an assignment version; between
+ * jobs there is neither. Instant availability routes from the cook's current position, and the
+ * background stream only runs during travel — so once she arrives, her fix ages out and an idle,
+ * present, perfectly bookable cook has no origin for the engine to route from. This is the ping
+ * that keeps her reachable.
+ *
+ * Fire-and-forget by contract: the API answers 202 with nothing worth reading, and a failure here
+ * must never surface to a cook who is not doing anything wrong.
+ */
+export async function reportPresenceLocation(
+  input: {
+    readonly latitude: number;
+    readonly longitude: number;
+    readonly accuracyMetres: number;
+    readonly recordedAtIso: string;
+  },
+  opts: Opts = {},
+): Promise<void> {
+  await request('/cook/presence-location', cookPresenceLocationSchema, {
+    method: 'POST',
+    body: {
+      latitude: input.latitude,
+      longitude: input.longitude,
+      // Named `accuracyMeters` by the route schema, which is `additionalProperties: false`.
+      accuracyMeters: input.accuracyMetres,
+      recordedAt: input.recordedAtIso,
+    },
+    ...opts,
+  });
+}
+
 export async function reportLocation(
   input: {
     readonly bookingId: string;
@@ -230,6 +314,7 @@ export async function reportLocation(
     readonly longitude: number;
     readonly accuracyMetres: number;
     readonly recordedAtIso: string;
+    readonly mocked?: boolean;
   },
   opts: Opts = {},
 ): Promise<CookLocationResponse> {
@@ -240,25 +325,75 @@ export async function reportLocation(
       assignmentVersion: input.assignmentVersion,
       latitude: input.latitude,
       longitude: input.longitude,
-      accuracy: input.accuracyMetres,
+      // The route schema is `additionalProperties: false` and names this field `accuracyMeters`.
+      // An earlier build sent `accuracy`, which the deployed API rejects with 400 INVALID_REQUEST
+      // before the handler runs — every sample would have been dropped at the edge.
+      accuracyMeters: input.accuracyMetres,
       recordedAt: input.recordedAtIso,
+      ...(input.mocked === undefined ? {} : { mocked: input.mocked }),
     },
     ...opts,
   });
 }
 
-/** Responsiveness evidence only. Changes no booking state and never marks the cook safe. */
+/**
+ * Responsiveness evidence only. Changes no booking state and never marks the cook safe.
+ *
+ * `assignmentVersion` is OPTIONAL, and omitted rather than defaulted when the caller does not have
+ * one. The route schema declares `{ type: 'integer', minimum: 1 }`, so a placeholder `0` is
+ * rejected as `400 INVALID_REQUEST` by Fastify before the handler runs — every acknowledgement
+ * sent from a context without a loaded projection (a notification tap, for instance) would fail.
+ * Omitting the field lets the backend fence on the current assignment itself.
+ *
+ * ## Every acknowledgement this app ever sent was rejected
+ *
+ * This call sent no `Idempotency-Key`, and the route rejects a request without one before the
+ * handler runs:
+ *
+ *     const idempotencyKey = request.headers['idempotency-key'];
+ *     if (typeof idempotencyKey !== 'string') throw new AppError(errorCodes.INVALID_REQUEST);
+ *
+ * So the header was missing, the call 400'd, and both call sites — the notification tap and the
+ * in-app command — discarded the failure. `start_alerts.acknowledged_at` could therefore never
+ * be set by this app, which is why the 2026-08-30 audit found no acknowledgements anywhere.
+ *
+ * That is not a cosmetic loss. Acknowledgement is one of the two proofs that word reached the
+ * cook, and the elapsed-window sweep now charges a no-show penalty only when it did. A cook who
+ * tapped the alert had no record of tapping it.
+ *
+ * ## Why the key is derived here rather than passed in
+ *
+ * Every other command in this file takes the key from the caller, because their intents are
+ * things a cook chooses to do twice — two check-ins, two leave requests — and only the caller
+ * can say whether a second tap is a retry or a new intent. An acknowledgement is not like that:
+ * it has ONE natural identity, the alert being acknowledged, and acknowledging the same alert
+ * twice is the same fact stated twice. Deriving it here also means the background notification
+ * handler — which has no React state to hold a key in, and where the same notification really can
+ * be tapped twice — gets a stable key for free rather than a fresh one per tap.
+ *
+ * The version is part of the key when known, because a reassignment produces a genuinely
+ * different alert (`start_alerts` is `UNIQUE (assignment_id, kind)`) and its acknowledgement must
+ * not be swallowed as a replay of the previous cook's.
+ */
 export async function acknowledgeAlert(
   input: {
     readonly bookingId: string;
     readonly alertType: 'start_alert' | 'start_escalation' | 'move_alert';
-    readonly assignmentVersion: number;
+    readonly assignmentVersion?: number | undefined;
   },
   opts: Opts = {},
 ): Promise<void> {
+  const version =
+    input.assignmentVersion === undefined || input.assignmentVersion < 1
+      ? undefined
+      : input.assignmentVersion;
   await request(`/cook/bookings/${input.bookingId}/acknowledge-alert`, commandAckSchema, {
     method: 'POST',
-    body: { alertType: input.alertType, assignmentVersion: input.assignmentVersion },
+    idempotencyKey: `ack-${input.bookingId}-${input.alertType}${version === undefined ? '' : `-v${String(version)}`}`,
+    body: {
+      alertType: input.alertType,
+      ...(version === undefined ? {} : { assignmentVersion: version }),
+    },
     ...opts,
   });
 }
@@ -305,8 +440,24 @@ export async function getMonthlyAttendance(
   });
 }
 
-/** Approved leaves in a window. Read-only — the backend exposes no cook-side leave WRITE. */
-export async function listApprovedLeaves(
+/**
+ * Stored attendance records inside a window.
+ *
+ * Used by the cycle frame's Mon–Sun strip. A date absent from the response has NO record and is
+ * rendered blank — inferring `absent` from absence would accuse a cook the server never marked.
+ */
+export async function listAttendanceRange(
+  params: { readonly from: string; readonly to: string },
+  opts: Opts = {},
+): Promise<CookAttendanceRangeResponse> {
+  return request('/cook/attendance', cookAttendanceRangeSchema, {
+    query: { from: params.from, to: params.to },
+    ...opts,
+  });
+}
+
+/** Leave requests overlapping a window, grouped by request. Includes pending and rejected. */
+export async function listLeaves(
   params: { readonly from?: string; readonly to?: string } = {},
   opts: Opts = {},
 ): Promise<CookLeavesResponse> {
@@ -315,6 +466,38 @@ export async function listApprovedLeaves(
       ...(params.from === undefined ? {} : { from: params.from }),
       ...(params.to === undefined ? {} : { to: params.to }),
     },
+    ...opts,
+  });
+}
+
+/**
+ * Submit a cook-initiated leave request.
+ *
+ * Deployed and verified: `POST /v1/cook/leaves` is registered on the live API. It answers `201`
+ * with `status: 'pending'` — Ops/Admin still decide. The app must never render the leave as taken.
+ *
+ * Backend rejections that are not app failures:
+ *   `400` — `startDate` in the past, or `endDate` before `startDate`
+ *   `409` — an overlapping pending/approved leave already exists (`INVALID_BOOKING_STATE`)
+ *   `403` — the cook is not active
+ */
+export async function requestLeave(
+  input: {
+    readonly startDateIso: string;
+    readonly endDateIso: string;
+    readonly reason?: string;
+    readonly idempotencyKey: string;
+  },
+  opts: Opts = {},
+): Promise<CookLeaveRequestResponse> {
+  return request('/cook/leaves', cookLeaveRequestSchema, {
+    method: 'POST',
+    body: {
+      startDate: input.startDateIso,
+      endDate: input.endDateIso,
+      ...(input.reason === undefined || input.reason.length === 0 ? {} : { reason: input.reason }),
+    },
+    idempotencyKey: input.idempotencyKey,
     ...opts,
   });
 }
@@ -337,6 +520,21 @@ export async function getEarnings(
   });
 }
 
+/**
+ * One past service day's earnings.
+ *
+ * The same server-side breakdown `/cook/earnings` uses for its `daily` window, asked about a
+ * different IST service date. It is deliberately NOT a client-side filter of the cycle's
+ * `events[]`: reversals are their own signed category, so re-bucketing raw ledger rows here would
+ * show a base figure the payout will not honour. The server refuses a future date.
+ */
+export async function getEarningsDay(
+  serviceDate: string,
+  opts: Opts = {},
+): Promise<CookEarningsPeriodResponse> {
+  return request(`/cook/earnings/day/${serviceDate}`, earningsPeriodSchema, opts);
+}
+
 export async function listEarningsCycles(
   params: { readonly limit?: number } = {},
   opts: Opts = {},
@@ -347,11 +545,42 @@ export async function listEarningsCycles(
   });
 }
 
+/**
+ * One past cycle.
+ *
+ * Deliberately NOT `cookEarningsSchema`: `getCookCycle` answers with `{ cycleId, startDate,
+ * endDate, status, breakdown, summary, totalPaise, events }`. Validating it against the
+ * `/cook/earnings` schema — as an earlier build did — fails on every response.
+ */
 export async function getEarningsCycle(
   cycleId: string,
   opts: Opts = {},
-): Promise<CookEarningsResponse> {
-  return request(`/cook/earnings/cycles/${cycleId}`, cookEarningsSchema, opts);
+): Promise<CookCycleDetailResponse> {
+  return request(`/cook/earnings/cycles/${cycleId}`, cookCycleDetailSchema, opts);
+}
+
+/**
+ * The WEEKS a cook has earned in — what the Kamai screens call a cycle.
+ *
+ * Separate from `listEarningsCycles`, which returns the 28-day PAYOUT periods the attendance
+ * bonuses resolve over. The two share a word and nothing else.
+ */
+export async function listEarningsWeeks(
+  params: { readonly limit?: number } = {},
+  opts: Opts = {},
+): Promise<CookWeeksResponse> {
+  return request('/cook/earnings/weeks', cookWeeksSchema, {
+    query: { ...(params.limit === undefined ? {} : { limit: params.limit }) },
+    ...opts,
+  });
+}
+
+/** One week. Any day of it resolves to the whole week server-side. */
+export async function getEarningsWeek(
+  startDate: string,
+  opts: Opts = {},
+): Promise<CookWeekDetailResponse> {
+  return request(`/cook/earnings/weeks/${startDate}`, cookWeekDetailSchema, opts);
 }
 
 /* -------------------------------------------------------------- devices --- */

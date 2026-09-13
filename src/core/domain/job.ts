@@ -47,8 +47,43 @@ export interface JobCardModel {
   readonly action: JobAction;
   /** Server ruling that the `START` CTA is pressable. Never derived from a client clock. */
   readonly isActionable: boolean;
+  /**
+   * Why `CHALO` is not pressable, null when it is.
+   *
+   * The card used to be dropped entirely when she could not act on it, so a cook whose departure
+   * window had not opened -- or who had simply not marked present -- saw no button and no reason.
+   * "why chalo is no there ?", from the handset. The server decides; this carries its answer.
+   */
+  readonly blockedReason: StartTravelBlockedReason | null;
   /** Drives the `RUNNING LATE` badge (`434:2743`). Server-supplied. */
   readonly isRunningLate: boolean;
+  /**
+   * The booking is CANCELLED and the card is here so she can find that out.
+   *
+   * `listCookJobs` keeps a cancelled job on the list for six hours after it is cancelled. Before
+   * that it dropped the card the instant the booking ended, so the only way to see the V14
+   * cancellation frame was to already be standing on that job's service screen when the
+   * cancellation landed — and with no push device registered, a cook who was anywhere else was
+   * simply never told. Tapping the card opens the frame.
+   */
+  readonly isCancelled: boolean;
+  /**
+   * The service is OVER -- she finished it and the end OTP was verified.
+   *
+   * A finished job stays on the list for six hours so she can see the day she has had, which
+   * means "not cancelled" is not the same as "still ahead of her". Selecting the lead card on
+   * `!isCancelled` alone put a COMPLETED job at the top with a countdown of -91 mins and a Chalo
+   * on it, and tapping the card opened the completion screen -- "Agle booking mein bhi accha kaam
+   * kare!" -- which is a strange answer to pressing a button that says Go.
+   */
+  readonly isFinished: boolean;
+  /**
+   * `job flow` §5's tier for this card, as the SERVER rules it.
+   *
+   * Was `defaultJobUrgency` for every job, because the projection published no ruling — so `4d`
+   * and `4e` were unreachable and a cook never saw the "leave now" card the design draws for her.
+   */
+  readonly urgency: JobUrgency;
 
   readonly address: CustomerAddressSnapshot;
   readonly gate: GateTarget | null;
@@ -74,8 +109,20 @@ export interface JobsProjection {
   readonly serverNowIso: string;
 }
 
-/** `90` → `1.5 hrs`, `60` → `1 hr`. Display formatting only. */
+/**
+ * `90` → `1.5 hrs`, `60` → `1 hr`, `30` → `30 mins`. Display formatting only.
+ *
+ * Below an hour the design states the duration in MINUTES, not in a fraction of an hour. Every
+ * `job flow` frame says so in its own chips: `583:375` publishes `5:30 PM · 30 mins` and
+ * `3:30 PM · 45 mins`, and `583:427`/`453`/`479` repeat `30 mins` and `45 mins` in their lists.
+ * The app divided unconditionally and drew `0.5 hrs` and `0.8 hrs` on all five frames — a value
+ * a cook has to convert back, and one the design never writes.
+ *
+ * The hour form is kept for a whole or fractional hour, which is what the same chips use above
+ * the boundary (`1.5 hrs`). Only the sub-hour branch is new.
+ */
 export function formatDurationHours(minutes: number): string {
+  if (Math.abs(minutes) < 60) return formatMinutes(minutes);
   const hours = minutes / 60;
   const rounded = Math.round(hours * 10) / 10;
   const text = Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
@@ -90,6 +137,94 @@ export function formatDurationHours(minutes: number): string {
  */
 export function formatMinutes(minutes: number): string {
   return `${minutes} ${Math.abs(minutes) === 1 ? 'min' : 'mins'}`;
+}
+
+/**
+ * How loudly the lead job card is drawn.
+ *
+ * V14 escalates it through three colourways — `583:427`, `583:453` and `583:479` — swapping the
+ * border, the icon disc, the duration chip and the CTA together, and inverting the CTA label to
+ * white at the last tier.
+ *
+ * ## Why this is NOT derived from `minutesToDeadline`
+ *
+ * The obvious reading is that the frame names give the thresholds: `<45 mins`, `<10 mins`,
+ * `<5 mins`. The frames' own content contradicts that reading —
+ *
+ *   | frame     | name            | countdown it draws |
+ *   | --------- | --------------- | ------------------ |
+ *   | `583:427` | `next in <45 mins` | `25 mins`       |
+ *   | `583:453` | `next <10 mins`    | `20 mins`       |
+ *   | `583:479` | `next <5 mins`     | `15 mins`       |
+ *
+ * — `20` is not under ten and `15` is not under five. Either the names or the mock values are
+ * stale, and the file gives no way to tell which. Picking thresholds anyway would mean inventing
+ * a rule the design does not state and then painting a card red on the strength of it, so the
+ * tier is an explicit input instead: fixtures set it per frame, and production passes the calmest
+ * value until the backend rules on it.
+ *
+ * Eligibility is unaffected either way — whether the cook may leave stays `isActionable`, a server
+ * ruling — so the open question costs a colour, never a command.
+ */
+/**
+ * Why the server will not let her set off yet.
+ *
+ * Codes come from `commandEligibility.startTravelBlockedReason`; the sentences are here because
+ * they are hers -- Hinglish, on a small screen, telling her what to do rather than what failed.
+ */
+export const startTravelBlockedReasons = [
+  'NOT_PRESENT',
+  'ALREADY_STARTED',
+  'BUSY_ELSEWHERE',
+  'TOO_EARLY',
+] as const;
+export type StartTravelBlockedReason = (typeof startTravelBlockedReasons)[number];
+
+/**
+ * What the card says under a Chalo she cannot press.
+ *
+ * `null` for a reason this build does not know: a newer server may send a code that predates
+ * this app, and a wrong sentence is worse than none -- the button is visibly disabled either way,
+ * which already tells her more than its absence did.
+ */
+export function startTravelBlockedNote(reason: string | null | undefined): string | null {
+  switch (reason) {
+    case 'NOT_PRESENT':
+      // The step in front of her, and the one she can act on right now.
+      return 'Pehle Hazri tab me present mark kare.';
+    case 'ALREADY_STARTED':
+      return 'Yeh kaam pehle se shuru ho chuka hai.';
+    case 'BUSY_ELSEWHERE':
+      return 'Aap abhi doosre kaam par hai.';
+    case 'TOO_EARLY':
+      // Nothing is wrong. Saying so matters: this is the case she will meet most often.
+      return 'Abhi nikalne ka time nahi hua. Time hote hi Chalo chalu ho jayega.';
+    default:
+      return null;
+  }
+}
+
+export const jobUrgencies = ['soon', 'imminent', 'critical'] as const;
+export type JobUrgency = (typeof jobUrgencies)[number];
+
+/**
+ * The tier used against production data.
+ *
+ * `GET /v1/cook/jobs` exposes no urgency ruling, and the design's thresholds are contradictory
+ * (above), so the calmest treatment is used rather than a guessed escalation. A cook is never
+ * shown a red "leave now" card the server did not ask for.
+ */
+export const defaultJobUrgency: JobUrgency = 'soon';
+
+/**
+ * The server's ruling, narrowed to the three tiers the card draws.
+ *
+ * `unknown` — no route evidence supports a departure deadline, and DEC-059 forbids manufacturing
+ * one — degrades to the calmest tier. Absence of evidence is not urgency, exactly as it is not
+ * lateness on the travel banner.
+ */
+export function jobUrgencyFrom(urgency: string | null | undefined): JobUrgency {
+  return urgency === 'imminent' || urgency === 'critical' ? urgency : defaultJobUrgency;
 }
 
 /** Group jobs by IST service date, preserving server order within each group. */

@@ -1,0 +1,14 @@
+{
+  "version": "earnings-live-journey",
+  "cycleLengthDays": 28,
+  "presentDayBasePaise": 123400,
+  "fivePlusBonusPaise": 14500,
+  "longHoursThresholdMinutes": 240,
+  "longHoursRatePerHourPaise": 18000,
+  "fullCycleBonusPaise": 200000,
+  "twentySevenDayBonusPaise": 100000,
+  "paidLeaveRefundPaise": 100000,
+  "noShowPenaltyPaise": 37500,
+  "lateGraceMinutes": 8,
+  "latePenaltyPerMinutePaise": 2000
+}

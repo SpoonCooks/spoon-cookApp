@@ -1,197 +1,222 @@
 import { router } from 'expo-router';
-import { useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useState } from 'react';
 
+import { newIdempotencyKey } from '@core/api/cook';
+import { apiErrorMessage } from '@core/api/errors';
+import { useCookProfile, useRequestLeave } from '@core/api/queries';
 import {
-  canSubmitLeaveRequest,
   countLeaveDays,
-  leaveRequestUnavailableCopy,
+  leaveRequestPendingCopy,
+  toLeaveRequestRange,
+  validateLeaveSelection,
   type LeaveRequestKind,
 } from '@core/domain/leave';
-import { Button, color, radius, spacing, Text } from '@ui';
+import { LongLeaveSheetView } from '@features/leave/LeaveViews';
+import { addDays, leaveRequestErrorMessage, monthLabel } from '@features/leave/leaveModel';
+import { ErrorState, LoadingState } from '@ui';
+import { openSupportWhatsApp } from '@core/support/whatsapp';
 
 /**
- * `lambi chutti` — Figma `Page 13a- long` (`528:659`), `Page 13b- long select` (`530:1349`) and
- * `Page 13c- long confirm` (`530:1478`).
+ * `Lambi Chutti` — the V13 month-grid sheet (`592:563` empty, `592:639` a range chosen).
  *
- * 13a and 13b are the same month grid before and after a selection: `Total din 0` becomes
- * `Total din 10`. 13c is the attendance surface afterwards, showing `Aane wali chutti` →
- * `16 Nov se 25 Nov tak` and relabelling the entry point to `Dates badle`.
+ * Selection is a first-and-last tap producing an inclusive range, which is what `Total din` counts
+ * and what the grid paints: the two endpoints in `#cfff04`, everything between them in `#ecff9b`.
+ * Once a range is closed, a tap outside it EXTENDS the nearer edge — so day-by-day tapping keeps
+ * growing the chutti — and a tap on or inside it starts a fresh selection.
  *
- * Selection is a first-and-last tap producing an inclusive range, which is what `Total din` counts.
+ * ## The grid is anchored to the SERVER's month
  *
- * Submission is disabled for the same reason as the single-day flow — the backend has no cook-side
- * leave write (GAP-21). The grid, the running total and the confirm copy are all real, so the
- * screen becomes functional by wiring one call.
+ * The month shown, and the first day that can be picked, both come from `profile.serverTime`. A
+ * device on the wrong date would otherwise open on a month the backend has moved past and offer
+ * days it would reject.
+ *
+ * ## Submission is live, and the result is a REQUEST
+ *
+ * `POST /v1/cook/leaves` takes `{ startDate, endDate }` with an `Idempotency-Key` and answers
+ * `201 pending`. A multi-day chutti is ONE request server-side — grouped by `leave_request_id` —
+ * so the range is submitted whole rather than day by day, and the confirmation says the request
+ * was sent, never that the leave was granted.
  */
-export default function RangeLeaveScreen(): React.ReactElement {
-  const insets = useSafeAreaInsets();
-  const [fromIso, setFromIso] = useState<string | null>(null);
-  const [toIso, setToIso] = useState<string | null>(null);
+/**
+ * How far ahead a cook may page the grid.
+ *
+ * There is no product ceiling on how distant a chutti may be, so this is a UI bound rather than a
+ * rule: eleven months forward keeps every month of the coming year reachable while stopping the
+ * chevron from running away into 2031. The backend validates the dates regardless.
+ */
+const MAX_MONTHS_AHEAD = 11;
 
-  const grid = useMemo(() => currentMonthGrid(), []);
-  const submittable = canSubmitLeaveRequest();
+export default function RangeLeaveScreen(): React.ReactElement {
+  const [fromDay, setFromDay] = useState<number | null>(null);
+  const [toDay, setToDay] = useState<number | null>(null);
+  /**
+   * Months AHEAD of the server's current month, which is where the grid opens.
+   *
+   * The screen used to derive its year and month straight from `serverTime` as constants and pass
+   * no month handlers at all, so both chevrons were inert: a cook could see August and could
+   * never reach September, which made a chutti more than a few weeks out impossible to request.
+   * Held as an offset rather than a date so the anchor stays the SERVER's month — the same
+   * reasoning that put the grid on server time in the first place.
+   */
+  const [monthsAhead, setMonthsAhead] = useState(0);
+
+  // One key per mount, so a retry after a timeout replays rather than filing a second chutti.
+  const [idempotencyKey] = useState(newIdempotencyKey);
+
+  const profile = useCookProfile();
+  const todayIso = (profile.data?.serverTime ?? '').slice(0, 10);
+
+  // The month the GRID is on, computed before the early returns so the hook order is identical
+  // on every path. Empty while the profile loads, which `useRequestLeave` already tolerates.
+  const serverYear = Number(todayIso.slice(0, 4));
+  const serverMonth = Number(todayIso.slice(5, 7));
+  const shown = serverMonth - 1 + monthsAhead;
+  const year = serverYear + Math.floor(shown / 12);
+  const month = (shown % 12) + 1;
+  const shownMonthKey = todayIso === '' ? '' : `${year}-${String(month).padStart(2, '0')}`;
+
+  // The month whose attendance must be re-read is the one the leave is IN, not the one the cook
+  // happens to be standing in — a chutti filed for September left September's grid stale.
+  const requestLeave = useRequestLeave(shownMonthKey);
+
+  if (profile.isPending) return <LoadingState testID="leave-range-loading" />;
+  if (profile.isError) {
+    return (
+      <ErrorState
+        message={apiErrorMessage(profile.error)}
+        onRetry={() => void profile.refetch()}
+        testID="leave-range-error"
+      />
+    );
+  }
+
+  /*
+   * The earliest day a LONG leave may start, greyed out before it.
+   *
+   * Two rules, and both are the server's. Today closes the days behind it — but only in the month
+   * today is in; every later month opens from the first, which the old code got wrong by applying
+   * the server's day-of-month to whatever month was on screen.
+   *
+   * On top of that, a multi-day leave needs notice. `requestCookLeave` refuses a long leave that
+   * starts sooner than `longLeaveNoticeDays`, so a calendar that let one be selected would offer a
+   * range the server rejects under the cook's thumb. The number comes from the profile rather than
+   * a constant here: two copies drift the moment operations tunes it.
+   */
+  const noticeDays = profile.data?.leavePolicy?.longLeaveNoticeDays ?? 0;
+  const earliestIso = addDays(todayIso, noticeDays);
+  const earliestMonthKey = earliestIso.slice(0, 7);
+  const firstOpenDay =
+    shownMonthKey === '' || shownMonthKey > earliestMonthKey
+      ? 1
+      : shownMonthKey < earliestMonthKey
+        ? Number.MAX_SAFE_INTEGER
+        : Number(earliestIso.slice(8, 10));
 
   const selection: LeaveRequestKind | null =
-    fromIso !== null && toIso !== null
-      ? { kind: 'date_range', fromDateIso: fromIso, toDateIso: toIso }
-      : null;
+    fromDay === null
+      ? null
+      : {
+          kind: 'date_range',
+          fromDateIso: isoFor(year, month, fromDay),
+          toDateIso: isoFor(year, month, toDay ?? fromDay),
+        };
   const totalDays = selection === null ? 0 : countLeaveDays(selection);
+  const validation = selection === null ? null : validateLeaveSelection(selection, todayIso);
+  const submitted = requestLeave.isSuccess;
 
-  const onPickDay = (dateIso: string): void => {
-    // First tap starts a range; second tap closes it; a third starts over. Tapping earlier than
-    // the start re-anchors rather than producing an inverted range.
-    if (fromIso === null || toIso !== null) {
-      setFromIso(dateIso);
-      setToIso(null);
+  const onPickDay = (day: number): void => {
+    if (submitted) return;
+    // First tap sets the start; the second closes the range.
+    if (fromDay === null) {
+      setFromDay(day);
+      setToDay(null);
       return;
     }
-    if (dateIso < fromIso) {
-      setFromIso(dateIso);
+    if (toDay === null) {
+      if (day < fromDay) {
+        setFromDay(day);
+        return;
+      }
+      setToDay(day);
       return;
     }
-    setToIso(dateIso);
+    // The range is closed: a tap OUTSIDE it moves the nearer edge, so tapping days one by one
+    // (27, 28, 29…) keeps growing the chutti instead of throwing it away after two taps. A tap on
+    // or inside the range starts over, which is what lets a cook correct a mis-tap without
+    // leaving the sheet.
+    if (day < fromDay) {
+      setFromDay(day);
+      return;
+    }
+    if (day > toDay) {
+      setToDay(day);
+      return;
+    }
+    setFromDay(day);
+    setToDay(null);
   };
 
-  const isSelected = (dateIso: string): boolean => {
-    if (fromIso === null) return false;
-    if (toIso === null) return dateIso === fromIso;
-    return dateIso >= fromIso && dateIso <= toIso;
+  const submit = (): void => {
+    if (selection === null || validation?.ok !== true || requestLeave.isPending || submitted)
+      return;
+    const range = toLeaveRequestRange(selection);
+    requestLeave.mutate({
+      startDateIso: range.startDateIso,
+      endDateIso: range.endDateIso,
+      idempotencyKey,
+    });
   };
+
+  const notice =
+    validation !== null && !validation.ok
+      ? validation.message
+      : requestLeave.isError
+        ? leaveRequestErrorMessage(requestLeave.error)
+        : submitted
+          ? leaveRequestPendingCopy
+          : null;
 
   return (
-    <View style={[styles.flex, { paddingTop: insets.top + spacing.m }]} testID="leave-range">
-      <ScrollView contentContainerStyle={styles.content}>
-        <Text variant="titleBlack" testID="leave-range-month">
-          {grid.monthLabel}
-        </Text>
-
-        <View style={styles.weekHeader}>
-          {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((day, index) => (
-            <View key={`${day}-${index}`} style={styles.cell}>
-              <Text variant="captionMuted">{day}</Text>
-            </View>
-          ))}
-        </View>
-
-        <View style={styles.grid}>
-          {grid.leadingBlanks.map((key) => (
-            <View key={key} style={styles.cell} />
-          ))}
-          {grid.days.map((day) => {
-            const selected = isSelected(day.dateIso);
-            return (
-              <Pressable
-                key={day.dateIso}
-                style={[styles.cell, styles.dayCell, selected && styles.dayCellSelected]}
-                onPress={() => onPickDay(day.dateIso)}
-                accessibilityRole="button"
-                accessibilityState={{ selected }}
-                testID={`leave-range-day-${day.dateIso}`}
-              >
-                <Text variant="caption" color={selected ? color.black : color.textPrimary}>
-                  {String(day.dayOfMonth)}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>
-
-        <View style={styles.totalRow}>
-          <Text variant="labelStrong">Total din</Text>
-          <Text variant="display" testID="leave-range-total">
-            {String(totalDays)}
-          </Text>
-        </View>
-
-        <Button
-          label="Pakka"
-          tone="action"
-          disabled={!submittable || totalDays === 0}
-          onPress={() => {
-            /* GAP-21 — unreachable until the endpoint exists. */
-          }}
-          testID="leave-range-confirm"
-        />
-
-        {!submittable && (
-          <Text variant="caption" color={color.danger} testID="leave-range-blocked">
-            {leaveRequestUnavailableCopy}
-          </Text>
-        )}
-
-        <Button
-          label="Wapas"
-          tone="ghost"
-          onPress={() => router.back()}
-          testID="leave-range-back"
-        />
-      </ScrollView>
-    </View>
+    <LongLeaveSheetView
+      year={year}
+      month={month}
+      monthLabel={monthLabel(isoFor(year, month, 1))}
+      firstOpenDay={firstOpenDay}
+      selection={fromDay === null ? null : { fromDay, toDay: toDay ?? fromDay }}
+      totalDays={totalDays}
+      canConfirm={validation?.ok === true && !submitted && !requestLeave.isPending}
+      onPickDay={onPickDay}
+      /*
+       * Paging clears the selection. `fromDay`/`toDay` are bare day NUMBERS, so a range left
+       * standing across a month change would silently re-point at the new month — 3-7 August
+       * becoming 3-7 September under a cook who only meant to look.
+       */
+      {...(monthsAhead > 0
+        ? {
+            onPrevMonth: () => {
+              setFromDay(null);
+              setToDay(null);
+              setMonthsAhead((current) => current - 1);
+            },
+          }
+        : {})}
+      {...(monthsAhead < MAX_MONTHS_AHEAD
+        ? {
+            onNextMonth: () => {
+              setFromDay(null);
+              setToDay(null);
+              setMonthsAhead((current) => current + 1);
+            },
+          }
+        : {})}
+      onConfirm={submit}
+      onBack={() => router.back()}
+      onHelp={() => void openSupportWhatsApp(profile.data.cook.name)}
+      notice={notice}
+    />
   );
 }
 
-interface GridDay {
-  readonly dateIso: string;
-  readonly dayOfMonth: number;
+function isoFor(year: number, month: number, day: number): string {
+  return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 }
-
-const MONTHS = [
-  'January',
-  'February',
-  'March',
-  'April',
-  'May',
-  'June',
-  'July',
-  'August',
-  'September',
-  'October',
-  'November',
-  'December',
-] as const;
-
-/** Monday-first month grid, matching the Figma header `M T W T F S S`. */
-function currentMonthGrid(): {
-  readonly monthLabel: string;
-  readonly leadingBlanks: readonly string[];
-  readonly days: readonly GridDay[];
-} {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = now.getMonth();
-  const first = new Date(year, month, 1);
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
-
-  // JS weeks start on Sunday; the design starts on Monday.
-  const offset = (first.getDay() + 6) % 7;
-
-  const days: GridDay[] = [];
-  for (let day = 1; day <= daysInMonth; day += 1) {
-    const iso = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-    days.push({ dateIso: iso, dayOfMonth: day });
-  }
-
-  return {
-    monthLabel: `${MONTHS[month] ?? ''} ${year}`,
-    leadingBlanks: Array.from({ length: offset }, (_, index) => `blank-${index}`),
-    days,
-  };
-}
-
-const styles = StyleSheet.create({
-  flex: { flex: 1 },
-  content: { paddingHorizontal: spacing.xl, paddingBottom: spacing.huge, gap: spacing.m },
-  weekHeader: { flexDirection: 'row', flexWrap: 'wrap' },
-  grid: { flexDirection: 'row', flexWrap: 'wrap' },
-  cell: {
-    width: `${100 / 7}%`,
-    aspectRatio: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  dayCell: { borderRadius: radius.pill },
-  dayCellSelected: { backgroundColor: color.action },
-  totalRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-});

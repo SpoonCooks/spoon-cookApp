@@ -1,0 +1,79 @@
+import { router, useLocalSearchParams } from 'expo-router';
+
+import { useCookProfile, useEarningsPolicy } from '@core/api/queries';
+import { RuleSheetView } from '@features/info/InfoViews';
+import { buildRuleSheets, ruleKeys, type RuleKey } from '@features/info/rules';
+import { openSupportWhatsApp } from '@core/support/whatsapp';
+
+/**
+ * One V14 rule sheet, presented over the Niyam screen.
+ *
+ * `597:1221` rating tiers · `603:1865` No Show · `603:1924` extra hours · `605:2027` 5+ rating ·
+ * `605:2094` late.
+ *
+ * ## Only one of the five standings exists on the API today
+ *
+ * Each sheet ends with the cook's own figure against the policy above it. `GET /v1/cook/me`
+ * supplies `rating.average`, which is what `Aapki rating` shows. It does **not** expose:
+ *
+ *   - a NO SHOW **count** for the cycle (`GET /v1/cook/earnings` carries only
+ *     `noShowDeductionsPaise`),
+ *   - a late **duration** for the cycle (only `lateDeductionsPaise`),
+ *   - extra hours worked beyond seven,
+ *   - a count of 5+ ratings received.
+ *
+ * Those four render as `—` rather than being derived from the deduction totals. Dividing
+ * `noShowDeductionsPaise` by the tariff would be a client-authored count, and it would be wrong
+ * the moment the tariff changed or a penalty was waived — a cook would be told they had three
+ * no-shows when the server never said so. The precise missing contract is recorded in the closure
+ * report.
+ */
+const UNAVAILABLE = '—';
+
+export default function RuleSheetScreen(): React.ReactElement | null {
+  const { rule } = useLocalSearchParams<{ rule?: string }>();
+  const profile = useCookProfile();
+  /*
+   * The sheets are built from the ACTIVE published earnings policy, not from a table in the app.
+   * While it is loading, or if the read fails, `policy.data` is undefined and every money cell
+   * renders `—`: this screen tells a cook what they are charged, and a plausible-looking figure
+   * that is not what the ledger takes is worse than an honest blank.
+   */
+  const policy = useEarningsPolicy();
+  const sheets = buildRuleSheets(policy.data ?? null);
+
+  const sheet = rule !== undefined && isRuleKey(rule) ? sheets[rule] : null;
+  if (sheet === null) {
+    // An unknown segment is a broken link, not a screen. Return to Niyam rather than inventing one.
+    router.back();
+    return null;
+  }
+
+  // `rating_avg` defaults to 0 in the database, so a cook with no ratings yet has an average of
+  // `0` — which `toFixed(1)` would print as `0.0`, the WORST possible score, to someone who has
+  // simply never been rated. `count` is the only field that distinguishes the two, and
+  // `src/core/session/auth.ts` already gates on it. Below zero ratings this shows `—`.
+  const rated = profile.data !== undefined && profile.data.cook.rating.count > 0;
+  const average = rated ? profile.data.cook.rating.average : null;
+  const standingValue =
+    sheet.key === 'rating-tiers' && average !== null ? formatRating(average) : UNAVAILABLE;
+
+  return (
+    <RuleSheetView
+      sheet={sheet}
+      standingValue={standingValue}
+      onAcknowledge={() => router.back()}
+      onBack={() => router.back()}
+      onHelp={() => void openSupportWhatsApp()}
+    />
+  );
+}
+
+function isRuleKey(value: string): value is RuleKey {
+  return (ruleKeys as readonly string[]).includes(value);
+}
+
+/** `4.6` — one decimal, as `597:1339` draws it. */
+function formatRating(average: number): string {
+  return average.toFixed(1);
+}
