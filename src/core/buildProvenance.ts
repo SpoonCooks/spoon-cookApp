@@ -61,6 +61,9 @@ export function getBuildProvenance(): BuildProvenance {
 export function logBuildProvenance(): void {
   const provenance = getBuildProvenance();
   if (provenance.environment !== 'production') {
-    console.info('[spoon-build-provenance]', { ...provenance, apiBaseUrl: apiBaseUrl() ?? 'unset' });
+    console.info('[spoon-build-provenance]', {
+      ...provenance,
+      apiBaseUrl: apiBaseUrl() ?? 'unset',
+    });
   }
 }
