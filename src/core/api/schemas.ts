@@ -142,9 +142,34 @@ export const cookProfileSchema = z.object({
       longLeaveNoticeDays: z.number().int().nonnegative(),
     })
     .nullish(),
+  /**
+   * The cook's own open account-deletion request, if one is waiting on Ops.
+   *
+   * The ONLY surface that can report it. Nothing else about a cook changes while a request is
+   * open — same status, same login, same bookings — so without this field the app would have no
+   * way to tell her the tap was received, and she would tap again.
+   *
+   * `nullish` for the same reason `leavePolicy` is: this field ships with the backend's cook
+   * deletion work, and a deployment that predates it must not turn every profile read into a
+   * contract failure. `cookProfileSchema` gates Hazri, Kaam AND Paisa — failing it locks a cook
+   * out of the whole app over a row she does not have.
+   */
+  deletionRequest: z.object({ requestedAt: isoString }).nullish(),
   serverTime: isoString,
 });
 export type CookProfileResponse = z.infer<typeof cookProfileSchema>;
+
+/**
+ * `POST /cook/account/deletion-request` — a cook's self-serve request to be deleted.
+ *
+ * Never a deletion. The backend (`src/accounts/deletion.ts`, `requestCookDeletion`) only records
+ * the request for Ops, who alone finalizes or rejects it; the cook's status, session and bookings
+ * are deliberately untouched while it waits. `requested` is therefore an acknowledgement that the
+ * request is ON FILE, not that anything was removed — and it reads `true` for a cook who already
+ * had one open, because a second tap is a no-op success rather than an error.
+ */
+export const cookDeletionRequestSchema = z.object({ requested: z.boolean() });
+export type CookDeletionRequestResponse = z.infer<typeof cookDeletionRequestSchema>;
 
 /* ------------------------------------------------------------- policy --- */
 
@@ -676,6 +701,17 @@ export type CookCycleDetailResponse = z.infer<typeof cookCycleDetailSchema>;
  * cook has already performed.
  */
 export const commandAckSchema = z.looseObject({});
+
+/**
+ * For a route that answers **204 No Content**.
+ *
+ * `client.ts` parses a 204 as `schema.parse(undefined)`, which `commandAckSchema` rejects — it
+ * requires an object. `POST /auth/logout` is the one route the Cook App calls that answers 204,
+ * and parsing its reply with `commandAckSchema` made `logout()` throw on every SUCCESSFUL logout.
+ * `endSession` catches everything, so the session really was revoked and the cook really was sent
+ * to Login; what was lost is the ability to tell a revocation that failed from one that worked.
+ */
+export const noContentSchema = z.undefined();
 
 /**
  * `POST /cook/presence-location` answers 202 with nothing worth reading.

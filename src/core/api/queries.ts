@@ -23,9 +23,12 @@ import {
   type UseQueryResult,
 } from '@tanstack/react-query';
 
+import { tearDownSession } from '../session/auth';
+import { useSession } from '../session/store';
 import * as api from './cook';
 import { isApiError } from './errors';
 import type {
+  CookDeletionRequestResponse,
   CookEarningsPolicy,
   CookAttendanceRangeResponse,
   CookCycleDetailResponse,
@@ -450,6 +453,59 @@ export function useRequestLeave(
           ? [client.invalidateQueries({ queryKey: queryKeys.attendanceMonth(month) })]
           : []),
       ]);
+    },
+  });
+}
+
+/* -------------------------------------------------------------- account --- */
+
+/**
+ * Leave this device.
+ *
+ * The teardown itself lives in `tearDownSession` (`core/session/auth.ts`), which owns the order
+ * the three steps must run in and why. This hook exists only to hand it the two things it cannot
+ * import — the session store and the query client — and to give the confirmation sheet an
+ * `isPending` to spin on.
+ *
+ * `removeQueries()` rather than `clear()`: `clear()` empties the MUTATION cache too, including
+ * the entry for the sign-out running at that moment, leaving the mutation observing a record that
+ * no longer exists. Only cached reads belong to the cook who is leaving.
+ */
+export function useSignOut(): UseMutationResult<void, unknown, void> {
+  const client = useQueryClient();
+  const signOut = useSession((state) => state.signOut);
+  return useMutation({
+    mutationFn: () =>
+      tearDownSession({
+        signOut,
+        dropCachedReads: () => {
+          client.removeQueries();
+        },
+      }),
+  });
+}
+
+/**
+ * Ask Ops to delete this account.
+ *
+ * Invalidates the profile and nothing else, because the request changes nothing else: the cook
+ * stays signed in, keeps her shift and keeps her bookings until Ops acts. The re-read exists so
+ * the pending line the screen draws is the server's `deletionRequest`, not a local flag that
+ * would survive a request Ops has already rejected.
+ *
+ * Deliberately NOT followed by a sign-out. Signing her out here would tell her the account was
+ * gone, and she would find it working again at the next login.
+ */
+export function useRequestAccountDeletion(): UseMutationResult<
+  CookDeletionRequestResponse,
+  unknown,
+  void
+> {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: () => api.requestAccountDeletion(),
+    onSuccess: async () => {
+      await client.invalidateQueries({ queryKey: queryKeys.profile });
     },
   });
 }

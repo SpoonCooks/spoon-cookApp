@@ -141,3 +141,34 @@ export async function endSession(): Promise<void> {
     await clearSession();
   }
 }
+
+/**
+ * Everything that must stop being true when a cook leaves this device, in the order it must stop.
+ *
+ * The two callbacks are supplied rather than imported because they belong to layers this module
+ * must not depend on — the Zustand store and the React Query client — and because stating them as
+ * a contract is what makes the ORDER testable without mounting anything.
+ *
+ *   1. `endSession()` — revoke server-side, then drop the tokens. It swallows a transport failure
+ *      on purpose, so the steps below run whether or not the server was reachable.
+ *   2. `signOut` — flips the session state. This is what stops background location tracking and
+ *      unmounts push registration; neither needs a teardown of its own.
+ *   3. `dropCachedReads` — empties the cached projections.
+ *
+ * Step 3 must come last. It makes every mounted read refetch, and a refetch issued while the
+ * access token is still in the keystore is a live authenticated request made on behalf of a cook
+ * who has already left. It must also happen at all: the query client lives for the whole app
+ * lifetime, so the next cook to sign in on a shared handset would otherwise see the previous
+ * cook's hazri and kamai for the moment before each read returned.
+ *
+ * The push token needs no step: `POST /auth/logout` revokes every `device_push_tokens` row for
+ * this cook server-side, which is the only copy that decides whether an alert is sent.
+ */
+export async function tearDownSession(local: {
+  readonly signOut: () => void;
+  readonly dropCachedReads: () => void;
+}): Promise<void> {
+  await endSession();
+  local.signOut();
+  local.dropCachedReads();
+}

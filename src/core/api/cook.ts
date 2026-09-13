@@ -19,6 +19,7 @@ import {
   authSessionSchema,
   commandAckSchema,
   cookCyclesSchema,
+  cookDeletionRequestSchema,
   cookWeeksSchema,
   cookWeekDetailSchema,
   cookEarningsSchema,
@@ -36,10 +37,12 @@ import {
   customerContactSchema,
   earningsPeriodSchema,
   monthlyAttendanceSchema,
+  noContentSchema,
   otpSendSchema,
   type AuthSessionResponse,
   type CookEarningsPeriodResponse,
   type CookCyclesResponse,
+  type CookDeletionRequestResponse,
   type CookWeeksResponse,
   type CookWeekDetailResponse,
   type CookEarningsResponse,
@@ -107,8 +110,15 @@ export async function verifyLoginOtp(
   });
 }
 
+/**
+ * Revoke this device's session server-side.
+ *
+ * Answers 204, hence `noContentSchema` — see that schema for what parsing it as a command ack
+ * used to cost. The backend revokes the current session, its whole refresh-token family and every
+ * push token registered to this cook, so there is nothing further for the client to unregister.
+ */
 export async function logout(opts: Opts = {}): Promise<void> {
-  await request('/auth/logout', commandAckSchema, { method: 'POST', ...opts });
+  await request('/auth/logout', noContentSchema, { method: 'POST', ...opts });
 }
 
 /* ------------------------------------------------------------- identity --- */
@@ -116,6 +126,36 @@ export async function logout(opts: Opts = {}): Promise<void> {
 /** The cook's operational profile: identity, hub, rating, today's shift, attendance, assignment. */
 export async function getCookProfile(opts: Opts = {}): Promise<CookProfileResponse> {
   return request('/cook/me', cookProfileSchema, opts);
+}
+
+/* -------------------------------------------------------------- account --- */
+
+/**
+ * Ask Ops to delete this cook's account.
+ *
+ * ## This does not delete anything, and the app must not say it does
+ *
+ * A customer deletes themselves instantly (`DELETE /v1/me`). A cook cannot: a cook mid-flight is
+ * a customer's dinner, so this route only records the request, and Ops alone either finalizes the
+ * irreversible scrub or declines it. Until then NOTHING changes — the cook keeps her status, her
+ * session and her bookings, which is why this call neither signs her out nor clears her tokens.
+ *
+ * Idempotent on the server while a request is already open, so a second tap is a no-op success.
+ * The app still hides the control once `deletionRequest` comes back set, because a tap that
+ * silently changes nothing reads as a tap that failed.
+ *
+ * No OTP and no `Idempotency-Key`: the route takes neither. The one-time code the customer flow
+ * spends on `DELETE /v1/me` has no counterpart here — the reversible act is guarded by Ops
+ * review, not by a second proof of the phone.
+ */
+export async function requestAccountDeletion(
+  opts: Opts = {},
+): Promise<CookDeletionRequestResponse> {
+  return request('/cook/account/deletion-request', cookDeletionRequestSchema, {
+    method: 'POST',
+    body: {},
+    ...opts,
+  });
 }
 
 /* --------------------------------------------------------------- policy --- */

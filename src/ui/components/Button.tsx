@@ -10,7 +10,7 @@ import {
 import { color, layout, radius, spacing } from '../theme/tokens';
 import { Text } from '../primitives/Text';
 
-export type ButtonTone = 'action' | 'accent' | 'dark' | 'ghost';
+export type ButtonTone = 'action' | 'accent' | 'dark' | 'danger' | 'ghost';
 
 export interface ButtonProps {
   readonly label: string;
@@ -35,6 +35,15 @@ const toneStyles: Record<ButtonTone, { background: string; text: string }> = {
   action: { background: color.lime600, text: color.black },
   accent: { background: color.yellow600, text: color.black },
   dark: { background: color.black, text: color.white },
+  /**
+   * The one irreversible choice in the app: confirming an account-deletion request.
+   *
+   * Solid rather than tinted on purpose. The pale reds in this palette (`dangerSoft`,
+   * `dangerTint`) are STATUS fills — a late chip, an absent disc — and a cook reads them as
+   * "something is wrong", not "this button ends things". A destructive CTA has to look unlike
+   * every status surface she has already learned to skim past.
+   */
+  danger: { background: color.danger, text: color.white },
   ghost: { background: 'transparent', text: color.textPrimary },
 };
 
