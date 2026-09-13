@@ -721,9 +721,20 @@ function PolicyBody({
           </View>
         )}
 
-        {body.rows.map((row) => (
+        {/*
+         * Keyed by POSITION, not by the first cell's text.
+         *
+         * The rows are derived from the published policy, so two of them can legitimately render
+         * the same leading label — a tariff whose first two bands round to the same minute count,
+         * for instance. When that happened React warned "Encountered two children with the same
+         * key" and was free to reuse the wrong row's state. Observed live on `niyam/late`.
+         *
+         * The list is static for a given render and never reordered, so the index is a stable and
+         * honest identity here in a way the cell text is not.
+         */}
+        {body.rows.map((row, rowIndex) => (
           <View
-            key={row[0]}
+            key={`row-${rowIndex}`}
             style={[
               styles.row,
               { columnGap: s(POLICY.tableColumnGap), minHeight: s(POLICY.cellHeight) },
@@ -731,7 +742,7 @@ function PolicyBody({
           >
             {row.map((cellText, index) => (
               <View
-                key={`${row[0]}-${index}`}
+                key={`cell-${rowIndex}-${index}`}
                 style={[
                   styles.cell,
                   { width: s(body.columnWidths[index] ?? POLICY.tableFirstColumn) },
