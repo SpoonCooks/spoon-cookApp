@@ -91,6 +91,39 @@ export interface PushNotificationsState {
   readonly status: PushRegistrationStatus | 'pending';
 }
 
+/** Why each non-registered outcome happened, in terms of what the operator has to change. */
+const registrationDiagnosis: Record<Exclude<PushRegistrationStatus, 'registered'>, string> = {
+  permission_denied: 'the cook declined the notification permission',
+  unavailable:
+    'this build has no push identity — check google-services.json is present for THIS package',
+  failed: 'PUT /me/push-token was rejected, or the token could not be read',
+};
+
+/**
+ * Say out loud when this device will not receive push.
+ *
+ * A failed registration is invisible from inside the app: the cook sees a working screen, and the
+ * backend simply records `no_device` against every alert it tries to send. That is not
+ * hypothetical — `app.config.ts` records 2026-09-02, when twelve start alerts went out, none were
+ * delivered, and nothing anywhere said so until the database was inspected.
+ *
+ * `registerForPushNotifications` already returns a precise status; it was thrown away by the one
+ * caller. Logging it is the cheapest thing that makes the next outage observable, and it is a
+ * console line rather than cook-facing UI on purpose: a cook can do nothing about a missing FCM
+ * identity, and no Figma frame covers this.
+ *
+ * Deliberately not dev-only. Production is exactly where a silent push outage costs a cook their
+ * jobs, so the line must survive into a release build and be picked up by whatever crash/log
+ * reporter is attached later. It never touches the token itself — that stays a credential.
+ */
+function reportPushRegistration(status: PushRegistrationStatus): void {
+  if (status === 'registered') return;
+  console.warn(
+    `[spoon-push] not registered (${status}): ${registrationDiagnosis[status]}. ` +
+      'This device will receive no job alerts.',
+  );
+}
+
 /**
  * @param enabled only true once a cook session exists — an unauthenticated
  * `PUT /me/push-token` would 401, and a token registered before sign-in would attach this device
@@ -111,7 +144,9 @@ export function usePushNotifications(
     void registerForPushNotifications(deps).then((next) => {
       // Resolved asynchronously, so this is a subscription result rather than a render-time
       // state write.
-      if (!cancelled) setRegistration(next);
+      if (cancelled) return;
+      reportPushRegistration(next);
+      setRegistration(next);
     });
     return () => {
       cancelled = true;
