@@ -183,21 +183,16 @@ export function ProfileView({
           {account.deletionRequestedAt === null ? (
             <Button
               /*
-               * "Account delete", not "Account delete kare" — which is what it said until a
-               * handset showed otherwise.
+               * The full instruction, restored.
                *
-               * At the row's width the longer string overflows the Button's content box, and
-               * Fabric resolves that by dropping the trailing word: the screen drew "Account
-               * delete" inside a box measured for the full string, so the label was also visibly
-               * left of centre while `Logout` beside it was centred. No wrap, no ellipsis, no
-               * warning — the same silent word-drop `Text` documents for uppercase, arrived at by
-               * a different route.
-               *
-               * The row is a label, not an instruction: `Logout` above it is a bare noun too, and
-               * the sheet this opens carries the full sentence. Keep it short — a longer one
-               * cannot be caught by a test, only by looking at a device.
+               * This read `Account delete` for a while: at the row's width the longer string
+               * overflowed the Button's content box, and Fabric resolved that by dropping the
+               * trailing word — no wrap, no ellipsis, no warning, and the label visibly off-centre
+               * because the box had been measured for the whole string. Shortening the copy was
+               * the workaround; `Button` now shrinks a label that does not fit instead of losing
+               * a word of it, so the workaround can go and the row can say what it means.
                */
-              label="Account delete"
+              label="Account delete kare"
               tone="ghost"
               style={styles.deleteRow}
               onPress={() => {

@@ -1,7 +1,7 @@
 import { router } from 'expo-router';
 import { useCallback, useState } from 'react';
 
-import { apiErrorMessage, isSessionExpired } from '@core/api/errors';
+import { apiErrorMessage } from '@core/api/errors';
 import { useCookProfile, useRequestAccountDeletion, useSignOut } from '@core/api/queries';
 import { useSession } from '@core/session/store';
 import { formatPhone } from '@features/profile/profileModel';
@@ -32,7 +32,6 @@ import { ErrorState, LoadingState } from '@ui';
  */
 export default function ProfileScreen(): React.ReactElement {
   const auth = useSession((state) => state.auth);
-  const sessionSignOut = useSession((state) => state.signOut);
   const profile = useCookProfile();
 
   const [sheet, setSheet] = useState<ProfileSheet>('none');
@@ -87,17 +86,20 @@ export default function ProfileScreen(): React.ReactElement {
           // filled in. Nothing else about her session changes — see `requestAccountDeletion`.
           setSheet('none');
         },
-        (error: unknown) => {
-          // A request refused because the session died is not a deletion failure to explain; it
-          // is a login to perform.
-          if (isSessionExpired(error)) {
-            sessionSignOut();
-            router.replace('/login');
-          }
+        () => {
+          /*
+           * Held by the mutation and rendered in the sheet — including a 401.
+           *
+           * This screen used to check `isSessionExpired` and route to Login itself. It no longer
+           * has to: `handleSessionLoss` on the query client flips the session for any read or
+           * command that comes back UNAUTHENTICATED, and `SessionGate` in the root layout does
+           * the redirect. Keeping a second copy here would mean two places deciding the same
+           * thing, and it was only ever right on the screens that remembered to add it.
+           */
         },
       );
     }
-  }, [requestDeletion, sessionSignOut, sheet, signOut]);
+  }, [requestDeletion, sheet, signOut]);
 
   if (profile.isPending) return <LoadingState testID="profile-loading" />;
   if (profile.isError) {

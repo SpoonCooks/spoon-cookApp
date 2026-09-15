@@ -1,6 +1,6 @@
-import { QueryClientProvider } from '@tanstack/react-query';
+import { QueryClientProvider, useQueryClient } from '@tanstack/react-query';
 import { useFonts } from 'expo-font';
-import { Stack } from 'expo-router';
+import { Stack, router } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
@@ -51,6 +51,7 @@ export default function RootLayout(): React.ReactElement | null {
     <QueryClientProvider client={queryClient}>
       <TrackingBridge />
       <PushBridge />
+      <SessionGate />
       <SafeAreaProvider>
         <StatusBar style="dark" />
         <Stack
@@ -77,5 +78,34 @@ export default function RootLayout(): React.ReactElement | null {
 function PushBridge(): null {
   const isSignedIn = useSession(selectIsSignedIn);
   usePushNotifications(isSignedIn);
+  return null;
+}
+
+/**
+ * Sends the cook to Login the moment the session stops existing, wherever she is standing.
+ *
+ * The session can end under her feet rather than by her own tap: Ops finalizing her deletion
+ * request revokes every session she has, and so does an admin replacing her phone number. The
+ * next authenticated read then answers 401, `handleSessionLoss` flips the store, and this is what
+ * turns that into a screen she can act on instead of an error with a Retry that cannot work.
+ *
+ * Owning the redirect here rather than in `queries.ts` keeps the router out of the data layer,
+ * and means one rule covers every screen — including the ones added after this was written, which
+ * is exactly how the original per-screen version fell behind.
+ *
+ * The cache is dropped AFTER the redirect, not inside the error handler: by then the screens that
+ * would have refetched are unmounting, so nothing re-issues a request on behalf of a cook whose
+ * session is already gone.
+ */
+function SessionGate(): null {
+  const kind = useSession((state) => state.auth.kind);
+  const client = useQueryClient();
+
+  useEffect(() => {
+    if (kind !== 'signed_out') return;
+    router.replace('/login');
+    client.removeQueries();
+  }, [kind, client]);
+
   return null;
 }

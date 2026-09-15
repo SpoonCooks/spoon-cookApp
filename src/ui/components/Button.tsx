@@ -92,7 +92,24 @@ export function Button({
       {loading ? (
         <ActivityIndicator color={palette.text} />
       ) : (
-        <Text variant="titleBlack" color={palette.text}>
+        /*
+         * One line, shrunk to fit — never silently shortened.
+         *
+         * Without this, a label wider than the button's content box loses its trailing WORD: no
+         * wrap, no ellipsis, no warning. Two shipped labels were affected and neither was visible
+         * to a typecheck, a test or a reviewer reading the source, because nothing lays text out
+         * until it reaches a device. `/dev/not-found` drew "Jobs pe wapas" for
+         * `"Jobs pe wapas jaye"`, and the Profile row drew "Account delete" for
+         * `"Account delete kare"` — both also visibly off-centre, because the box was measured for
+         * the full string and then painted with less of it.
+         *
+         * `adjustsFontSizeToFit` only ever shrinks a label that would not otherwise fit, so every
+         * button that fits today is drawn at exactly the size it is drawn at now — verified
+         * against the V14 service screens on a handset, which were pixel-identical before and
+         * after. Losing a couple of points of type on an over-long label is a far better failure
+         * than losing a word of what it says.
+         */
+        <Text variant="titleBlack" color={palette.text} numberOfLines={1} adjustsFontSizeToFit>
           {label}
         </Text>
       )}

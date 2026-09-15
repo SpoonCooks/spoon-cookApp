@@ -14,6 +14,8 @@
 
 import { AppState } from 'react-native';
 import {
+  MutationCache,
+  QueryCache,
   QueryClient,
   focusManager,
   useMutation,
@@ -26,7 +28,7 @@ import {
 import { tearDownSession } from '../session/auth';
 import { useSession } from '../session/store';
 import * as api from './cook';
-import { isApiError } from './errors';
+import { isApiError, isSessionExpired } from './errors';
 import type {
   CookDeletionRequestResponse,
   CookEarningsPolicy,
@@ -82,8 +84,45 @@ focusManager.setEventListener((handleFocus) => {
   };
 });
 
+/**
+ * One place that notices the session is gone, for every read and every command.
+ *
+ * ## Why this is not per-screen
+ *
+ * It was. Four tab screens checked `isSessionExpired` on their own error and sent the cook to
+ * Login; Profile, Chutti, Niyam and both money detail screens did not, and simply drew an error
+ * with a Retry button. Retry cannot fix a revoked session, so those screens were a dead end — the
+ * cook's only way out was to kill the app.
+ *
+ * That gap stopped being theoretical with account deletion. When Ops finalizes a cook's request
+ * the backend revokes every session she has, so the next authenticated call from a handset that
+ * is still open answers `401 UNAUTHENTICATED`. Whether she is looking at Hazri or at Profile when
+ * that happens is chance, and it must not decide whether the app recovers.
+ *
+ * ## What it deliberately does not do
+ *
+ * It does not navigate, and it does not clear the cache. Flipping the session state is enough:
+ * `SessionGate` in the root layout owns the redirect, which keeps this module free of the router
+ * and keeps the decision in one place. Clearing the cache HERE would be worse than useless — it
+ * makes every mounted query refetch, each refetch 401s, and each 401 arrives back in this
+ * handler.
+ *
+ * It also says nothing about WHY. A revoked session, an expired one and a finalized deletion are
+ * the same 401 on the wire, and the app must not tell a cook her account was deleted on evidence
+ * that cannot distinguish it from her tokens ageing out.
+ */
+function handleSessionLoss(error: unknown): void {
+  if (!isSessionExpired(error)) return;
+  // `client.ts` has already cleared the keystore by this point: a 401 that survives a refresh
+  // attempt clears the stored session before it throws. This is the in-memory half.
+  if (useSession.getState().auth.kind === 'signed_out') return;
+  useSession.getState().signOut();
+}
+
 export function createQueryClient(): QueryClient {
   return new QueryClient({
+    queryCache: new QueryCache({ onError: handleSessionLoss }),
+    mutationCache: new MutationCache({ onError: handleSessionLoss }),
     defaultOptions: {
       queries: {
         retry: retryPolicy,

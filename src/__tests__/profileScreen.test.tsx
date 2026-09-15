@@ -120,17 +120,20 @@ describe('the two things a cook may do to the account itself', () => {
     expect(onOpenSheet).toHaveBeenLastCalledWith('delete');
   });
 
-  it('keeps the delete row short enough for a handset to draw all of it', () => {
+  it('asks in full, because the button no longer drops the end of a label', () => {
     /*
-     * A device-only failure, pinned here as intent rather than as a guarantee: this assertion
-     * cannot catch the truncation itself, because jsdom lays no text out. "Account delete kare"
-     * overflowed the row on a 1080x2400 handset and Fabric silently dropped `kare`, drawing a
-     * label that was both wrong and off-centre. Anyone lengthening this string has to change this
-     * line too, which is the moment to go and look at a real screen.
+     * This row read `Account delete` for a while — not by choice, but because the longer string
+     * overflowed the button and Fabric silently dropped `kare`. `Button` now shrinks an over-long
+     * label rather than shortening it, so the instruction is whole again.
+     *
+     * The assertion cannot see the truncation itself (jsdom lays no text out); it pins the COPY,
+     * so restoring the workaround would have to be a deliberate edit here too.
      */
     renderProfile(accountProps());
 
-    expect(screen.getByTestId('profile-delete').props.accessibilityLabel).toBe('Account delete');
+    expect(screen.getByTestId('profile-delete').props.accessibilityLabel).toBe(
+      'Account delete kare',
+    );
   });
 
   it('never acts on the first tap', () => {
