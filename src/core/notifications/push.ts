@@ -42,11 +42,17 @@
 
 import { Platform } from 'react-native';
 
-/** Cook-targeted `eventType` values, from `COOK_TEMPLATES` in `notification-dispatch.ts`. */
+/**
+ * Cook-targeted `eventType` values, from `COOK_TEMPLATES` in `notification-dispatch.ts`.
+ *
+ * `booking.assigned` is deliberately absent. It is a lifecycle-WEBHOOK event name, never an
+ * outbox `event_type`, so no push has ever carried it and listing it implied a message the
+ * backend cannot send; `assignment.committed` is the one that actually fires on a new job.
+ */
 export const cookPushEventTypes = [
   'assignment.committed',
-  'booking.assigned',
   'booking.reassigned',
+  'booking.rescheduled',
   'booking.cancelled',
   'booking.cook_arrived',
   'service.started',
@@ -65,6 +71,21 @@ export type CookPushEventType = (typeof cookPushEventTypes)[number];
 export const cookPushAlertKinds = ['start_alert', 'start_escalation'] as const;
 export type CookPushAlertKind = (typeof cookPushAlertKinds)[number];
 
+/**
+ * Every booking id Spoon issues is a uuid (`randomUUID` at insert), so anything else is not a
+ * booking id and must not reach a route.
+ *
+ * `deepLinkForPush` interpolates this straight into a path, and a non-empty-string check let
+ * `'../../admin'` through as `/service/../../admin` -- a route built out of a payload, which is
+ * the one thing this module's own contract says it never does. Nothing can send that today
+ * except the backend, and the guard costs a regex.
+ */
+const BOOKING_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function isBookingId(value: unknown): value is string {
+  return typeof value === 'string' && BOOKING_ID.test(value);
+}
+
 export type CookPushPayload =
   | { readonly kind: 'event'; readonly bookingId: string; readonly eventType: CookPushEventType }
   | { readonly kind: 'alert'; readonly bookingId: string; readonly alertKind: CookPushAlertKind };
@@ -81,7 +102,7 @@ export function parseCookPushPayload(data: unknown): CookPushPayload | null {
   const record = data as Record<string, unknown>;
 
   const bookingId = record.bookingId;
-  if (typeof bookingId !== 'string' || bookingId.length === 0) return null;
+  if (!isBookingId(bookingId)) return null;
 
   const alertKind = record.alertKind;
   if (typeof alertKind === 'string') {
@@ -113,9 +134,12 @@ export function deepLinkForPush(payload: CookPushPayload): string {
     case 'booking.cancelled':
     case 'booking.completed':
     case 'booking.reassigned':
+    // A rescheduled booking may not be this cook's any more -- the reschedule writes a new
+    // assignment and can land on someone else, so the previous holder is reached by the same
+    // push. Jobs reads the list fresh and shows whichever of those two she is.
+    case 'booking.rescheduled':
       return '/jobs';
     case 'assignment.committed':
-    case 'booking.assigned':
       return `/service/${payload.bookingId}`;
     case 'booking.cook_arrived':
     case 'service.started':
