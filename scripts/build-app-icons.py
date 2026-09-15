@@ -155,6 +155,32 @@ def centred(content: Image.Image, fraction: float) -> Image.Image:
     return out
 
 
+def band_background(tile: Image.Image) -> Image.Image:
+    """
+    The tile's own two bands, extended to the full canvas.
+
+    Supplied as the adaptive BACKGROUND layer so the colour reaches the mask's edge. Without it
+    the background is a flat yellow and the tile reads as a lime rectangle floating on a yellow
+    disc — plainly visible at real launcher size under a circular mask, and the reason this layer
+    exists at all.
+
+    The split is placed where the FOREGROUND tile's own split lands once it is inset to TILE_DP,
+    so the two layers line up and the tile's rounded corners stop being an edge: the same colour
+    continues past them.
+    """
+    boundary_fraction = yellow_band_top(tile) / tile.height
+    inset_top = (1 - TILE_DP / 108) / 2 * CANVAS
+    split = round(inset_top + boundary_fraction * (TILE_DP / 108) * CANVAS)
+
+    pixels = tile.convert("RGBA").load()
+    lime = pixels[tile.width // 2, yellow_band_top(tile) - 40][:3] + (255,)
+    yellow = pixels[tile.width // 2, yellow_band_top(tile) + 40][:3] + (255,)
+
+    out = Image.new("RGBA", (CANVAS, CANVAS), lime)
+    out.paste(Image.new("RGBA", (CANVAS, CANVAS - split), yellow), (0, split))
+    return out
+
+
 def main() -> None:
     tile = squared(Image.open(SOURCE).convert("RGBA"))
     print(f"source ink reaches {ink_radius_fraction(tile):.3f} x half-width")
@@ -162,9 +188,11 @@ def main() -> None:
     tile.resize((CANVAS, CANVAS), Image.LANCZOS).save(SOURCE)
     print(f"wrote {SOURCE.relative_to(ROOT)} ({CANVAS}x{CANVAS}, squared)")
 
-    foreground = centred(tile, TILE_DP / 108)
-    foreground.save(IMAGES / "android-icon-foreground.png")
+    centred(tile, TILE_DP / 108).save(IMAGES / "android-icon-foreground.png")
     print(f"wrote android-icon-foreground.png (tile at {TILE_DP}dp of 108)")
+
+    band_background(tile).save(IMAGES / "android-icon-background.png")
+    print("wrote android-icon-background.png (bands bled to the canvas edge)")
 
     mark = mark_only(tile)
     # 0.96 of the limit, so a rounding difference in a launcher's mask cannot shave the wordmark.

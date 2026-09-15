@@ -184,6 +184,18 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
        * yellow.
        */
       foregroundImage: './assets/images/android-icon-foreground.png',
+      /*
+       * A background IMAGE, not just the colour.
+       *
+       * With a flat yellow behind it the inset tile reads as a lime rectangle floating on a
+       * yellow disc — obvious at real launcher size under a circular mask, where the tile's
+       * straight sides and rounded corners both show. This layer carries the tile's own two bands
+       * extended to the canvas edge, aligned to the split in the foreground, so the colour
+       * continues past the tile's corners and the icon reads as one shape.
+       *
+       * `backgroundColor` stays as the fallback for anything that does not take an image.
+       */
+      backgroundImage: './assets/images/android-icon-background.png',
       backgroundColor: BRAND_YELLOW,
       // Themed icons: the launcher tints this by its own palette, so it is an alpha shape and
       // its colour is discarded. Absent, Android shrinks the full-colour icon into the themed
