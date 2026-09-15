@@ -9,7 +9,7 @@ import {
   toDailyHoursView,
   toEarningsPeriodView,
 } from '@core/api/adapters';
-import { apiErrorMessage, isSessionExpired } from '@core/api/errors';
+import { apiErrorMessage } from '@core/api/errors';
 import { useAttendanceRange, useCookProfile, useEarnings } from '@core/api/queries';
 import {
   earningsPeriodLabels,
@@ -17,7 +17,6 @@ import {
   type EarningsPeriod,
   type RatingView,
 } from '@core/domain/money';
-import { useSession } from '@core/session/store';
 import { MoneyPeriodView } from '@features/performance/PerformanceViews';
 import { ErrorState, LoadingState, type DayStripEntry } from '@ui';
 
@@ -53,7 +52,6 @@ import { ErrorState, LoadingState, type DayStripEntry } from '@ui';
  * real `startDate`/`endDate` beneath it rather than implying 28 days were measured.
  */
 export default function MoneyScreen(): React.ReactElement {
-  const signOut = useSession((s) => s.signOut);
   const [period, setPeriod] = useState<EarningsPeriod>('day');
 
   const earnings = useEarnings();
@@ -120,10 +118,17 @@ export default function MoneyScreen(): React.ReactElement {
   if (earnings.isPending) return <LoadingState testID="money-loading" />;
 
   if (earnings.isError) {
-    if (isSessionExpired(earnings.error)) {
-      signOut();
-      router.replace('/login');
-    }
+    /*
+     * No session check here.
+     *
+     * This screen used to call `signOut()` and `router.replace('/login')` from inside its own
+     * render when a read came back UNAUTHENTICATED. It worked, but it navigated DURING render —
+     * React's "Cannot update a component while rendering a different component" — and it only
+     * ever covered the handful of screens somebody remembered to add it to.
+     *
+     * `handleSessionLoss` on the query client now flips the session for any read or command that
+     * 401s, and `SessionGate` in the root layout performs the redirect from an effect.
+     */
     return (
       <ErrorState
         message={apiErrorMessage(earnings.error)}

@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { toServiceSnapshot } from '@core/api/adapters';
 import { getCustomerContact, newIdempotencyKey } from '@core/api/cook';
-import { apiErrorMessage, isApiError, isSessionExpired } from '@core/api/errors';
+import { apiErrorMessage, isApiError } from '@core/api/errors';
 import {
   useJob,
   useMarkArrived,
@@ -17,7 +17,6 @@ import { isNavigableGate, openGateNavigation } from '@core/location/navigation';
 import { locationTracker } from '@core/location/tracker';
 import { otpLength } from '@core/domain/otp';
 import { projectServiceState, type ServiceState } from '@core/domain/serviceState';
-import { useSession } from '@core/session/store';
 import { BottomNav, ErrorState, LoadingState } from '@ui';
 import { InterruptedView } from '@features/service/ServiceViews';
 import {
@@ -66,7 +65,6 @@ export default function ServiceScreen(): React.ReactElement {
   const insets = useSafeAreaInsets();
   const { bookingId } = useLocalSearchParams<{ bookingId?: string }>();
   const id = bookingId ?? '';
-  const signOut = useSession((s) => s.signOut);
 
   const job = useJob(id, id.length > 0, POLL_MS);
 
@@ -157,11 +155,6 @@ export default function ServiceScreen(): React.ReactElement {
         await Linking.openURL(`tel:${customer.phone.replace(/[^\d+]/g, '')}`);
         setCallError(null);
       } catch (error) {
-        if (isSessionExpired(error)) {
-          signOut();
-          router.replace('/login');
-          return;
-        }
         setCallError(
           isApiError(error) && error.code === 'RESOURCE_NOT_FOUND'
             ? 'Customer ka number abhi nahi mil raha.'
@@ -171,7 +164,7 @@ export default function ServiceScreen(): React.ReactElement {
         setCalling(false);
       }
     })();
-  }, [calling, id, signOut]);
+  }, [calling, id]);
 
   /* -------------------------------------------------- extension countdown --- */
 
@@ -352,10 +345,17 @@ export default function ServiceScreen(): React.ReactElement {
   }
   if (job.isPending) return <LoadingState testID="service-loading" />;
   if (job.isError) {
-    if (isSessionExpired(job.error)) {
-      signOut();
-      router.replace('/login');
-    }
+    /*
+     * No session check here.
+     *
+     * This screen used to call `signOut()` and `router.replace('/login')` from inside its own
+     * render when a read came back UNAUTHENTICATED. It worked, but it navigated DURING render —
+     * React's "Cannot update a component while rendering a different component" — and it only
+     * ever covered the handful of screens somebody remembered to add it to.
+     *
+     * `handleSessionLoss` on the query client now flips the session for any read or command that
+     * 401s, and `SessionGate` in the root layout performs the redirect from an effect.
+     */
     return (
       <ErrorState
         message={apiErrorMessage(job.error)}

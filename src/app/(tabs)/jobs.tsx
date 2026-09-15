@@ -4,11 +4,10 @@ import { RefreshControl, StyleSheet, View } from 'react-native';
 
 import { toJobCard } from '@core/api/adapters';
 import { newIdempotencyKey } from '@core/api/cook';
-import { apiErrorMessage, isAssignmentChanged, isSessionExpired } from '@core/api/errors';
+import { apiErrorMessage, isAssignmentChanged } from '@core/api/errors';
 import { useCookProfile, useJobs, useStartCommute } from '@core/api/queries';
 import type { JobCardModel } from '@core/domain/job';
 import { locationTracker, type TrackingState } from '@core/location/tracker';
-import { useSession } from '@core/session/store';
 import { formatLocalTime } from '@features/leave/leaveModel';
 import { JobsView, type BreakWindowModel } from '@features/jobs/JobViews';
 import { color, EmptyState, ErrorState, LoadingState, spacing, Text } from '@ui';
@@ -40,8 +39,6 @@ import { openSupportWhatsApp } from '@core/support/whatsapp';
  * starting travel to a job that is no longer theirs.
  */
 export default function JobsScreen(): React.ReactElement {
-  const signOut = useSession((s) => s.signOut);
-
   const [submittingId, setSubmittingId] = useState<string | null>(null);
   const [commandError, setCommandError] = useState<string | null>(null);
   // One key per booking, so a retry of the same intent replays rather than double-commands.
@@ -129,10 +126,17 @@ export default function JobsScreen(): React.ReactElement {
   if (jobs.isPending || profile.isPending) return <LoadingState testID="jobs-loading" />;
 
   if (jobs.isError) {
-    if (isSessionExpired(jobs.error)) {
-      signOut();
-      router.replace('/login');
-    }
+    /*
+     * No session check here.
+     *
+     * This screen used to call `signOut()` and `router.replace('/login')` from inside its own
+     * render when a read came back UNAUTHENTICATED. It worked, but it navigated DURING render —
+     * React's "Cannot update a component while rendering a different component" — and it only
+     * ever covered the handful of screens somebody remembered to add it to.
+     *
+     * `handleSessionLoss` on the query client now flips the session for any read or command that
+     * 401s, and `SessionGate` in the root layout performs the redirect from an effect.
+     */
     return (
       <ErrorState
         message={apiErrorMessage(jobs.error)}
