@@ -21,10 +21,14 @@
  *
  * ## Transcription
  *
- * `terms` is transcribed from `Spoon - Customer Terms of Service.pdf` and `privacy` from
- * `Spoon - Cook Partner Privacy Policy.pdf`, both "Last Updated: September 1, 2026". The wording
- * is verbatim: legal copy is not paraphrased, tidied or abridged here, and the section numbering
- * is the source's own so a cook quoting "clause 5" means what Legal means.
+ *   `terms` is transcribed from `Spoon - Customer Terms of Service.pdf` and `privacy` from
+  * `Spoon - Cook Partner Privacy Policy.pdf`. The Privacy Policy PDF is corrected (retention and
+   * deletion language rewritten to describe the actual Ops-reviewed flow) and now public, at
+    * "Last Updated: September 15, 2026". The Terms of Service PDF has unchanged content but is
+     * confirmed at "Last Updated: May 1, 2026" and remains restricted (owner and two named
+      * collaborators only). The wording is verbatim: legal copy is not paraphrased, tidied or
+       * abridged here, and the section numbering is the source's own so a cook quoting "clause 5"
+        * means what Legal means..
  *
  * WHEN THE DOCUMENTS CHANGE: replace the block arrays and update `updated`. Nothing else reads
  * the date, so the two cannot drift apart.
@@ -372,7 +376,7 @@ const PRIVACY_BLOCKS: readonly LegalBlock[] = [
   { kind: 'section', text: '6. DATA RETENTION' },
   {
     kind: 'paragraph',
-    text: 'We retain your personal data for as long as your Cook Partner account is active. Earnings records and financial data are retained for 7 years for tax compliance. Account deletion requests are processed within 30 days, subject to legally required retentions. Aggregated, anonymised performance data may be retained indefinitely.',
+        text: 'We retain your personal data for as long as your Cook Partner account is active. Earnings records and financial data are retained for 8 years as required by Indian tax law. Account deletion requests are reviewed by Spoon and are typically processed within 30 days, subject to legally required retentions. Aggregated, anonymised performance data may be retained indefinitely.',
   },
 
   { kind: 'section', text: '7. YOUR RIGHTS' },
@@ -389,7 +393,7 @@ const PRIVACY_BLOCKS: readonly LegalBlock[] = [
   { kind: 'subheading', text: 'Right to deletion' },
   {
     kind: 'paragraph',
-    text: 'You may request deletion of your account and associated data, processed within 30 days subject to legally required retentions.',
+        text: 'You may request deletion of your account and associated data at any time. Requests are reviewed by Spoon and, once approved, your account and personal data are removed; this is typically completed within 30 days, subject to legally required retentions.',
   },
   { kind: 'subheading', text: 'How to exercise your rights' },
   {
@@ -440,7 +444,7 @@ export const LEGAL_DOCUMENTS: Readonly<Record<LegalDocumentId, LegalDocument>> =
   terms: {
     title: 'Customer Terms of Service',
     tagline: 'The terms that govern your use of the Spoon platform',
-    updated: `Last Updated: September 1, 2026 · ${ENTITY} · ${CONTACT_EMAIL}`,
+        updated: `Last Updated: May 1, 2026 · ${ENTITY} · ${CONTACT_EMAIL}`,
     blocks: TERMS_BLOCKS,
     closing:
       'By using Spoon, you acknowledge that you have read, understood, and agree to be bound by these Terms of Service.',
@@ -448,7 +452,7 @@ export const LEGAL_DOCUMENTS: Readonly<Record<LegalDocumentId, LegalDocument>> =
   privacy: {
     title: 'Cook Partner Privacy Policy',
     tagline: 'How we collect, use, and protect your personal information',
-    updated: `Last Updated: September 1, 2026 · ${ENTITY} · ${CONTACT_EMAIL}`,
+        updated: `Last Updated: September 15, 2026 · ${ENTITY} · ${CONTACT_EMAIL}`,
     blocks: PRIVACY_BLOCKS,
     closing:
       'By registering as a Cook Partner on Spoon, you consent to the collection and use of your information as described in this Privacy Policy.',
