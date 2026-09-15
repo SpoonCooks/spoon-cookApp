@@ -63,6 +63,12 @@ describe('parseCookPushPayload', () => {
     ['an unknown event type', { bookingId: BOOKING, eventType: 'booking.exploded' }],
     ['a non-string bookingId', { bookingId: 42, eventType: 'booking.cancelled' }],
     ['a customer-only event', { bookingId: BOOKING, eventType: 'booking.cook_en_route' }],
+    // `booking.assigned` is a lifecycle-webhook name the outbox never emits. It was listed here
+    // as a cook template, which implied a push the backend has never been able to send.
+    ['booking.assigned, which no outbox event carries', { bookingId: BOOKING, eventType: 'booking.assigned' }],
+    // A route is interpolated from this value, so a non-empty string is not enough.
+    ['a bookingId that is not a uuid', { bookingId: '../../admin', eventType: 'booking.cancelled' }],
+    ['a bookingId with trailing space', { bookingId: `${BOOKING} `, eventType: 'service.started' }],
   ])('ignores %s', (_label, data) => {
     expect(parseCookPushPayload(data)).toBeNull();
   });
@@ -75,7 +81,14 @@ describe('deepLinkForPush', () => {
     );
   });
 
-  it.each(['booking.cancelled', 'booking.completed', 'booking.reassigned'] as const)(
+  it.each([
+    'booking.cancelled',
+    'booking.completed',
+    'booking.reassigned',
+    // A rescheduled booking reaches the cook who now holds it AND the one it was taken from.
+    // Only Jobs can show each of them what is actually true.
+    'booking.rescheduled',
+  ] as const)(
     'sends %s to Jobs rather than a service screen that assumes an active assignment',
     (eventType) => {
       expect(deepLinkForPush({ kind: 'event', bookingId: BOOKING, eventType })).toBe('/jobs');
