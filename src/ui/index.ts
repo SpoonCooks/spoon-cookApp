@@ -19,6 +19,9 @@ export type { OtpInputProps, OtpInputVariant } from './components/OtpInput';
 export { JobCard, formatClockTime } from './components/JobCard';
 export type { JobCardProps, JobCardVariant } from './components/JobCard';
 
+export { ConfirmSheet } from './components/ConfirmSheet';
+export type { ConfirmSheetProps, ConfirmSheetTone } from './components/ConfirmSheet';
+
 export { LoadingState, ErrorState, EmptyState } from './components/states';
 export type { ErrorStateProps } from './components/states';
 

@@ -3,9 +3,8 @@ import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { newIdempotencyKey } from '@core/api/cook';
-import { apiErrorMessage, isSessionExpired } from '@core/api/errors';
+import { apiErrorMessage } from '@core/api/errors';
 import { useCookProfile, useMarkPresent } from '@core/api/queries';
-import { useSession } from '@core/session/store';
 import {
   AbsentView,
   DailyLogInView,
@@ -165,8 +164,6 @@ function isShiftFinished(serverTimeIso: string, endLocalTime: string): boolean {
 }
 
 export default function AttendanceScreen(): React.ReactElement {
-  const signOut = useSession((s) => s.signOut);
-
   // One key per mount: a double-tap or a post-timeout retry replays the SAME command.
   const [idempotencyKey] = useState(newIdempotencyKey);
 
@@ -176,10 +173,17 @@ export default function AttendanceScreen(): React.ReactElement {
   if (profile.isPending) return <LoadingState testID="attendance-loading" />;
 
   if (profile.isError) {
-    if (isSessionExpired(profile.error)) {
-      signOut();
-      router.replace('/login');
-    }
+    /*
+     * No session check here.
+     *
+     * This screen used to call `signOut()` and `router.replace('/login')` from inside its own
+     * render when a read came back UNAUTHENTICATED. It worked, but it navigated DURING render —
+     * React's "Cannot update a component while rendering a different component" — and it only
+     * ever covered the handful of screens somebody remembered to add it to.
+     *
+     * `handleSessionLoss` on the query client now flips the session for any read or command that
+     * 401s, and `SessionGate` in the root layout performs the redirect from an effect.
+     */
     return (
       <ErrorState
         message={apiErrorMessage(profile.error)}
@@ -293,7 +297,12 @@ export default function AttendanceScreen(): React.ReactElement {
       */}
       {markPresent.isError && (
         <View style={styles.notice} testID="attendance-notice">
-          <Text variant="caption" align="center" color={color.danger} testID="attendance-mark-error">
+          <Text
+            variant="caption"
+            align="center"
+            color={color.danger}
+            testID="attendance-mark-error"
+          >
             {apiErrorMessage(markPresent.error)}
           </Text>
         </View>

@@ -51,6 +51,31 @@ describe('cookProfileSchema against the deployed backend', () => {
     expect(result.success ? null : result.error.issues).toBeNull();
   });
 
+  it('reads an open deletion request when the backend sends one', () => {
+    const payload = {
+      ...LIVE_PAYLOAD_2026_08_27,
+      deletionRequest: { requestedAt: '2026-09-13T20:41:07.912Z' },
+    };
+    const result = cookProfileSchema.safeParse(payload);
+
+    expect(result.success ? result.data.deletionRequest : null).toEqual({
+      requestedAt: '2026-09-13T20:41:07.912Z',
+    });
+  });
+
+  it('still parses a payload from a backend that has never heard of one', () => {
+    /*
+     * The same lockout this file was written for, one field later. `deletionRequest` ships with
+     * the backend's cook-deletion work, and this schema gates Hazri, Kaam AND Paisa — making it
+     * required would lock every cook out of the whole app the moment the API is a release behind
+     * the binary. The payload above is exactly such a backend, verbatim.
+     */
+    const result = cookProfileSchema.safeParse(LIVE_PAYLOAD_2026_08_27);
+
+    expect(result.success).toBe(true);
+    expect(result.success ? (result.data.deletionRequest ?? null) : 'unparsed').toBeNull();
+  });
+
   it('accepts both the pre-split and the split attendance reason codes', () => {
     for (const reason of ['ALREADY_CHECKED_IN', 'MARKED_PRESENT_BY_ADMIN', 'COOK_CHECKED_IN']) {
       const payload = {
