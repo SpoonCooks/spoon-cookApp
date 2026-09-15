@@ -120,6 +120,19 @@ describe('the two things a cook may do to the account itself', () => {
     expect(onOpenSheet).toHaveBeenLastCalledWith('delete');
   });
 
+  it('keeps the delete row short enough for a handset to draw all of it', () => {
+    /*
+     * A device-only failure, pinned here as intent rather than as a guarantee: this assertion
+     * cannot catch the truncation itself, because jsdom lays no text out. "Account delete kare"
+     * overflowed the row on a 1080x2400 handset and Fabric silently dropped `kare`, drawing a
+     * label that was both wrong and off-centre. Anyone lengthening this string has to change this
+     * line too, which is the moment to go and look at a real screen.
+     */
+    renderProfile(accountProps());
+
+    expect(screen.getByTestId('profile-delete').props.accessibilityLabel).toBe('Account delete');
+  });
+
   it('never acts on the first tap', () => {
     // Both are irreversible from inside the app — a logout costs an OTP to undo, and a deletion
     // request goes to a queue the cook cannot see — so neither row is wired to the action itself.

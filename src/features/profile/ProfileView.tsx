@@ -182,7 +182,22 @@ export function ProfileView({
 
           {account.deletionRequestedAt === null ? (
             <Button
-              label="Account delete kare"
+              /*
+               * "Account delete", not "Account delete kare" — which is what it said until a
+               * handset showed otherwise.
+               *
+               * At the row's width the longer string overflows the Button's content box, and
+               * Fabric resolves that by dropping the trailing word: the screen drew "Account
+               * delete" inside a box measured for the full string, so the label was also visibly
+               * left of centre while `Logout` beside it was centred. No wrap, no ellipsis, no
+               * warning — the same silent word-drop `Text` documents for uppercase, arrived at by
+               * a different route.
+               *
+               * The row is a label, not an instruction: `Logout` above it is a bare noun too, and
+               * the sheet this opens carries the full sentence. Keep it short — a longer one
+               * cannot be caught by a test, only by looking at a device.
+               */
+              label="Account delete"
               tone="ghost"
               style={styles.deleteRow}
               onPress={() => {
