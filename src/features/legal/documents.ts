@@ -21,10 +21,12 @@
  *
  * ## Transcription
  *
- * `terms` is transcribed from `Spoon - Customer Terms of Service.pdf` and `privacy` from
- * `Spoon - Cook Partner Privacy Policy.pdf`, both "Last Updated: September 1, 2026". The wording
- * is verbatim: legal copy is not paraphrased, tidied or abridged here, and the section numbering
- * is the source's own so a cook quoting "clause 5" means what Legal means.
+ *  `terms` is transcribed from `Spoon - Customer Terms of Service.pdf` and `privacy` from
+  * `Spoon - Cook Partner Privacy Policy.pdf`. The Cook Partner Privacy Policy PDF is confirmed at
+   * "Last Updated: September 15, 2026" and now lives at a public URL; the Terms of Service PDF's
+    * date has not yet been reconciled the same way. The wording is verbatim: legal copy is not
+     * paraphrased, tidied or abridged here, and the section numbering is the source's own so a cook
+      * quoting "clause 5" means what Legal means.
  *
  * WHEN THE DOCUMENTS CHANGE: replace the block arrays and update `updated`. Nothing else reads
  * the date, so the two cannot drift apart.
@@ -448,7 +450,7 @@ export const LEGAL_DOCUMENTS: Readonly<Record<LegalDocumentId, LegalDocument>> =
   privacy: {
     title: 'Cook Partner Privacy Policy',
     tagline: 'How we collect, use, and protect your personal information',
-    updated: `Last Updated: September 1, 2026 · ${ENTITY} · ${CONTACT_EMAIL}`,
+        updated: `Last Updated: September 15, 2026 · ${ENTITY} · ${CONTACT_EMAIL}`,
     blocks: PRIVACY_BLOCKS,
     closing:
       'By registering as a Cook Partner on Spoon, you consent to the collection and use of your information as described in this Privacy Policy.',
