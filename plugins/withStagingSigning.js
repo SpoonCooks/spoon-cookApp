@@ -23,12 +23,22 @@ const { withAppBuildGradle } = require('expo/config-plugins');
  * internal builds so they are consistent and upgradable, and it is not, and must never become, a
  * production release key.
  *
- * ## Fail-soft, deliberately
+ * ## Fail-soft, deliberately — but never quietly
  *
- * When the properties are absent the config is not emitted at all and `release` keeps Expo's debug
+ * When the properties are absent the config is not emitted and `release` keeps Expo's debug
  * signing. A contributor who has never set up the staging key can still run a release build; they
- * simply get an unsigned-for-staging artifact rather than a cryptic Gradle failure about a
- * keystore they were never told about.
+ * get an artifact rather than a cryptic Gradle failure about a keystore they were never told
+ * about. That part is on purpose and is unchanged.
+ *
+ * What was wrong was the SILENCE. `assembleRelease` printed nothing about which key it used, so a
+ * debug-signed `app-release.apk` is indistinguishable from a real one by looking at it — same
+ * name, same path, same build output. Play rejects it on upload, but only after someone has
+ * treated it as the build of record and handed it around.
+ *
+ * So the fallback stays and announces itself: every release assembly now prints which key signed
+ * it, and the debug case says plainly that the artifact cannot go to Play. Printing rather than
+ * throwing keeps EAS working — it supplies its own credentials and defines none of these
+ * properties, so a throw here would break exactly the builds that are signed correctly.
  */
 const STAGING_SIGNING_CONFIG = `
     // Injected by plugins/withStagingSigning.js — test-only staging identity, never production.
@@ -42,6 +52,26 @@ const STAGING_SIGNING_CONFIG = `
     }
 `;
 
+/** Present only in this plugin's output, so it doubles as the has-this-already-run marker. */
+const SIGNING_MARKER = '[spoon-signing]';
+
+/**
+ * The `release` buildType's signing choice, which states itself out loud.
+ *
+ * `println` runs at Gradle CONFIGURATION time, so the line appears near the top of the build
+ * output for every release assembly — including one that fails later for an unrelated reason.
+ */
+const RELEASE_SIGNING_CHOICE = `if (project.hasProperty('SPOON_STAGING_STORE_FILE')) {
+        signingConfig signingConfigs.stagingRelease
+        println '[spoon-signing] release APK signed with the STAGING key: ' + SPOON_STAGING_STORE_FILE
+      } else {
+        signingConfig signingConfigs.debug
+        println '[spoon-signing] WARNING: release APK signed with the shared ANDROID DEBUG KEY.'
+        println '[spoon-signing] It is NOT uploadable to Play and is not a build of record.'
+        println '[spoon-signing] Set SPOON_STAGING_STORE_FILE (and _PASSWORD/_KEY_ALIAS/_KEY_PASSWORD)'
+        println '[spoon-signing] in ~/.gradle/gradle.properties to sign it properly.'
+      }`;
+
 function addSigningConfig(contents) {
   if (contents.includes('stagingRelease {')) return contents;
   const anchor = 'signingConfigs {';
@@ -52,16 +82,22 @@ function addSigningConfig(contents) {
 }
 
 function useSigningConfigForRelease(contents) {
+  /*
+   * Idempotent, and it has to be stated rather than assumed: `prebuild` WITHOUT `--clean` applies
+   * mods to the existing `build.gradle`, so this can see its own output. The replacement text
+   * contains `signingConfig signingConfigs.debug` in its else branch, which a second pass would
+   * happily rewrite into a nested copy of itself. (The ternary this replaced was accidentally
+   * immune — it never contained that exact substring — so the hazard arrived with the warning.)
+   */
+  if (contents.includes(SIGNING_MARKER)) return contents;
+
   // Only the `release` buildType's assignment is rewritten. `debug` keeps Expo's debug signing so
   // `assembleDebug` and the Metro workflow are untouched.
   const releaseAt = contents.indexOf('release {');
   if (releaseAt === -1) throw new Error('withStagingSigning: no release buildType');
   const head = contents.slice(0, releaseAt);
   const tail = contents.slice(releaseAt);
-  const replaced = tail.replace(
-    'signingConfig signingConfigs.debug',
-    "signingConfig project.hasProperty('SPOON_STAGING_STORE_FILE') ? signingConfigs.stagingRelease : signingConfigs.debug",
-  );
+  const replaced = tail.replace('signingConfig signingConfigs.debug', RELEASE_SIGNING_CHOICE);
   return head + replaced;
 }
 
@@ -74,3 +110,9 @@ module.exports = function withStagingSigning(config) {
     return mod;
   });
 };
+
+// Exported for `src/__tests__/stagingSigningPlugin.test.ts`, which exercises the string transform
+// directly: a regression here is otherwise only visible in a release build nobody runs by habit.
+module.exports.addSigningConfig = addSigningConfig;
+module.exports.useSigningConfigForRelease = useSigningConfigForRelease;
+module.exports.RELEASE_SIGNING_CHOICE = RELEASE_SIGNING_CHOICE;
