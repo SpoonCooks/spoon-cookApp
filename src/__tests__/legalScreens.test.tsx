@@ -7,8 +7,8 @@ import { LEGAL_DOCUMENTS } from '@features/legal/documents';
  * `/legal/terms` and `/legal/privacy` — the documents the login screen links to.
  *
  * These assert the CONTRACT of the screen: the right document renders for the right parameter,
-  * the published date is each document's own real revision - May 1, 2026 for Terms, September 15,
-   * 2026 for Privacy - and the copy is the source's ownn
+ * the published date is each document's own real revision - September 15, 2026 for both, the day
+ * each PDF was last republished - and the copy is the source's own
  * wording rather than a paraphrase (spot-checked on lines that would be the first casualties of a
  * tidy-up).
  */
@@ -32,12 +32,12 @@ beforeEach(() => {
 });
 
 describe('the two bundled documents', () => {
-    it('carries the real revision date for each document, not the September 1 placeholder', () => {
-        expect(LEGAL_DOCUMENTS.terms.updated).toContain('May 1, 2026');
-        expect(LEGAL_DOCUMENTS.privacy.updated).toContain('September 15, 2026');
-        const everything = JSON.stringify(LEGAL_DOCUMENTS);
-        expect(everything).not.toContain('September 1, 2026');
-});
+  it('carries the real revision date for each document, not the September 1 placeholder', () => {
+    expect(LEGAL_DOCUMENTS.terms.updated).toContain('September 15, 2026');
+    expect(LEGAL_DOCUMENTS.privacy.updated).toContain('September 15, 2026');
+    const everything = JSON.stringify(LEGAL_DOCUMENTS);
+    expect(everything).not.toContain('September 1, 2026');
+  });
 });
 
 describe('/legal/terms', () => {
@@ -46,7 +46,7 @@ describe('/legal/terms', () => {
     render(<LegalDocumentRoute />);
     expect(screen.getByText('Customer Terms of Service')).toBeTruthy();
     expect(screen.getByTestId('legal-updated')).toHaveTextContent(
-              /Last Updated: May 1, 2026/,
+      /Last Updated: September 15, 2026/,
     );
     // Verbatim spot-checks, one per kind of block.
     expect(screen.getByText('1. ABOUT THESE TERMS')).toBeTruthy();
