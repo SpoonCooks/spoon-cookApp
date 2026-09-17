@@ -65,6 +65,39 @@ The app prints the resolved URL at startup outside production:
 
 Check that line before you trust where your traffic is going.
 
+## Releasing
+
+```sh
+npm run android:bundle     # the Play artifact: an AAB, every ABI
+npm run android:release    # an APK for a handset, arm64 only — faster, NOT for Play
+```
+
+`android:bundle` produces `android/app/build/outputs/bundle/release/app-release.aab`, which is
+what Play accepts for a new app; it splits per device itself, so a second architecture costs
+nothing at download.
+
+It builds `arm64-v8a,armeabi-v7a` — the two architectures real phones use. `x86` and `x86_64` are
+emulators, and including them cost 16 minutes and ran a 228 GB disk out of space before the build
+reached the bundle step. `armeabi-v7a` is the one that matters: without it every 32-bit handset is
+excluded, which is a real slice of entry-level Android in India.
+
+`android:release` stays pinned to `arm64-v8a` alone because it exists to get a build onto a test
+handset quickly — it excludes 32-bit phones and must not be shipped.
+
+Both print which key signed them. Anything that says `ANDROID DEBUG KEY` cannot be uploaded:
+
+```
+[spoon-signing] release signed with the PLAY UPLOAD key: /Users/…/spoon-cook-upload.jks
+```
+
+The upload key lives OUTSIDE this repo — `SPOON_UPLOAD_STORE_FILE` and its three companions are
+read from `~/.gradle/gradle.properties`. **Back up both the `.jks` and those values.** Google
+re-signs with the app signing key it holds; this one only proves the upload came from us, and
+losing it means going through Play's upload-key reset.
+
+`versionCode` defaults to the build date times ten (`202609170`), so it rises on its own. For a
+second upload on the same day set `SPOON_VERSION_CODE=202609171`.
+
 ## Verifying
 
 ```sh

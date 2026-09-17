@@ -120,6 +120,20 @@ function buildProvenance(runtimeVersion: ExpoConfig['runtimeVersion']) {
   } as const;
 }
 
+function resolveVersionCode(): number {
+  const explicit = process.env.SPOON_VERSION_CODE;
+  if (explicit !== undefined && explicit.length > 0) {
+    const parsed = Number(explicit);
+    if (!Number.isInteger(parsed) || parsed < 1) {
+      throw new Error(`SPOON_VERSION_CODE must be a positive integer, got "${explicit}".`);
+    }
+    return parsed;
+  }
+  const now = new Date();
+  const day = now.getFullYear() * 10000 + (now.getMonth() + 1) * 100 + now.getDate();
+  return day * 10;
+}
+
 function resolveApiBaseUrl(): string | undefined {
   const explicit = process.env.EXPO_PUBLIC_API_BASE_URL;
   if (explicit !== undefined && explicit.length > 0) return explicit;
@@ -154,6 +168,20 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   scheme: 'spooncook',
   version: '0.1.0',
   /*
+   * Play refuses a second upload at a versionCode it has already seen, and this was unset — which
+   * means 1, for every build forever. The first upload would have worked and the second would have
+   * been rejected with nothing in the repo explaining why.
+   *
+   * The default is the build DATE times ten: `20260917` becomes `202609170`. It rises on its own
+   * without anybody remembering to bump it, it is legible in Play Console (you can read the day a
+   * build came from), and it stays under Play's 2,100,000,000 ceiling until the year 2100.
+   *
+   * The trailing digit is room for up to ten uploads in one day: set `SPOON_VERSION_CODE` to
+   * `202609171` for the second build on the 17th. An explicit value always wins, so CI can supply
+   * its own scheme without touching this.
+   */
+
+  /*
    * The source tile, and the origin of both Android layers below.
    *
    * All three are written by `scripts/build-app-icons.py` in THIS repo — run it after replacing
@@ -171,6 +199,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   assetBundlePatterns: ['**/*'],
   android: {
     package: BUNDLE_ID,
+    versionCode: resolveVersionCode(),
     googleServicesFile: GOOGLE_SERVICES_JSON,
     adaptiveIcon: {
       /*

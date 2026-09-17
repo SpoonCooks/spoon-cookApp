@@ -1,7 +1,8 @@
 const { withAppBuildGradle } = require('expo/config-plugins');
 
 /**
- * Sign staging release builds with a dedicated test-only key.
+ * Sign release builds with a real key — the Play upload key where one exists, a staging key
+ * otherwise, and never silently with neither.
  *
  * ## Why this plugin has to exist
  *
@@ -41,7 +42,19 @@ const { withAppBuildGradle } = require('expo/config-plugins');
  * properties, so a throw here would break exactly the builds that are signed correctly.
  */
 const STAGING_SIGNING_CONFIG = `
-    // Injected by plugins/withStagingSigning.js — test-only staging identity, never production.
+    // Injected by plugins/withStagingSigning.js.
+    // The PLAY UPLOAD identity. Google re-signs with the app signing key it holds; this is only
+    // what proves the upload came from us, so it is the one that must never be the debug key.
+    uploadRelease {
+      if (project.hasProperty('SPOON_UPLOAD_STORE_FILE')) {
+        storeFile file(SPOON_UPLOAD_STORE_FILE)
+        storePassword SPOON_UPLOAD_STORE_PASSWORD
+        keyAlias SPOON_UPLOAD_KEY_ALIAS
+        keyPassword SPOON_UPLOAD_KEY_PASSWORD
+      }
+    }
+    // A test-only staging identity, never production. Kept so internal builds stay consistent and
+    // mutually upgradable on a machine that has no upload key.
     stagingRelease {
       if (project.hasProperty('SPOON_STAGING_STORE_FILE')) {
         storeFile file(SPOON_STAGING_STORE_FILE)
@@ -61,19 +74,23 @@ const SIGNING_MARKER = '[spoon-signing]';
  * `println` runs at Gradle CONFIGURATION time, so the line appears near the top of the build
  * output for every release assembly — including one that fails later for an unrelated reason.
  */
-const RELEASE_SIGNING_CHOICE = `if (project.hasProperty('SPOON_STAGING_STORE_FILE')) {
+const RELEASE_SIGNING_CHOICE = `if (project.hasProperty('SPOON_UPLOAD_STORE_FILE')) {
+        signingConfig signingConfigs.uploadRelease
+        println '[spoon-signing] release signed with the PLAY UPLOAD key: ' + SPOON_UPLOAD_STORE_FILE
+      } else if (project.hasProperty('SPOON_STAGING_STORE_FILE')) {
         signingConfig signingConfigs.stagingRelease
-        println '[spoon-signing] release APK signed with the STAGING key: ' + SPOON_STAGING_STORE_FILE
+        println '[spoon-signing] release signed with the STAGING key: ' + SPOON_STAGING_STORE_FILE
+        println '[spoon-signing] Internal builds only — Play will not accept this.'
       } else {
         signingConfig signingConfigs.debug
-        println '[spoon-signing] WARNING: release APK signed with the shared ANDROID DEBUG KEY.'
+        println '[spoon-signing] WARNING: release signed with the shared ANDROID DEBUG KEY.'
         println '[spoon-signing] It is NOT uploadable to Play and is not a build of record.'
-        println '[spoon-signing] Set SPOON_STAGING_STORE_FILE (and _PASSWORD/_KEY_ALIAS/_KEY_PASSWORD)'
+        println '[spoon-signing] Set SPOON_UPLOAD_STORE_FILE (and _PASSWORD/_KEY_ALIAS/_KEY_PASSWORD)'
         println '[spoon-signing] in ~/.gradle/gradle.properties to sign it properly.'
       }`;
 
 function addSigningConfig(contents) {
-  if (contents.includes('stagingRelease {')) return contents;
+  if (contents.includes('uploadRelease {')) return contents;
   const anchor = 'signingConfigs {';
   const at = contents.indexOf(anchor);
   if (at === -1) throw new Error('withStagingSigning: no signingConfigs block to extend');
