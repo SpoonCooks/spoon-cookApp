@@ -141,6 +141,16 @@ export function toJobSummary(job: CookJobResponse): JobSummary {
  * `isActionable` is `assigned && current assignment` — the server decides both. The countdown is
  * only meaningful once there is a commitment to count toward, so it is null before assignment.
  */
+/**
+ * A countdown that has run out is not a countdown.
+ *
+ * Zero still counts: "0 mins" is the deadline itself, and a cook arriving exactly on time should
+ * see it. Only a value BELOW zero is discarded.
+ */
+function passedDeadlineToNull(minutes: number): number | null {
+  return minutes < 0 ? null : minutes;
+}
+
 export function toJobCard(job: CookJobResponse): JobCardModel {
   const status = toBookingStatus(job.status);
   /*
@@ -162,7 +172,28 @@ export function toJobCard(job: CookJobResponse): JobCardModel {
     serviceDurationMinutes: job.durationMinutes,
     scheduledStartIso: job.serviceStart,
     reachByIso: job.timing.customerCommitmentAt,
-    minutesToDeadline: minutesBetween(job.serverTime, job.timing.customerCommitmentAt),
+    /*
+     * A countdown, or nothing once there is nothing left to count.
+     *
+     * This was the raw subtraction, and it does not stop at zero: a booking whose reach-by time
+     * has passed counts on downwards for as long as it stays open. On 2026-09-18 a card on the
+     * Play reviewer's account read `-445 mins` — a job due at 11:00 that was still `cooking` at
+     * 18:25 — and it would have read `-1,300 mins` by morning. A cook cannot be minus four hundred
+     * minutes early; the number had stopped meaning anything.
+     *
+     * Null is not a loss of information here, because the card already has a second, designed
+     * mode for exactly this: it draws the reach-by CLOCK TIME under `Tak pahauch jaye`, which is
+     * the fact that still holds once the countdown is spent. Lateness keeps its own signal — the
+     * RUNNING LATE badge is driven by the server's `riskState`, not by this number's sign.
+     *
+     * The backend deliberately keeps sending these: asked whether a job hours past its commitment
+     * should still appear in today's list, it said yes, because a long-running `cooking` job is
+     * exactly what a cook still needs to see. So this is the app's to render sensibly, not
+     * something the server should have filtered out.
+     */
+    minutesToDeadline: passedDeadlineToNull(
+      minutesBetween(job.serverTime, job.timing.customerCommitmentAt),
+    ),
     // The projection exposes no separate travel-duration estimate; `null` renders no `12 min dur`
     // chip rather than an invented number.
     travelMinutes: null,
