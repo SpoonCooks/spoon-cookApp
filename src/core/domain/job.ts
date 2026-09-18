@@ -37,8 +37,9 @@ export interface JobCardModel {
   /** `11:50 AM` beside `Tak pahauch jaye`. */
   readonly reachByIso: string | null;
   /**
-   * `26 mins` countdown on the actionable card. Server-supplied; NEGATIVE once the deadline has
-   * passed. Null when the job is not yet counting down.
+   * `26 mins` countdown on the actionable card. Null when there is nothing to count toward —
+   * either the job is not counting down yet, or the reach-by time has already passed. It is
+   * never negative: the card falls back to drawing the reach-by clock time instead.
    */
   readonly minutesToDeadline: number | null;
   /** `12 min dur` — travel duration estimate from the server's route model. */

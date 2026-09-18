@@ -263,6 +263,79 @@ describe('cooking timer', () => {
 });
 
 describe('job card', () => {
+  /*
+   * The countdown stops at the deadline instead of running past it.
+   *
+   * A card on the Play reviewer's account read `-445 mins` on 2026-09-18: a job due at 11:00 that
+   * was still `cooking` at 18:25. Nothing stopped the subtraction at zero, so it would have read
+   * `-1,300 mins` by morning. Null sends the card to its other, designed mode — the reach-by clock
+   * time under `Tak pahauch jaye` — which is the fact that survives once the countdown is spent.
+   *
+   * Note the SERVICE screen keeps its negative (see 'preserves a negative countdown when the
+   * deadline has passed' above). That is the Figma `Page 4b` late value on a different surface,
+   * and it is deliberately untouched here.
+   */
+  it('stops counting once the reach-by time has passed, rather than going negative', () => {
+    const late = toJobCard(
+      job({
+        serverTime: '2026-08-21T12:55:00.000Z',
+        timing: {
+          customerCommitmentAt: '2026-08-21T05:30:00.000Z',
+          eta: null,
+          etaUpdatedAt: null,
+          verdict: null,
+          riskState: 'TRAVEL_LATE',
+        },
+      }),
+    );
+
+    expect(late.minutesToDeadline).toBeNull();
+    // The reach-by instant is still carried, so the card can draw the clock time instead.
+    expect(late.reachByIso).toBe('2026-08-21T05:30:00.000Z');
+  });
+
+  it('still shows the deadline itself, which is not past', () => {
+    // Exactly on time is a real state a cook can be in, and `0 mins` is the honest thing to draw.
+    const onTheDot = toJobCard(
+      job({
+        serverTime: '2026-08-21T05:30:00.000Z',
+        timing: {
+          customerCommitmentAt: '2026-08-21T05:30:00.000Z',
+          eta: null,
+          etaUpdatedAt: null,
+          verdict: null,
+          riskState: 'TRAVEL_ON_TIME',
+        },
+      }),
+    );
+
+    expect(onTheDot.minutesToDeadline).toBe(0);
+  });
+
+  it('counts down normally while the deadline is ahead', () => {
+    expect(toJobCard(job()).minutesToDeadline).toBe(26);
+  });
+
+  it('keeps RUNNING LATE as the lateness signal once the countdown is gone', () => {
+    // Suppressing the number must not suppress the urgency: the badge is the server's ruling,
+    // never the sign of this integer.
+    const late = toJobCard(
+      job({
+        serverTime: '2026-08-21T12:55:00.000Z',
+        timing: {
+          customerCommitmentAt: '2026-08-21T05:30:00.000Z',
+          eta: null,
+          etaUpdatedAt: null,
+          verdict: null,
+          riskState: 'TRAVEL_LATE',
+        },
+      }),
+    );
+
+    expect(late.minutesToDeadline).toBeNull();
+    expect(late.isRunningLate).toBe(true);
+  });
+
   it('marks an assigned current job actionable and names the action start_travel', () => {
     const card = toJobCard(job({ status: 'assigned' }));
     expect(card.isActionable).toBe(true);
