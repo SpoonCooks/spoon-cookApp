@@ -10,6 +10,7 @@ import { SvgXml } from 'react-native-svg';
 
 import { formatDurationHours } from '@core/domain/job';
 import type { ArrivalTiming, JobSummary, TravelTiming } from '@core/domain/serviceState';
+import { formatClock } from '@features/jobs/JobViews';
 import {
   Button,
   color,
@@ -523,7 +524,19 @@ function UserDetailsCard({
               },
             ]}
           >
-            <Text variant="durationChip">{formatDurationHours(job.serviceDurationMinutes)}</Text>
+            {/*
+             * The time, not just the duration -- this is the one card an admin-rescheduled
+             * job lands on before travel starts (`booking.rescheduled` deep-links to the Jobs
+             * list, not straight here, but the cook still opens the job from there), and until
+             * now nothing on it showed WHEN. The push notification deliberately omits the
+             * time (SECURITY.md §11: a delayed notification must never show a time the server
+             * has since changed) on the assumption the screen she opens shows the current one
+             * -- this is that screen. `job.scheduledStartIso` is re-read on every load, same
+             * as `JobViews.tsx`'s own list cards already do with `formatClock`.
+             */}
+            <Text variant="durationChip">
+              {formatClock(job.scheduledStartIso)} · {formatDurationHours(job.serviceDurationMinutes)}
+            </Text>
           </View>
         </View>
 

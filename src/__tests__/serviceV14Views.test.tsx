@@ -237,6 +237,18 @@ describe('the address card', () => {
     expect(screen.getByText('549')).toBeTruthy();
   });
 
+  it('shows the scheduled time, not just the duration, beside the customer name', () => {
+    // The card the cook lands on when she opens a job from the list — including one whose
+    // time an admin just moved, since `booking.rescheduled` deep-links to Jobs rather than
+    // straight into this screen. Nothing here showed a clock time before this: the chip read
+    // duration alone.
+    render(
+      <TravelView job={serviceV14Fixtures.job()} timing="on_time" minutesToDeadline={16} minutesToArrival={16} />,
+    );
+
+    expect(screen.getByText('8:30 AM · 1.5 hrs')).toBeTruthy();
+  });
+
   it('names the person the cook is going to see', () => {
     render(
       <TravelView
