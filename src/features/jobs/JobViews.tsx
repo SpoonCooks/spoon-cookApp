@@ -336,9 +336,9 @@ export const LEAD_COUNTDOWN_THRESHOLD_MINUTES = 45;
  * `20 mins` close to the reach-by time, `7:55 AM` otherwise.
  *
  * Both halves describe the SAME moment — the reach-by time — so the switch is seamless: `8:40 AM`
- * becomes `44 mins` at 7:56. Showing the booking time as the clock instead made the card jump
- * whenever the two differ (a reach-by later than the booking, or a reschedule that kept the old
- * one): `4:45 PM` would turn into `44 mins` pointing at 5:00.
+ * becomes `44 mins` at 7:56. They are usually the same instant, but matching may set the reach-by
+ * later than the booking when the cook cannot get there sooner; showing the booking time as the
+ * clock would then make the card jump — `4:45 PM` turning into `44 mins` pointing at 5:00.
  *
  * Falls back to the booking time only when the server sent no reach-by time at all.
  */
