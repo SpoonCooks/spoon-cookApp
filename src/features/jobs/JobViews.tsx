@@ -326,6 +326,29 @@ function JobTile({
   );
 }
 
+/**
+ * Below this many minutes to the reach-by time the lead card counts down; at or above it, it
+ * shows the clock time. A countdown of several hours is harder to read than the time itself.
+ */
+export const LEAD_COUNTDOWN_THRESHOLD_MINUTES = 45;
+
+/**
+ * `20 mins` close to the reach-by time, `7:55 AM` otherwise.
+ *
+ * Both halves describe the SAME moment — the reach-by time — so the switch is seamless: `8:40 AM`
+ * becomes `44 mins` at 7:56. Showing the booking time as the clock instead made the card jump
+ * whenever the two differ (a reach-by later than the booking, or a reschedule that kept the old
+ * one): `4:45 PM` would turn into `44 mins` pointing at 5:00.
+ *
+ * Falls back to the booking time only when the server sent no reach-by time at all.
+ */
+export function leadCardTimeLabel(job: JobCardModel): string {
+  if (job.minutesToDeadline !== null && job.minutesToDeadline < LEAD_COUNTDOWN_THRESHOLD_MINUTES) {
+    return formatMinutes(job.minutesToDeadline);
+  }
+  return formatClock(job.reachByIso ?? job.scheduledStartIso);
+}
+
 /** `572:1076` / `575:1350` / `575:1489` — the actionable card, in one of three colourways. */
 function LeadJobCard({
   job,
@@ -373,9 +396,7 @@ function LeadJobCard({
           <View style={[styles.headLeft, { width: s(CARD.headWidth), gap: s(CARD.headGap) }]}>
             <IconDisc size={LEAD.disc} fill={tier.disc} scale={scale} />
             <Text variant="cardCountdown" numberOfLines={1} testID="job-lead-countdown">
-              {job.minutesToDeadline === null
-                ? formatClock(job.scheduledStartIso)
-                : formatMinutes(job.minutesToDeadline)}
+              {leadCardTimeLabel(job)}
             </Text>
           </View>
           <DurationChip minutes={job.serviceDurationMinutes} fill={tier.chip} scale={scale} />

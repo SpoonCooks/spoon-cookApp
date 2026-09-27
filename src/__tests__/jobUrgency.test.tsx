@@ -3,7 +3,11 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { jobUrgencies, type JobUrgency } from '@core/domain/job';
 import { jobsV14Fixtures } from '@core/fixtures';
-import { JobsView } from '@features/jobs/JobViews';
+import {
+  JobsView,
+  LEAD_COUNTDOWN_THRESHOLD_MINUTES,
+  leadCardTimeLabel,
+} from '@features/jobs/JobViews';
 
 /**
  * The lead job card's colourway is PRESENTATION, and it must never become permission.
@@ -100,5 +104,35 @@ describe('lead job urgency is presentation only', () => {
       expect(screen.getByTestId('job-lead-countdown')).toHaveTextContent('20 mins');
       screen.unmount();
     }
+  });
+});
+
+describe('lead card switches from clock time to minutes at 45 minutes', () => {
+  const lead = jobsV14Fixtures.countdown(20, 'soon').leadJob;
+  if (lead === null) throw new Error('countdown fixture has no lead job');
+  // Reach-by deliberately later than the booking, the case where the two used to disagree.
+  const job = {
+    ...lead,
+    scheduledStartIso: '2026-11-07T16:45:00+05:30',
+    reachByIso: '2026-11-07T17:00:00+05:30',
+  };
+
+  it('counts down below the threshold', () => {
+    expect(LEAD_COUNTDOWN_THRESHOLD_MINUTES).toBe(45);
+    expect(leadCardTimeLabel({ ...job, minutesToDeadline: 44 })).toBe('44 mins');
+    expect(leadCardTimeLabel({ ...job, minutesToDeadline: 0 })).toBe('0 mins');
+  });
+
+  it('shows the reach-by clock time at and above the threshold, never the booking time', () => {
+    expect(leadCardTimeLabel({ ...job, minutesToDeadline: 45 })).toBe('5:00 PM');
+    expect(leadCardTimeLabel({ ...job, minutesToDeadline: 300 })).toBe('5:00 PM');
+  });
+
+  it('shows the reach-by clock time once the reach-by time has passed', () => {
+    expect(leadCardTimeLabel({ ...job, minutesToDeadline: null })).toBe('5:00 PM');
+  });
+
+  it('falls back to the booking time only when there is no reach-by time', () => {
+    expect(leadCardTimeLabel({ ...job, reachByIso: null, minutesToDeadline: 90 })).toBe('4:45 PM');
   });
 });
