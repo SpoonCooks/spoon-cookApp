@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { AppState } from 'react-native';
+import { useQueryClient } from '@tanstack/react-query';
 
 import { useCurrentJob } from '@core/api/queries';
 import { selectIsSignedIn, useSession } from '@core/session/store';
@@ -16,6 +17,22 @@ import { locationTracker } from './tracker';
 export function TrackingBridge(): null {
   const signedIn = useSession(selectIsSignedIn);
   const currentJob = useCurrentJob(signedIn, 20_000);
+  const queryClient = useQueryClient();
+
+  /*
+   * Re-read the job the moment the server has a new travel time, instead of waiting for the
+   * 20-second poll. Right after Chalo the server often has no position to route from yet and the
+   * card shows `--`; the tracker's first sample lands about a second later and revises the ETA,
+   * so this is what gets minutes on screen within a couple of seconds. Every job read shares the
+   * `['cook', 'jobs']` prefix, so the service screen and the current-job read both refresh.
+   */
+  useEffect(
+    () =>
+      locationTracker.onEtaRevised(() => {
+        void queryClient.invalidateQueries({ queryKey: ['cook', 'jobs'] });
+      }),
+    [queryClient],
+  );
 
   useEffect(() => {
     const sub = AppState.addEventListener('change', (next) => {

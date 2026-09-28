@@ -29,6 +29,8 @@ const mockStart = jest.fn();
 const mockStop = jest.fn();
 const mockSetAppState = jest.fn();
 const mockRefetch = jest.fn();
+const mockUnsubscribeEta = jest.fn();
+const mockOnEtaRevised = jest.fn((_listener: () => void) => mockUnsubscribeEta);
 
 let mockCurrentJobResult: {
   data: unknown;
@@ -42,7 +44,13 @@ jest.mock('@core/location/tracker', () => ({
     start: (...args: unknown[]) => mockStart(...args),
     stop: () => mockStop(),
     setAppState: (...args: unknown[]) => mockSetAppState(...args),
+    onEtaRevised: (listener: () => void) => mockOnEtaRevised(listener),
   },
+}));
+
+const mockInvalidate = jest.fn();
+jest.mock('@tanstack/react-query', () => ({
+  useQueryClient: () => ({ invalidateQueries: mockInvalidate }),
 }));
 
 jest.mock('@core/api/queries', () => ({
@@ -80,6 +88,9 @@ beforeEach(() => {
   mockStop.mockClear();
   mockSetAppState.mockClear();
   mockRefetch.mockClear();
+  mockInvalidate.mockClear();
+  mockOnEtaRevised.mockClear();
+  mockUnsubscribeEta.mockClear();
   mockSignedIn = true;
 });
 
@@ -141,5 +152,23 @@ describe('tracking is reconstructed from backend state, not from navigation', ()
 
     expect(mockStart).not.toHaveBeenCalled();
     expect(mockStop).not.toHaveBeenCalled();
+  });
+});
+
+describe('a revised travel time is shown without waiting for the poll', () => {
+  it('re-reads every job query the moment the tracker reports a revised ETA', () => {
+    mount(job());
+    expect(mockOnEtaRevised).toHaveBeenCalledTimes(1);
+
+    const listener = mockOnEtaRevised.mock.calls[0]?.[0];
+    listener?.();
+    expect(mockInvalidate).toHaveBeenCalledWith({ queryKey: ['cook', 'jobs'] });
+  });
+
+  it('unsubscribes when the bridge unmounts', () => {
+    mockCurrentJobResult = { data: job(), isPending: false, isError: false, refetch: mockRefetch };
+    const { unmount } = render(<TrackingBridge />);
+    unmount();
+    expect(mockUnsubscribeEta).toHaveBeenCalledTimes(1);
   });
 });
