@@ -111,6 +111,7 @@ const currentJob: JobCardModel = {
   isCancelled: false,
   isFinished: false,
   isInProgress: false,
+  isInChaloWindow: false,
   urgency: 'soon',
   address,
   gate,
@@ -201,6 +202,7 @@ const v14CountdownList: readonly JobCardModel[] = [
 const v14LeadJob = (minutesToDeadline: number): JobCardModel => ({
   ...currentJob,
   bookingId: 'v14-lead',
+  isInChaloWindow: true,
   scheduledStartIso: '2026-11-07T08:25:00+05:30',
   serviceDurationMinutes: 90,
   minutesToDeadline,

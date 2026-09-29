@@ -20,6 +20,7 @@ const job: JobCardModel = {
   isCancelled: false,
   isFinished: false,
   isInProgress: false,
+  isInChaloWindow: false,
   urgency: 'soon',
   address: {
     buildingName: null,

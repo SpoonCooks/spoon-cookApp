@@ -86,6 +86,14 @@ export interface JobCardModel {
    */
   readonly isInProgress: boolean;
   /**
+   * The reach-by time is under {@link CHALO_WINDOW_MINUTES} away on the SERVER's clock, or has
+   * already passed.
+   *
+   * Only then does the job get the `CHALO` card (`4c`-`4e`); before that it is an ordinary tile
+   * (`4a`/`4b`), as the frames draw it.
+   */
+  readonly isInChaloWindow: boolean;
+  /**
    * `job flow` §5's tier for this card.
    *
    * The countdown picks it, as the frames are named (`4c` < 45 mins, `4d` < 10, `4e` < 5). The
@@ -179,8 +187,7 @@ export function formatMinutes(minutes: number): string {
 /**
  * Why the server will not let her set off yet.
  *
- * Codes come from `commandEligibility.startTravelBlockedReason`; the sentences are here because
- * they are hers -- Hinglish, on a small screen, telling her what to do rather than what failed.
+ * Codes come from `commandEligibility.startTravelBlockedReason`.
  */
 export const startTravelBlockedReasons = [
   'NOT_PRESENT',
@@ -189,30 +196,6 @@ export const startTravelBlockedReasons = [
   'TOO_EARLY',
 ] as const;
 export type StartTravelBlockedReason = (typeof startTravelBlockedReasons)[number];
-
-/**
- * What the card says under a Chalo she cannot press.
- *
- * `null` for a reason this build does not know: a newer server may send a code that predates
- * this app, and a wrong sentence is worse than none -- the button is visibly disabled either way,
- * which already tells her more than its absence did.
- */
-export function startTravelBlockedNote(reason: string | null | undefined): string | null {
-  switch (reason) {
-    case 'NOT_PRESENT':
-      // The step in front of her, and the one she can act on right now.
-      return 'Pehle Hazri tab me present mark kare.';
-    case 'ALREADY_STARTED':
-      return 'Yeh kaam pehle se shuru ho chuka hai.';
-    case 'BUSY_ELSEWHERE':
-      return 'Aap abhi doosre kaam par hai.';
-    case 'TOO_EARLY':
-      // Nothing is wrong. Saying so matters: this is the case she will meet most often.
-      return 'Abhi nikalne ka time nahi hua. Time hote hi Chalo chalu ho jayega.';
-    default:
-      return null;
-  }
-}
 
 export const jobUrgencies = ['soon', 'imminent', 'critical'] as const;
 export type JobUrgency = (typeof jobUrgencies)[number];
@@ -244,6 +227,8 @@ export function jobUrgencyFrom(urgency: string | null | undefined): JobUrgency {
  * response), so two handsets looking at one job agree. A deadline already passed is below five and
  * reads `critical`.
  */
+/** `4c` — the `CHALO` card appears once the reach-by time is under this many minutes away. */
+export const CHALO_WINDOW_MINUTES = 45;
 export const IMMINENT_UNDER_MINUTES = 10;
 export const CRITICAL_UNDER_MINUTES = 5;
 

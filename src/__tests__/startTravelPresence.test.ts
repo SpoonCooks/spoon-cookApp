@@ -1,5 +1,4 @@
 import { toJobCard } from '@core/api/adapters';
-import { startTravelBlockedNote } from '@core/domain/job';
 import type { CookJobResponse } from '@core/api/schemas';
 
 /**
@@ -106,29 +105,6 @@ describe('why she cannot set off', () => {
 
     expect(card.isActionable).toBe(true);
     expect(card.blockedReason).toBeNull();
-  });
-
-  /*
-   * Each code becomes a sentence she can act on, and the commonest one — the window has not
-   * opened — says nothing is wrong. Wording is checked for existence and language, not verbatim,
-   * so copy can be tuned without breaking the contract that SOMETHING is said.
-   */
-  it('has Hinglish wording for every reason the server can send', () => {
-    for (const reason of ['NOT_PRESENT', 'ALREADY_STARTED', 'BUSY_ELSEWHERE', 'TOO_EARLY']) {
-      const note = startTravelBlockedNote(reason);
-      expect(note).not.toBeNull();
-      expect((note ?? '').length).toBeGreaterThan(10);
-    }
-  });
-
-  /*
-   * A newer server may send a code this build predates. A wrong sentence is worse than none: the
-   * button is visibly disabled either way, which already says more than its absence did.
-   */
-  it('says nothing rather than the wrong thing for a code it does not know', () => {
-    expect(startTravelBlockedNote('SOMETHING_ADDED_LATER')).toBeNull();
-    expect(startTravelBlockedNote(null)).toBeNull();
-    expect(startTravelBlockedNote(undefined)).toBeNull();
   });
 });
 
