@@ -92,8 +92,9 @@ export default function PastCycleScreen(): React.ReactElement {
       days={days}
       onBack={() => router.back()}
       onOpenDays={() =>
-        // A week is identified by its Monday; there is no row and so no id.
-        router.push({ pathname: '/money/days', params: { cycleId: cycle.data.startDate } })
+        // A week is identified by its start date; there is no row and so no id. Passed as
+        // `weekStart`, which the days screen reads from the WEEK endpoint — never as a cycle id.
+        router.push({ pathname: '/money/days', params: { weekStart: cycle.data.startDate } })
       }
     />
   );

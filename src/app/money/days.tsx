@@ -2,7 +2,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useMemo } from 'react';
 import { serviceDatesBetween } from '@core/api/adapters';
 import { apiErrorMessage } from '@core/api/errors';
-import { useCookProfile, useEarnings, useEarningsCycle } from '@core/api/queries';
+import { useCookProfile, useEarnings, useEarningsWeek } from '@core/api/queries';
 import { formatShortDate } from '@core/domain/money';
 import { DayHistoryView } from '@features/performance/PerformanceViews';
 import { ErrorState, LoadingState } from '@ui';
@@ -10,34 +10,37 @@ import { ErrorState, LoadingState } from '@ui';
 /**
  * `14- day history` (`575:1903`) — `Cycle ke din`.
  *
- * A list of the service DATES in a cycle. Dates are not money: the window comes from the server
- * (`startDate`/`endDate` on the cycle, or the live seven-day period) and the rows are just those
+ * A list of the service DATES in a week. Dates are not money: the window comes from the server
+ * (`startDate`/`endDate` on the week, or the live seven-day period) and the rows are just those
  * dates enumerated, so nothing here aggregates a ledger.
  *
- * Reached two ways, which is why `cycleId` is optional:
+ * Reached two ways, which is why `weekStart` is optional:
  *
- *   - from `13- money weekly` with no id → the live `sevenDay` window
- *   - from `18- past weekly` with an id  → that settled cycle's window
+ *   - from `13- money weekly` with no param   → the live `sevenDay` window
+ *   - from `18- past weekly` with `weekStart` → that week, read from `/cook/earnings/weeks/:date`
+ *
+ * `18- past weekly` shows a WEEK identified by its start date, not a 28-day payout cycle. This
+ * screen used to take that date as a `cycleId` and ask `/cook/earnings/cycles/:cycleId` for it;
+ * the route only accepts a cycle's UUID, so the request was refused and `Cycle ke din` opened on
+ * an error every time. It reads the same week endpoint the past-week screen does.
  */
 export default function CycleDaysScreen(): React.ReactElement {
-  const { cycleId } = useLocalSearchParams<{ cycleId?: string }>();
-  const id = cycleId ?? '';
+  const { weekStart } = useLocalSearchParams<{ weekStart?: string }>();
+  const id = weekStart ?? '';
 
   // The server's own date, which is what decides whether a day has happened yet.
   const profile = useCookProfile();
-  const cycle = useEarningsCycle(id, id.length > 0);
+  const week = useEarningsWeek(id, id.length > 0);
   const earnings = useEarnings(id.length === 0);
 
   const window = useMemo(() => {
     if (id.length > 0) {
-      return cycle.data === undefined
-        ? null
-        : { from: cycle.data.startDate, to: cycle.data.endDate };
+      return week.data === undefined ? null : { from: week.data.startDate, to: week.data.endDate };
     }
     return earnings.data === undefined
       ? null
       : { from: earnings.data.sevenDay.startDate, to: earnings.data.sevenDay.endDate };
-  }, [id, cycle.data, earnings.data]);
+  }, [id, week.data, earnings.data]);
 
   /**
    * Never list a day that has not happened.
@@ -57,7 +60,7 @@ export default function CycleDaysScreen(): React.ReactElement {
     return end < window.from ? [] : serviceDatesBetween(window.from, end);
   }, [window, today]);
 
-  const active = id.length > 0 ? cycle : earnings;
+  const active = id.length > 0 ? week : earnings;
 
   if (active.isPending) return <LoadingState testID="days-loading" />;
   if (active.isError) {
