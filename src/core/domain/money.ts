@@ -74,7 +74,7 @@ export const periodCopy: Record<EarningsPeriod, PeriodCopy> = {
   },
   month: {
     work: 'mahine ka kaam',
-    mistakes: 'cycle ki galtiyaan',
+    mistakes: 'mahine ki galtiyaan',
     deductions: 'cycle ki katauti',
     earnings: 'cycle ki kamai',
     final: 'final kamai',

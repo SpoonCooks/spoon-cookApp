@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from '@testing-library/react-native';
+import { fireEvent, render, screen, within } from '@testing-library/react-native';
 
 import MoneyScreen from '@/app/(tabs)/money';
 import CycleHistoryScreen from '@/app/money/cycles';
@@ -241,6 +241,14 @@ describe('16- money monthly (575:2013)', () => {
     fireEvent.press(screen.getByTestId('period-tabs-month'));
     expect(screen.getByTestId('money-past-cycles')).toBeTruthy();
     expect(screen.queryByTestId('day-strip')).toBeNull();
+  });
+
+  it('titles the mistakes panel for the month, not the cycle', () => {
+    render(<MoneyScreen />);
+    fireEvent.press(screen.getByTestId('period-tabs-month'));
+    const mistakes = screen.getByTestId('mistakes-card');
+    expect(within(mistakes).getByText(/mahine ki galtiyaan/i)).toBeTruthy();
+    expect(within(mistakes).queryByText(/cycle ki galtiyaan/i)).toBeNull();
   });
 });
 
