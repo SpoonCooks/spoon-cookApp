@@ -244,6 +244,7 @@ export class LocationTracker {
   private appIsActive = AppState.currentState !== 'background';
   private nativeStop: Promise<void> = Promise.resolve();
   private readonly listeners = new Set<(state: TrackingState) => void>();
+  private readonly etaListeners = new Set<(bookingId: string) => void>();
   private state: TrackingState = {
     status: 'idle',
     bookingId: null,
@@ -263,6 +264,19 @@ export class LocationTracker {
   subscribe(listener: (state: TrackingState) => void): () => void {
     this.listeners.add(listener);
     return () => this.listeners.delete(listener);
+  }
+
+  /**
+   * Called when an accepted sample made the server revise the travel time (`etaRevised`).
+   *
+   * Deliberately NOT one of the per-session callbacks. Chalo activates tracking with no
+   * callbacks, so anything wired there is lost for exactly the sample that matters: the first one
+   * after GO, which is what turns a card showing `--` into minutes. A listener registered once
+   * for the app's lifetime survives every `start` and `activate`.
+   */
+  onEtaRevised(listener: (bookingId: string) => void): () => void {
+    this.etaListeners.add(listener);
+    return () => this.etaListeners.delete(listener);
   }
 
   private setState(patch: Partial<TrackingState>): void {
@@ -509,6 +523,10 @@ export class LocationTracker {
         });
         this.callbacks.onArrived?.(bookingId);
         return;
+      }
+
+      if (result.etaRevised) {
+        for (const listener of this.etaListeners) listener(target.bookingId);
       }
 
       // The server's cadence, not ours.

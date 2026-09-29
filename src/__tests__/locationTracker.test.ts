@@ -472,3 +472,58 @@ describe('native background callback', () => {
     expect(h.save).not.toHaveBeenCalled();
   });
 });
+
+describe('a revised travel time is announced immediately', () => {
+  const revised = (etaRevised: boolean) => ({
+    accepted: true,
+    reason: null,
+    confidence: 'high',
+    persisted: true,
+    etaRevised,
+    arrived: false,
+    nextReportAfterSeconds: 30,
+  });
+
+  it('tells listeners when the server revised the ETA, so `--` becomes minutes at once', async () => {
+    const h = harness();
+    const listener = jest.fn();
+    h.tracker.onEtaRevised(listener);
+    h.report.mockResolvedValue(revised(true));
+    await h.tracker.start(target);
+    await h.tick();
+    expect(listener).toHaveBeenCalledWith('b1');
+  });
+
+  it('stays quiet when the sample did not change the ETA', async () => {
+    const h = harness();
+    const listener = jest.fn();
+    h.tracker.onEtaRevised(listener);
+    h.report.mockResolvedValue(revised(false));
+    await h.tracker.start(target);
+    await h.tick();
+    expect(listener).not.toHaveBeenCalled();
+  });
+
+  it('survives Chalo re-activating tracking without callbacks', async () => {
+    // Chalo calls `activate(target)` with no callbacks, which replaces the per-session ones.
+    const h = harness();
+    const listener = jest.fn();
+    h.tracker.onEtaRevised(listener);
+    await h.tracker.start(target, { onArrived: jest.fn() });
+    await h.tracker.activate(target);
+    h.report.mockResolvedValue(revised(true));
+    await h.tick();
+    expect(listener).toHaveBeenCalledWith('b1');
+  });
+
+  it('stops calling a listener once it unsubscribes', async () => {
+    const h = harness();
+    const listener = jest.fn();
+    const unsubscribe = h.tracker.onEtaRevised(listener);
+    unsubscribe();
+    h.report.mockResolvedValue(revised(true));
+    await h.tracker.start(target);
+    await h.tick();
+    expect(listener).not.toHaveBeenCalled();
+  });
+});
