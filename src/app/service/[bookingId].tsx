@@ -9,7 +9,6 @@ import { apiErrorMessage, isApiError } from '@core/api/errors';
 import {
   useJob,
   useMarkArrived,
-  useStartCommute,
   useVerifyEndOtp,
   useVerifyStartOtp,
 } from '@core/api/queries';
@@ -21,7 +20,6 @@ import { BottomNav, ErrorState, LoadingState } from '@ui';
 import { InterruptedView } from '@features/service/ServiceViews';
 import {
   ArrivalView,
-  AssignedJobView,
   CompletedView,
   CookingView,
   EndOtpView,
@@ -71,13 +69,10 @@ export default function ServiceScreen(): React.ReactElement {
   const verifyStartOtp = useVerifyStartOtp();
   const verifyEndOtp = useVerifyEndOtp();
   const markArrived = useMarkArrived();
-  const startCommute = useStartCommute();
 
   const [startCode, setStartCode] = useState('');
   const [endCode, setEndCode] = useState('');
   const [otpError, setOtpError] = useState<string | null>(null);
-  const [startTravelError, setStartTravelError] = useState<string | null>(null);
-  const [startingTravel, setStartingTravel] = useState(false);
   const [callError, setCallError] = useState<string | null>(null);
 
   /**
@@ -212,43 +207,6 @@ export default function ServiceScreen(): React.ReactElement {
 
   const goToJobs = (): void => router.replace('/jobs');
 
-  const startTravel = (): void => {
-    if (state?.kind !== 'assigned' || !state.canStartTravel || startingTravel) return;
-    const target = { bookingId: id, assignmentVersion: state.job.assignmentVersion };
-    setStartTravelError(null);
-    setStartingTravel(true);
-
-    void locationTracker.prepare(target).then((prepared) => {
-      if (prepared.status !== 'ready') {
-        setStartTravelError('Location tracking could not start. Please try again.');
-        setStartingTravel(false);
-        return;
-      }
-
-      startCommute.mutate(
-        {
-          bookingId: id,
-          assignmentVersion: target.assignmentVersion,
-          idempotencyKey: keyFor('start-travel'),
-        },
-        {
-          onSuccess: () => {
-            void locationTracker.activate(target).finally(() => {
-              setStartingTravel(false);
-              void job.refetch();
-            });
-          },
-          onError: (error: unknown) => {
-            locationTracker.stop();
-            setStartTravelError(apiErrorMessage(error));
-            setStartingTravel(false);
-            void job.refetch();
-          },
-        },
-      );
-    });
-  };
-
   const submitStartOtp = (): void => {
     if (state?.kind !== 'awaiting_start_otp' || verifyStartOtp.isPending) return;
     setOtpError(null);
@@ -338,6 +296,23 @@ export default function ServiceScreen(): React.ReactElement {
     );
   };
 
+  /* ------------------------------------------------- not started: go back --- */
+
+  /**
+   * There is no "Job details" screen any more (founder, 2026-09-29).
+   *
+   * Kaam is the only place a job is seen before travel, and `CHALO` there is the only way in: it
+   * starts travel and lands here on the Active Job screen. So a booking that is still `assigned`
+   * when this route opens is either a stale cache in the instant after `CHALO` -- which the
+   * re-read already in flight resolves to `travelling` -- or a route opened some other way, which
+   * goes back to Kaam rather than showing a screen with nothing to do on it.
+   */
+  const stillAssigned = state?.kind === 'assigned';
+  const fetching = job.isFetching;
+  useEffect(() => {
+    if (stillAssigned && !fetching) router.replace('/jobs');
+  }, [stillAssigned, fetching]);
+
   /* -------------------------------------------------------------- render --- */
 
   if (id.length === 0) {
@@ -374,15 +349,7 @@ export default function ServiceScreen(): React.ReactElement {
         return <ErrorState message="Yeh job abhi shuru nahi hui." onRetry={goToJobs} />;
 
       case 'assigned':
-        return (
-          <AssignedJobView
-            job={state.job}
-            canStartTravel={state.canStartTravel}
-            onStartTravel={startTravel}
-            isSubmitting={startingTravel}
-            error={startTravelError}
-          />
-        );
+        return <LoadingState testID="service-loading" />;
 
       case 'travelling':
         return (

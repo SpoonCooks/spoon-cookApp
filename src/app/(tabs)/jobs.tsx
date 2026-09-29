@@ -119,7 +119,7 @@ export default function JobsScreen(): React.ReactElement {
     });
   };
 
-  // Only the lead card calls this; the other tiles are not pressable.
+  // `CHALO` on a job already under way: back to the Active Job screen. No card opens anything.
   const openJob = (bookingId: string): void => {
     router.push({ pathname: '/service/[bookingId]', params: { bookingId } });
   };

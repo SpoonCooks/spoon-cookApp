@@ -110,6 +110,7 @@ const currentJob: JobCardModel = {
   isRunningLate: false,
   isCancelled: false,
   isFinished: false,
+  isInProgress: false,
   urgency: 'soon',
   address,
   gate,

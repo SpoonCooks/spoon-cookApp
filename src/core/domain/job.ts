@@ -79,10 +79,19 @@ export interface JobCardModel {
    */
   readonly isFinished: boolean;
   /**
-   * `job flow` §5's tier for this card, as the SERVER rules it.
+   * Travel has begun: `cook_en_route`, `cook_arrived` or `cooking`.
    *
-   * Was `defaultJobUrgency` for every job, because the projection published no ruling — so `4d`
-   * and `4e` were unreachable and a cook never saw the "leave now" card the design draws for her.
+   * On such a lead card `CHALO` opens the Active Job screen instead of starting travel again. It
+   * is the only way back in to a job she is already on, because the card itself opens nothing.
+   */
+  readonly isInProgress: boolean;
+  /**
+   * `job flow` §5's tier for this card.
+   *
+   * The countdown picks it, as the frames are named (`4c` < 45 mins, `4d` < 10, `4e` < 5). The
+   * server's departure ruling can only make it louder: a cook who should already have left sees
+   * the escalated card even with time still on the clock. It can never calm a card down, and a
+   * missing ruling (`unknown`) no longer leaves a 3-minute job in the calm colours.
    */
   readonly urgency: JobUrgency;
 
@@ -226,6 +235,27 @@ export const defaultJobUrgency: JobUrgency = 'soon';
  */
 export function jobUrgencyFrom(urgency: string | null | undefined): JobUrgency {
   return urgency === 'imminent' || urgency === 'critical' ? urgency : defaultJobUrgency;
+}
+
+/**
+ * The tier the Figma frames name for a countdown: `4c` under 45 mins, `4d` under 10, `4e` under 5.
+ *
+ * `minutesToDeadline` is measured against the SERVER's clock (its `serverTime` on the same
+ * response), so two handsets looking at one job agree. A deadline already passed is below five and
+ * reads `critical`.
+ */
+export const IMMINENT_UNDER_MINUTES = 10;
+export const CRITICAL_UNDER_MINUTES = 5;
+
+export function jobUrgencyFromMinutes(minutesToDeadline: number): JobUrgency {
+  if (minutesToDeadline < CRITICAL_UNDER_MINUTES) return 'critical';
+  if (minutesToDeadline < IMMINENT_UNDER_MINUTES) return 'imminent';
+  return 'soon';
+}
+
+/** Whichever of two tiers is louder. */
+export function moreUrgent(a: JobUrgency, b: JobUrgency): JobUrgency {
+  return jobUrgencies.indexOf(a) >= jobUrgencies.indexOf(b) ? a : b;
 }
 
 /** Group jobs by IST service date, preserving server order within each group. */

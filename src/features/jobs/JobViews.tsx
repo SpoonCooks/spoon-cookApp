@@ -191,7 +191,7 @@ export interface JobsViewProps {
   readonly jobs: readonly JobCardModel[];
   readonly breakWindow: BreakWindowModel | null;
   readonly onStartTravel?: ((bookingId: string) => void) | undefined;
-  /** Opens authoritative job details independently of CTA eligibility. */
+  /** Back to the Active Job screen, from `CHALO` on a job she is already on. */
   readonly onOpenJob?: ((bookingId: string) => void) | undefined;
   readonly submittingId?: string | null | undefined;
   readonly onHelp?: (() => void) | undefined;
@@ -417,13 +417,29 @@ function LeadJobCard({
 }): React.ReactElement {
   const { s } = scale;
   const tier = TIER[urgency];
-  const blockedNote = job.isActionable ? null : startTravelBlockedNote(job.blockedReason);
+  /*
+   * `CHALO` is the card's only control (founder, 2026-09-29): the card itself opens nothing.
+   *
+   * On a job she has not set off for it starts travel, as the server allows. On one she is already
+   * on -- travelling, arrived, cooking -- there is nothing left to start, so it takes her back to
+   * the Active Job screen instead. Without that, a cook who backed out mid-travel, or whose app was
+   * killed, would have no way back to the job she is driving to.
+   */
+  const resumes = job.isInProgress;
+  const enabled = resumes || (job.isActionable && !isSubmitting);
+  const blockedNote =
+    resumes || job.isActionable ? null : startTravelBlockedNote(job.blockedReason);
+  const press = resumes
+    ? onOpenJob === undefined
+      ? undefined
+      : () => onOpenJob(job.bookingId)
+    : onStartTravel === undefined
+      ? undefined
+      : () => onStartTravel(job.bookingId);
 
   return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={`${job.societyOrBuilding} job details`}
-      onPress={onOpenJob === undefined ? undefined : () => onOpenJob(job.bookingId)}
+    <View
+      accessibilityLabel={job.societyOrBuilding}
       style={[
         styles.card,
         figmaStroke(scale, {
@@ -456,9 +472,9 @@ function LeadJobCard({
         </Text>
         <Pressable
           accessibilityRole="button"
-          accessibilityState={{ disabled: !job.isActionable || isSubmitting }}
-          disabled={!job.isActionable || isSubmitting}
-          onPress={onStartTravel ? () => onStartTravel(job.bookingId) : undefined}
+          accessibilityState={{ disabled: !enabled }}
+          disabled={!enabled}
+          onPress={press}
           style={[
             styles.cta,
             {
@@ -493,7 +509,7 @@ function LeadJobCard({
           </Text>
         )}
       </View>
-    </Pressable>
+    </View>
   );
 }
 
