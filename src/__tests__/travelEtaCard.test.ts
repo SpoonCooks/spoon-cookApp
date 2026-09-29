@@ -119,6 +119,46 @@ describe('the travel card shows the distance, not the deadline', () => {
     expect(later?.minutesToDeadline).toBe(-1);
   });
 
+  it('never shows a negative travel time once the projected arrival has passed', () => {
+    // Staging, 2026-09-29: GO at 13:06:30 projected arrival at 13:06:33; the cook stood at the gate
+    // and the ETA was not re-projected, so the card read "-1 mins" by 13:07:19.
+    const justPast = toServiceSnapshot(
+      jobWith({
+        serverTime: '2026-09-29T07:37:19.000Z',
+        commitmentAt: '2026-09-29T07:47:00.000Z',
+        eta: '2026-09-29T07:36:33.000Z',
+        riskState: 'TRAVEL_ON_TIME',
+      }),
+      0,
+    );
+    expect(justPast?.minutesToArrival).toBe(1);
+
+    // Ten minutes past it: a positive number that keeps growing while she waits.
+    const waiting = toServiceSnapshot(
+      jobWith({
+        serverTime: '2026-09-29T07:46:33.000Z',
+        commitmentAt: '2026-09-29T07:47:00.000Z',
+        eta: '2026-09-29T07:36:33.000Z',
+        riskState: 'TRAVEL_ON_TIME',
+      }),
+      0,
+    );
+    expect(waiting?.minutesToArrival).toBe(10);
+  });
+
+  it('shows 0 at the projected arrival itself, never "-0"', () => {
+    const atEta = toServiceSnapshot(
+      jobWith({
+        serverTime: '2026-09-29T07:36:33.000Z',
+        commitmentAt: '2026-09-29T07:47:00.000Z',
+        eta: '2026-09-29T07:36:33.000Z',
+        riskState: 'TRAVEL_ON_TIME',
+      }),
+      0,
+    );
+    expect(Object.is(atEta?.minutesToArrival, 0)).toBe(true);
+  });
+
   it('leaves the ETA null rather than calling it zero when the server has none', () => {
     const snapshot = toServiceSnapshot(
       jobWith({
