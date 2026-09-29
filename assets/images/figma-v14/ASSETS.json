@@ -126,6 +126,12 @@
       "nodes": ["575:1744"],
       "sha256": "f44972f607a2531271ec5a71197acf1eb8478ed714f44a727e1f46b8745571ad"
     },
+    "multiply-black.png": {
+      "bytes": 682,
+      "constName": "multiplyBlack",
+      "nodes": ["285:928"],
+      "sha256": "f020d39b1234121c57bf5aeb75c826c409c8e511a345211ee11b6bb352959dda"
+    },
     "multiply.png": {
       "bytes": 828,
       "constName": "multiply",

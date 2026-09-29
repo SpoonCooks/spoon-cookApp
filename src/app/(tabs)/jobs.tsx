@@ -119,6 +119,7 @@ export default function JobsScreen(): React.ReactElement {
     });
   };
 
+  // Only the lead card calls this; the other tiles are not pressable.
   const openJob = (bookingId: string): void => {
     router.push({ pathname: '/service/[bookingId]', params: { bookingId } });
   };

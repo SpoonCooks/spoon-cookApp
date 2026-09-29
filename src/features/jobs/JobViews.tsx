@@ -24,12 +24,15 @@ import { color, figmaStroke, HelpPill, Text, useDesignScale, type DesignScale } 
  *
  * ## The five frames are three layouts
  *
- *   * `583:375` (`4a- jobs log out`) — the list alone, no break card, no CTA.
- *   * `583:401` (`4b- job log in`) — the same list under an `aaj ka break` window.
- *   * `583:427` / `583:453` / `583:479` — break card, then a **lead card** carrying the countdown
- *     and the `CHALO` CTA, then the rest of the list. These three are one layout in three
- *     colourways; a structural diff of all 121 nodes finds only the countdown value and the CTA
- *     label differ, so the tier drives style and copy and nothing else.
+ * Revised in file `cCQlzTeiObQkpVBzwI8mZi` (2026-09-29):
+ *
+ *   * `285:742` (`4a- jobs log out`) — the list alone, no break card, no CTA.
+ *   * `285:847` (`4b- job log in`) — the same list under an `aaj ka break` window. Also the frame
+ *     that draws the ENDED cards: cancelled (`285:922`, pink with a cross) and done (`285:934`,
+ *     grey with a tick). Neither opens anything; only the lead card does.
+ *   * `1:13010` / `1:13132` / `1:13254` — break card, then a **lead card** carrying the countdown
+ *     and the `CHALO` CTA, then the rest of the list. Lime under 45 mins, a louder lime CTA under
+ *     10, red under 5 -- where the card also leaves the jobs column and runs the body's width.
  *
  * ## The break card here is NOT the leave section's
  *
@@ -88,14 +91,17 @@ const BREAK = {
 } as const;
 
 const timerGlyph = require('@/assets/images/figma-v14/timer-2.png');
+const multiplyGlyph = require('@/assets/images/figma-v14/multiply-black.png');
+const doneGlyph = require('@/assets/images/figma-v14/done-icon.png');
 
 /**
  * Per-tier fills for the lead card.
  *
- * Transcribed from `575:1350` and `575:1489`; the `soon` row is `572:1076`. `ctaLabel` keeps the
- * design's literal casing even though every tier also sets `text-transform: uppercase` — the
- * stored string is what Figma holds, and the transform is applied at render so the two cannot
- * disagree.
+ * Transcribed from `1:13037` (`4c`, under 45 mins), `1:13159` (`4d`, under 10) and `1:13280`
+ * (`4e`, under 5). `4c` and `4d` share the lime border, disc and chip and differ only in the CTA:
+ * `4c` is a soft `#e2ff68` with a black 24/30 `chalO`, `4d` the full `#cfff04` with a red 30/35
+ * `Chalo!!`. `4e` turns the whole card red. `ctaLabel` keeps the design's literal casing; the
+ * uppercase transform is applied at render.
  */
 const TIER: Readonly<
   Record<
@@ -107,34 +113,61 @@ const TIER: Readonly<
       readonly cta: string;
       readonly ctaText: string;
       readonly ctaLabel: string;
+      readonly ctaVariant: 'actionLabel' | 'ctaAlarm';
     }
   >
 > = {
   soon: {
-    border: color.yellow600,
-    disc: color.yellow400,
-    chip: color.yellow300,
-    cta: color.yellow600,
+    border: color.lime600,
+    disc: color.lime300,
+    chip: color.lime300,
+    cta: color.lime400,
     ctaText: color.black,
-    ctaLabel: 'Chalo',
+    ctaLabel: 'chalO',
+    ctaVariant: 'actionLabel',
   },
   imminent: {
     border: color.lime600,
     disc: color.lime300,
     chip: color.lime300,
     cta: color.lime600,
-    ctaText: color.black,
-    ctaLabel: 'chalo!!',
+    ctaText: color.danger,
+    ctaLabel: 'Chalo!!',
+    ctaVariant: 'ctaAlarm',
   },
   critical: {
     border: color.danger,
-    disc: color.dangerSoft,
-    chip: color.dangerSoft,
+    disc: color.dangerTint,
+    chip: color.dangerTint,
     cta: color.danger,
     ctaText: color.white,
-    ctaLabel: 'CHALO!!',
+    ctaLabel: 'Chalo!!',
+    ctaVariant: 'ctaAlarm',
   },
 };
+
+/**
+ * `285:922` / `285:934` — a job that is over. Neither card has a border; the disc carries a cross
+ * or a tick instead of the timer, and the chip takes the card's own tint.
+ */
+const ENDED = {
+  cancelled: {
+    card: color.dangerTint,
+    disc: color.danger,
+    chip: color.dangerTint,
+    glyph: multiplyGlyph,
+    // `285:928` — 26x28, centred in the disc.
+    glyphBox: { width: 26, height: 28, left: 2, top: 1 },
+  },
+  finished: {
+    card: color.smoke,
+    disc: color.lime600,
+    chip: color.lime300,
+    glyph: doneGlyph,
+    // `285:940` — 20x30 at x=5, top-aligned.
+    glyphBox: { width: 20, height: 30, left: 5, top: 0 },
+  },
+} as const;
 
 export interface BreakWindowModel {
   readonly fromLabel: string;
@@ -183,6 +216,18 @@ export function JobsView({
   const scale = useDesignScale();
   const { s } = scale;
   const insets = useSafeAreaInsets();
+  const leadOutsideList = leadJob !== null && leadUrgency === 'critical';
+  const leadCard =
+    leadJob === null ? null : (
+      <LeadJobCard
+        job={leadJob}
+        urgency={leadUrgency}
+        scale={scale}
+        onStartTravel={onStartTravel}
+        onOpenJob={onOpenJob}
+        isSubmitting={submittingId === leadJob.bookingId}
+      />
+    );
 
   return (
     <View style={styles.flex}>
@@ -219,6 +264,12 @@ export function JobsView({
       >
         {breakWindow !== null && <JobsBreakCard window={breakWindow} scale={scale} />}
 
+        {/*
+         * `1:13280` — under five minutes the lead card leaves the jobs column and sits directly in
+         * the body, so it runs the body's full width rather than the column's inset one.
+         */}
+        {leadOutsideList && leadCard}
+
         <View
           style={[
             styles.list,
@@ -230,18 +281,9 @@ export function JobsView({
             },
           ]}
         >
-          {leadJob !== null && (
-            <LeadJobCard
-              job={leadJob}
-              urgency={leadUrgency}
-              scale={scale}
-              onStartTravel={onStartTravel}
-              onOpenJob={onOpenJob}
-              isSubmitting={submittingId === leadJob.bookingId}
-            />
-          )}
+          {leadJob !== null && !leadOutsideList && leadCard}
           {jobs.map((job) => (
-            <JobTile key={job.bookingId} job={job} scale={scale} onOpenJob={onOpenJob} />
+            <JobTile key={job.bookingId} job={job} scale={scale} />
           ))}
         </View>
       </ScrollView>
@@ -249,22 +291,26 @@ export function JobsView({
   );
 }
 
-/** `572:819` — a job the cook cannot act on yet: start time, duration, building. */
-function JobTile({
-  job,
-  scale,
-  onOpenJob,
-}: {
-  job: JobCardModel;
-  scale: DesignScale;
-  onOpenJob?: ((bookingId: string) => void) | undefined;
-}): React.ReactElement {
+/**
+ * `285:874` / `285:922` / `285:934` — a job on the list that is not the lead: upcoming, cancelled
+ * or done.
+ *
+ * Not pressable in any state. Only the lead card opens a job: an upcoming tile is not hers to act
+ * on yet, and an ended one now says everything it has to on its face -- the cross or the tick, in
+ * the card's own colour -- so there is nothing behind it worth a tap.
+ */
+function JobTile({ job, scale }: { job: JobCardModel; scale: DesignScale }): React.ReactElement {
   const { s } = scale;
+  const ended = job.isCancelled ? ENDED.cancelled : job.isFinished ? ENDED.finished : null;
   return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={`${job.societyOrBuilding} job details`}
-      onPress={onOpenJob === undefined ? undefined : () => onOpenJob(job.bookingId)}
+    <View
+      accessibilityLabel={
+        job.isCancelled
+          ? `${job.societyOrBuilding} job cancelled`
+          : job.isFinished
+            ? `${job.societyOrBuilding} job done`
+            : job.societyOrBuilding
+      }
       style={[
         styles.card,
         /*
@@ -275,6 +321,9 @@ function JobTile({
          * centre correction out of the padding and the margin made every card 1.9 units short,
          * and six of them stacked put the bottom of the list nine units up the screen. The `leave`
          * cards genuinely are centre-aligned; this is why the choice is per call site.
+         *
+         * The ended cards have no stroke, but keep the same 1-unit inset in a transparent border
+         * so every card on the list has the same pitch.
          */
         figmaStroke(scale, {
           width: CARD.borderWidth,
@@ -284,7 +333,8 @@ function JobTile({
         }),
         {
           borderRadius: s(CARD.radius),
-          borderColor: job.isCancelled ? color.danger : color.yellow600,
+          borderColor: ended === null ? color.yellow600 : 'transparent',
+          backgroundColor: ended === null ? color.white : ended.card,
         },
       ]}
       testID={`job-tile-${job.bookingId}`}
@@ -297,32 +347,32 @@ function JobTile({
       >
         <View style={styles.headRow}>
           <View style={[styles.headLeft, { width: s(CARD.headWidth), gap: s(CARD.headGap) }]}>
-            <IconDisc size={CARD.disc} fill={color.yellow400} scale={scale} />
+            {ended === null ? (
+              <IconDisc size={CARD.disc} fill={color.yellow400} scale={scale} />
+            ) : (
+              <EndedDisc
+                fill={ended.disc}
+                glyph={ended.glyph}
+                box={ended.glyphBox}
+                scale={scale}
+                testID={job.isCancelled ? 'job-mark-cancelled' : 'job-mark-done'}
+              />
+            )}
             <Text variant="cardTime" numberOfLines={1}>
               {formatClock(job.scheduledStartIso)}
             </Text>
           </View>
-          <DurationChip minutes={job.serviceDurationMinutes} fill={color.yellow300} scale={scale} />
+          <DurationChip
+            minutes={job.serviceDurationMinutes}
+            fill={ended === null ? color.yellow300 : ended.chip}
+            scale={scale}
+          />
         </View>
         <Text variant="cardTitle" color={color.black}>
           {job.societyOrBuilding}
         </Text>
-        {/*
-         * FIGMA_PENDING — no frame draws a cancelled card in the list, because until 2026-09-02
-         * the list never held one. `622:913` is the cancellation the design DOES draw, and this
-         * card is the way in to it: without a marker the tile is indistinguishable from a job that
-         * is still going to happen, which is worse than not listing it at all.
-         *
-         * Deliberately the card's own vocabulary rather than a new one: the same red the frame
-         * uses for its cancellation copy, on the border and on one line of text.
-         */}
-        {job.isCancelled && (
-          <Text variant="captionStrong" color={color.danger} testID="job-tile-cancelled">
-            CANCEL ho gayi
-          </Text>
-        )}
       </View>
-    </Pressable>
+    </View>
   );
 }
 
@@ -421,7 +471,7 @@ function LeadJobCard({
           ]}
           testID="job-lead-cta"
         >
-          <Text variant="ctaLabelTight" color={tier.ctaText} align="center" style={styles.upper}>
+          <Text variant={tier.ctaVariant} color={tier.ctaText} align="center" style={styles.upper}>
             {tier.ctaLabel}
           </Text>
         </Pressable>
@@ -472,6 +522,52 @@ function IconDisc({
       <Image
         source={timerGlyph}
         style={{ width: s(CARD.glyph), height: s(CARD.glyph) }}
+        resizeMode="contain"
+        accessibilityIgnoresInvertColors
+      />
+    </View>
+  );
+}
+
+/** `285:939` / `285:927` — the disc on an ended card, carrying the tick or the cross. */
+function EndedDisc({
+  fill,
+  glyph,
+  box,
+  scale,
+  testID,
+}: {
+  fill: string;
+  glyph: number;
+  box: {
+    readonly width: number;
+    readonly height: number;
+    readonly left: number;
+    readonly top: number;
+  };
+  scale: DesignScale;
+  testID: string;
+}): React.ReactElement {
+  const { s } = scale;
+  return (
+    <View
+      style={[
+        styles.disc,
+        {
+          width: s(CARD.disc),
+          height: s(CARD.disc),
+          borderRadius: s(CARD.discRadius),
+          backgroundColor: fill,
+        },
+      ]}
+      testID={testID}
+    >
+      <Image
+        source={glyph}
+        style={[
+          styles.endedGlyph,
+          { width: s(box.width), height: s(box.height), left: s(box.left), top: s(box.top) },
+        ]}
         resizeMode="contain"
         accessibilityIgnoresInvertColors
       />
@@ -650,6 +746,7 @@ const styles = StyleSheet.create({
   },
   headLeft: { flexDirection: 'row', alignItems: 'center' },
   disc: { alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  endedGlyph: { position: 'absolute' },
   chip: { alignItems: 'center', justifyContent: 'center' },
   cta: {
     alignSelf: 'stretch',
