@@ -250,6 +250,15 @@ describe('16- money monthly (575:2013)', () => {
     expect(within(mistakes).getByText(/mahine ki galtiyaan/i)).toBeTruthy();
     expect(within(mistakes).queryByText(/cycle ki galtiyaan/i)).toBeNull();
   });
+
+  it('titles the deductions and earnings for the month, not the cycle', () => {
+    render(<MoneyScreen />);
+    fireEvent.press(screen.getByTestId('period-tabs-month'));
+    expect(screen.getByText(/mahine ki katauti/i)).toBeTruthy();
+    expect(screen.getByText(/mahine ki kamai/i)).toBeTruthy();
+    expect(screen.queryByText(/cycle ki katauti/i)).toBeNull();
+    expect(screen.queryByText(/cycle ki kamai/i)).toBeNull();
+  });
 });
 
 describe('bonus bar geometry', () => {
