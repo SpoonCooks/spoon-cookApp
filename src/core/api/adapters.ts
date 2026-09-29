@@ -290,8 +290,14 @@ export function toServiceSnapshot(
     minutesToDeadline: minutesBetween(job.serverTime, job.timing.customerCommitmentAt),
     // `ETA_running`: the arrival instant the server projected, expressed as the travel time left.
     // Same two-server-timestamp subtraction as above, so the device clock is still never consulted.
+    //
+    // Never negative. The server only re-projects the ETA when she moves, so a cook standing at
+    // the gate -- waiting on security, or on the customer to answer -- sees the instant pass while
+    // it stays fixed, and the subtraction ran on below zero: "-1 mins" on staging on 2026-09-29,
+    // "-10" had she waited. A negative distance means nothing to her. Past the ETA the card shows
+    // how far past it is, as a positive number that keeps growing while she waits (founder's call).
     minutesToArrival:
-      job.timing.eta === null ? null : minutesBetween(job.serverTime, job.timing.eta),
+      job.timing.eta === null ? null : Math.abs(minutesBetween(job.serverTime, job.timing.eta)),
     arrivalTiming,
     startOtpReady: job.otpEligibility.start,
     endOtpReady: job.otpEligibility.end,
