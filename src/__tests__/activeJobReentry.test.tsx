@@ -19,7 +19,7 @@ import { JobsView } from '@features/jobs/JobViews';
  * ## What is pinned here
  *
  * That opening a job and being allowed to start travelling are SEPARATE questions. Details is
- * reachable from any card in any state; Start Travel remains the server's ruling. If those two
+ * reachable from the lead card in any state; Start Travel remains the server's ruling. If those two
  * are ever collapsed back into one control this fails, which is the point — the regression is a
  * one-line prop change away and is invisible in review.
  */
@@ -98,19 +98,18 @@ describe('a job can be opened without being startable', () => {
     expect(opened).toEqual([leadBookingId]);
   });
 
-  it('gives a non-lead job its own details action too', () => {
+  it('opens nothing from a non-lead tile: only the lead card is a way in', () => {
     const opened: string[] = [];
     const { otherBookingId } = renderJobs({
       isActionable: true,
       onOpenJob: (id) => opened.push(id),
     });
-    const cards = screen.getAllByLabelText(/job details$/);
 
-    // Index 1 is the first ordinary tile; index 0 is the lead card asserted above.
-    expect(cards.length).toBeGreaterThan(1);
-    fireEvent.press(cards[1] as never);
+    // Only the lead card carries the details action.
+    expect(screen.getAllByLabelText(/job details$/)).toHaveLength(1);
+    fireEvent.press(screen.getByTestId(`job-tile-${otherBookingId ?? ''}`));
 
-    expect(opened).toEqual([otherBookingId]);
+    expect(opened).toEqual([]);
   });
 
   it('keeps Start Travel working as its own separate control', () => {
@@ -133,60 +132,57 @@ describe('a job can be opened without being startable', () => {
 /**
  * The other way a cook loses sight of a job: it is cancelled while she is looking elsewhere.
  *
- * `622:913` — the frame that tells her — renders from the job DETAIL, so it was only ever
- * reachable by already standing on that job's service screen when the cancellation landed. The
- * list dropped the card the instant the booking ended, and with no push device registered
- * (`dispatch_outcome = 'no_device'`) a cook who was anywhere else was simply never told: on
- * 2026-09-02 the founder cancelled an assigned booking and the assigned cook saw nothing at all.
- *
- * `listCookJobs` now keeps the card for six hours. These pin the two things that makes it worth
- * keeping: it must SAY it is cancelled, and it must still open.
+ * `listCookJobs` keeps a cancelled or finished card on the list until midnight IST. The card has
+ * to SAY what happened on its face (`285:922` / `285:934`) because it no longer opens anything.
  */
-describe('a cancelled job stays visible long enough to be found', () => {
-  it('marks the card rather than leaving it looking like a job that is still on', () => {
+describe('an ended job says so on its face', () => {
+  const renderEnded = (
+    change: { isCancelled?: boolean; isFinished?: boolean },
+    onOpenJob?: (bookingId: string) => void,
+  ): string => {
     const state = jobsV14Fixtures.countdown(20, 'soon');
     const job = state.jobs[0];
     if (job === undefined) throw new Error('fixture has no non-lead job');
-
     render(
       withSafeArea(
         <JobsView
           dateLabel="7 November"
           leadJob={null}
-          jobs={[{ ...job, isCancelled: true, isActionable: false }]}
+          jobs={[{ ...job, ...change, isActionable: false }]}
           breakWindow={state.breakWindow}
+          {...(onOpenJob === undefined ? {} : { onOpenJob })}
         />,
       ),
     );
+    return job.bookingId;
+  };
 
-    expect(screen.getByTestId('job-tile-cancelled')).toBeTruthy();
+  it('marks a cancelled card with the cross', () => {
+    renderEnded({ isCancelled: true });
+    expect(screen.getByTestId('job-mark-cancelled')).toBeTruthy();
+    expect(screen.queryByTestId('job-mark-done')).toBeNull();
   });
 
-  it('says nothing on a job that is still going to happen', () => {
+  it('marks a finished card with the tick', () => {
+    renderEnded({ isFinished: true });
+    expect(screen.getByTestId('job-mark-done')).toBeTruthy();
+    expect(screen.queryByTestId('job-mark-cancelled')).toBeNull();
+  });
+
+  it('marks nothing on a job that is still going to happen', () => {
     const state = jobsV14Fixtures.countdown(20, 'soon');
     render(withSafeArea(<JobsView dateLabel="7 November" {...state} />));
-    expect(screen.queryByTestId('job-tile-cancelled')).toBeNull();
+    expect(screen.queryByTestId('job-mark-cancelled')).toBeNull();
+    expect(screen.queryByTestId('job-mark-done')).toBeNull();
   });
 
-  it('still opens, because the card is the only route to the cancellation frame', () => {
-    const state = jobsV14Fixtures.countdown(20, 'soon');
-    const job = state.jobs[0];
-    if (job === undefined) throw new Error('fixture has no non-lead job');
+  it('does not open a cancelled or finished card', () => {
     const onOpenJob = jest.fn();
-
-    render(
-      withSafeArea(
-        <JobsView
-          dateLabel="7 November"
-          leadJob={null}
-          jobs={[{ ...job, isCancelled: true, isActionable: false }]}
-          breakWindow={state.breakWindow}
-          onOpenJob={onOpenJob}
-        />,
-      ),
-    );
-
-    fireEvent.press(screen.getByTestId(`job-tile-${job.bookingId}`));
-    expect(onOpenJob).toHaveBeenCalledWith(job.bookingId);
+    const cancelledId = renderEnded({ isCancelled: true }, onOpenJob);
+    fireEvent.press(screen.getByTestId(`job-tile-${cancelledId}`));
+    screen.unmount();
+    const finishedId = renderEnded({ isFinished: true }, onOpenJob);
+    fireEvent.press(screen.getByTestId(`job-tile-${finishedId}`));
+    expect(onOpenJob).not.toHaveBeenCalled();
   });
 });

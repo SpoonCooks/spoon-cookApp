@@ -62,9 +62,11 @@ describe('job flow — each frame publishes its own list', () => {
     expect(times()).toEqual(['8:30 AM', '8:30 AM', '8:30 AM', '5:30 PM', '3:30 PM', '5:30 PM']);
   });
 
-  it('moves four of the six five minutes earlier on `583:401`', () => {
+  it('moves four of the six five minutes earlier on `285:847`, ending on the two ended cards', () => {
     render(withSafeArea(<JobsView dateLabel="7 November" {...jobsV14Fixtures.loggedIn()} />));
-    expect(times()).toEqual(['8:25 AM', '8:30 AM', '8:30 AM', '5:25 PM', '3:25 PM', '5:25 PM']);
+    expect(times()).toEqual(['8:25 AM', '8:30 AM', '8:30 AM', '5:25 PM', '3:30 PM', '5:30 PM']);
+    expect(screen.getByTestId('job-mark-cancelled')).toBeTruthy();
+    expect(screen.getByTestId('job-mark-done')).toBeTruthy();
   });
 
   it('drops to five rows behind the lead card on `583:427`', () => {

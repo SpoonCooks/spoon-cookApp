@@ -149,17 +149,17 @@ export const textStyle = {
     color: color.textPrimary,
   },
   /**
-   * `573:1222` — the `CHALO` CTA. Livvic Black 24 on a 30 line with **-0.6** tracking.
+   * `1:13171` / `1:13292` — the `CHALO!!` CTA once the job is under ten minutes away. Livvic Black
+   * 30 with 1 unit of tracking.
    *
-   * `actionLabel` sets the same size and line with **+1**. The two sit one card apart in V14 and
-   * the 1.6-unit difference accumulates across a six-glyph word, so neither substitutes for the
-   * other.
+   * On a 36 line, not the frame's 35: Livvic Black at 30 needs 1.2x to stay unclipped on Android
+   * (see `descenderRoom.test.ts`), and one unit on the button's height is the whole cost.
    */
-  ctaLabelTight: {
+  ctaAlarm: {
     fontFamily: fontFamily.black,
-    fontSize: fontSize.display,
-    lineHeight: lineHeight.displayTight,
-    letterSpacing: -0.6,
+    fontSize: fontSize.displayLg,
+    lineHeight: lineHeight.displayLg,
+    letterSpacing: 1,
     color: color.textPrimary,
   },
   /**

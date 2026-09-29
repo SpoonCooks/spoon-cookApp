@@ -169,14 +169,17 @@ const v14LoggedOutList: readonly JobCardModel[] = [
   v14Tile('v14-6', '2026-11-07T17:30:00+05:30', 30),
 ];
 
-/** `583:401` — the same six rows once the shift has started. The first and last three move. */
+/**
+ * `285:847` — the same six rows once the shift has started. Four move five minutes earlier, and
+ * the last two are the ended cards: `285:922` cancelled at 3:30 PM, `285:934` done at 5:30 PM.
+ */
 const v14LoggedInList: readonly JobCardModel[] = [
   v14Tile('v14-1', '2026-11-07T08:25:00+05:30', 90),
   v14Tile('v14-2', '2026-11-07T08:30:00+05:30', 90),
   v14Tile('v14-3', '2026-11-07T08:30:00+05:30', 90),
   v14Tile('v14-4', '2026-11-07T17:25:00+05:30', 30),
-  v14Tile('v14-5', '2026-11-07T15:25:00+05:30', 45),
-  v14Tile('v14-6', '2026-11-07T17:25:00+05:30', 30),
+  { ...v14Tile('v14-5', '2026-11-07T15:30:00+05:30', 45), isCancelled: true },
+  { ...v14Tile('v14-6', '2026-11-07T17:30:00+05:30', 30), isFinished: true },
 ];
 
 /** `583:427` / `583:453` / `583:479` — the five rows that follow the lead card. */
