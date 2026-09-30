@@ -54,6 +54,7 @@ export type { TextStyleToken } from './theme/typography';
 export {
   AboveBaseBand,
   BackHeader,
+  ChuttiNotice,
   CycleWorkCard,
   DailyRatingCard,
   DailyWorkCard,

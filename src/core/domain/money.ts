@@ -299,3 +299,26 @@ export function formatOrdinalDate(dateIso: string): string {
 export function formatDateRange(fromIso: string, toIso: string): string {
   return `${formatShortDate(fromIso)} - ${formatShortDate(toIso)}`;
 }
+
+/**
+ * Whether she was on chutti for a Kamai period (`385:8782` / `392:8957` / `392:9025`).
+ *
+ * True when the period, up to today, holds an absent or leave day and no present one — a day
+ * she was off, or a cycle/month she has not worked in yet. A period with no records at all is
+ * NOT chutti: "nothing recorded" (a new cook, a day not yet started) is not the same fact as
+ * "she was off", and it keeps its ordinary zero panels.
+ *
+ * Dates are `YYYY-MM-DD` service dates, compared as strings.
+ */
+export function isChuttiPeriod(
+  records: readonly { readonly serviceDate: string; readonly status: string }[],
+  window: { readonly from: string; readonly to: string },
+  today: string,
+): boolean {
+  const last = window.to < today ? window.to : today;
+  const inside = records.filter((row) => row.serviceDate >= window.from && row.serviceDate <= last);
+  return (
+    inside.some((row) => row.status === 'absent' || row.status === 'leave') &&
+    !inside.some((row) => row.status === 'present')
+  );
+}

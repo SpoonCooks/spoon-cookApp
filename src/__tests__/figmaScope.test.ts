@@ -68,15 +68,15 @@ describe('finalized V14 sections', () => {
 });
 
 describe('V14 screen inventory', () => {
-  it('counts 47 screens, not V13’s 35', () => {
-    expect(figmaScreens).toHaveLength(47);
+  it('counts 50 screens, not V13’s 35', () => {
+    expect(figmaScreens).toHaveLength(50);
   });
 
   it('distributes them 5 / 4 / 7 / 7 / 5 / 13 / 6 across the finalized sections', () => {
     expect(screensForSection(SECTION_IDS.login)).toHaveLength(5);
     expect(screensForSection(SECTION_IDS.logInFlow)).toHaveLength(4);
     expect(screensForSection(SECTION_IDS.leave)).toHaveLength(7);
-    expect(screensForSection(SECTION_IDS.performance)).toHaveLength(7);
+    expect(screensForSection(SECTION_IDS.performance)).toHaveLength(10);
     expect(screensForSection(SECTION_IDS.jobFlow)).toHaveLength(5);
     expect(screensForSection(SECTION_IDS.service)).toHaveLength(13);
     expect(screensForSection(SECTION_IDS.info)).toHaveLength(6);
@@ -169,8 +169,8 @@ describe('the V14 bottom nav', () => {
     expect(bottomNavTabs).toEqual(['Hazri', 'Kaam', 'Chutti', 'Kamai', 'Niyam']);
   });
 
-  it('carries the nav on 33 of the 47 frames', () => {
-    expect(figmaScreens.filter((screen) => screen.bottomNav)).toHaveLength(33);
+  it('carries the nav on 36 of the 50 frames', () => {
+    expect(figmaScreens.filter((screen) => screen.bottomNav)).toHaveLength(36);
   });
 
   it('never draws the nav on a pre-auth `Login flow` frame', () => {

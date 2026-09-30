@@ -48,6 +48,7 @@ import type {
   CookWeekSummaryResponse,
   CookWeekDetailResponse,
   CookEarningsBreakdownResponse,
+  CookEarningsDayResponse,
   CookEarningsPeriodResponse,
   CookEarningsResponse,
   CookJobResponse,
@@ -505,6 +506,19 @@ export function toEarningsPeriodView(
 
 /** The GAP-19 daily-hours figures, or null while the deployed API predates the field. */
 export function toDailyHoursView(response: CookEarningsResponse): DailyHoursView | null {
+  const hours = response.dailyHours;
+  if (hours === undefined || hours === null) return null;
+  return {
+    workedMinutes: hours.workedMinutes,
+    thresholdMinutes: hours.thresholdMinutes,
+    targetMinutes: hours.targetMinutes,
+    ratePerHourPaise: hours.ratePerHourPaise,
+    bonusMinutes: hours.bonusMinutes,
+  };
+}
+
+/** A past day's hours rule, or null while the deployed API predates the field. */
+export function toDayHoursView(response: CookEarningsDayResponse): DailyHoursView | null {
   const hours = response.dailyHours;
   if (hours === undefined || hours === null) return null;
   return {

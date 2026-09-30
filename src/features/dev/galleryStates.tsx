@@ -475,6 +475,26 @@ export const galleryEntries: readonly GalleryEntry[] = [
       onChangePeriod={noop}
     />
   )),
+  ...(
+    [
+      ['day', '385:8782', 'Aaj'],
+      ['cycle', '392:8957', 'Cycle'],
+      ['month', '392:9025', 'Mahina'],
+    ] as const
+  ).map(([period, nodeId, label]) =>
+    performance(`performance/money-chutti-${period}`, nodeId, `Money — ${label}, chutti`, () => (
+      <MoneyPeriodView
+        period={period}
+        view={performanceFixtures.daily(8)}
+        bonus={performanceFixtures.bonus()}
+        rating={performanceFixtures.rating()}
+        days={[]}
+        tabs={PERIOD_TABS}
+        onChangePeriod={noop}
+        chutti
+      />
+    )),
+  ),
   performance('performance/money-weekly', '575:1884', 'Money — Cycle', () => (
     <MoneyPeriodView
       period="cycle"
@@ -511,7 +531,7 @@ export const galleryEntries: readonly GalleryEntry[] = [
     <PastDayView
       label="26th July"
       view={performanceFixtures.daily()}
-      bonus={performanceFixtures.bonus()}
+      hoursBonus={performanceFixtures.hoursBonus()}
       rating={performanceFixtures.rating()}
       onBack={noop}
     />

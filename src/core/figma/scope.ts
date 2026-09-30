@@ -90,7 +90,7 @@ export const figmaSections: readonly FigmaSection[] = [
 ];
 
 /**
- * Every direct-child frame of a finalized section. **47 total: 5 + 4 + 7 + 7 + 5 + 13 + 6.**
+ * Every direct-child frame of a finalized section. **50 total: 5 + 4 + 7 + 10 + 5 + 13 + 6.**
  *
  * The count comes from V14 itself, not from V13's 35. Several frames are STATES of one route
  * rather than separate routes — the thirteen service frames are thirteen renderings of one
@@ -296,7 +296,7 @@ export const figmaScreens: readonly FigmaScreen[] = [
     galleryState: 'leave/short-confirm',
   },
 
-  /* ---- performance (575:1741) — 7 ---- */
+  /* ---- performance (575:1741) — 10: seven period/history frames and three chutti states ---- */
   {
     nodeId: '575:1744',
     name: '12- money daily',
@@ -308,6 +308,42 @@ export const figmaScreens: readonly FigmaScreen[] = [
     height: 1116.0579,
     implementation: 'src/app/(tabs)/money.tsx — period=day',
     galleryState: 'performance/money-daily',
+  },
+  {
+    nodeId: '385:8782',
+    name: 'Money daily/ Absent',
+    sectionNodeId: '575:1741',
+    convention: 'direct',
+    statusBand: 32,
+    bottomNav: true,
+    width: 370,
+    height: 910,
+    implementation: 'src/app/(tabs)/money.tsx — period=day, chutti',
+    galleryState: 'performance/money-chutti-day',
+  },
+  {
+    nodeId: '392:8957',
+    name: 'Money weekly/ Absent',
+    sectionNodeId: '575:1741',
+    convention: 'direct',
+    statusBand: 32,
+    bottomNav: true,
+    width: 370,
+    height: 910,
+    implementation: 'src/app/(tabs)/money.tsx — period=cycle, chutti',
+    galleryState: 'performance/money-chutti-cycle',
+  },
+  {
+    nodeId: '392:9025',
+    name: 'Money monthly/ Absent',
+    sectionNodeId: '575:1741',
+    convention: 'direct',
+    statusBand: 32,
+    bottomNav: true,
+    width: 370,
+    height: 910,
+    implementation: 'src/app/(tabs)/money.tsx — period=month, chutti',
+    galleryState: 'performance/money-chutti-month',
   },
   {
     nodeId: '575:1884',
@@ -730,7 +766,7 @@ export const bottomNavTabs = ['Hazri', 'Kaam', 'Chutti', 'Kamai', 'Niyam'] as co
 /**
  * Screens whose view has not yet been rebuilt against V14.
  *
- * **Empty.** All 47 finalized screens now have a V14 view and a `/dev` state.
+ * **Empty.** All 50 finalized screens now have a V14 view and a `/dev` state.
  *
  * The list is kept rather than deleted because `gallery.test.tsx` pins both directions against it:
  * a screen NOT on the ledger must have a gallery state, and a screen ON it must not. With the list

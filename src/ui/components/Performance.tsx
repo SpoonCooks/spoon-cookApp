@@ -84,16 +84,6 @@ const WORK_GROUP = { labelGap: 6, formulaGap: 2 } as const;
 /** `502:40` / `536:218` — a filled band inside or below a card. */
 const BAND = { radius: 16, padding: 16, gap: 9.99 } as const;
 
-/** `434:2889` — the bonus panel and its seven-segment track. */
-const BONUS = {
-  radius: 16,
-  padding: 11.889,
-  gap: 6,
-  trackHeight: 10,
-  trackPadding: 2,
-  segmentGap: 6,
-} as const;
-
 /** `531:1703` — `1.75  x  ₹150  =  +₹263`. */
 const FORMULA = {
   height: 56,
@@ -158,6 +148,32 @@ const ROW = {
 /** `502:628` — a past-cycle row, which is taller and rounder than a day row. */
 const CYCLE_ROW = { radius: 20, height: 62, innerGap: 10 } as const;
 
+/**
+ * `1:12668` (locked) / `392:8943` (unlocked) — the hours bonus panel.
+ *
+ * A 46-unit white disc holding the 35-unit lock, the sentence to its right, and a 16-unit white
+ * track of one segment per hour below.
+ */
+const HOURS_BONUS = {
+  radius: 16,
+  padding: 11.889,
+  gap: 6,
+  disc: 46,
+  glyph: 35,
+  glyphInset: 5.11,
+  trackHeight: 16,
+  trackPadding: 2,
+  segmentGap: 6,
+  /** `392:8946` — the unlocked track's five blocks, one per hour past the threshold. */
+  unlockedSegments: 5,
+} as const;
+
+/** `392:8943` — the unlocked panel's fill, `rgba(236,255,155,0.6)`: lime300 at 60%. */
+const UNLOCKED_FILL = 'rgba(236,255,155,0.6)';
+
+/** `385:8795` — the chutti notice: banner, photo, caption. */
+const CHUTTI = { gap: 14.01, imageAspect: 1215 / 1295 } as const;
+
 /** `537:488` — the back header on every pushed frame. */
 const NAV = { height: 45, gap: 12, glyph: 32 } as const;
 
@@ -172,6 +188,12 @@ const images = {
   star: require('../../../assets/images/figma-v13/star.png') as ImageSourcePropType,
   /** `502:626` — the yellow calendar on a history row. */
   calendar: require('../../../assets/images/figma-v13/calendar-yellow.png') as ImageSourcePropType,
+  /** `392:9104` — the closed lock on a bonus still being earned. */
+  bonusLock: require('../../../assets/images/figma-v14/bonus-lock.png') as ImageSourcePropType,
+  /** `392:9101` — the open lock once the bonus window is reached. */
+  bonusUnlock: require('../../../assets/images/figma-v14/bonus-unlock.png') as ImageSourcePropType,
+  /** `392:8955` — the cook at rest, on a Kamai period she was on chutti for. 1215x1295. */
+  chutti: require('../../../assets/images/figma-v14/kamai-chutti.png') as ImageSourcePropType,
   /** `506:1868` — the tick on a present day. */
   dayDone: require('../../../assets/images/figma-v13/day-done.png') as ImageSourcePropType,
 } as const;
@@ -395,13 +417,11 @@ function discFor(state: DayState): string {
  */
 export function DailyWorkCard({
   view,
-  bonus,
   hoursBonus = null,
   copy,
   testID = 'work-card',
 }: {
   view: EarningsPeriodView;
-  bonus: BonusProgress | null;
   hoursBonus?: DailyHoursView | null;
   copy: PeriodCopy;
   testID?: string;
@@ -428,22 +448,16 @@ export function DailyWorkCard({
         </View>
       </View>
 
-      {hoursBonus !== null ? (
-        <BonusBar
-          threshold={Math.floor(hoursBonus.thresholdMinutes / 60)}
-          target={Math.floor(hoursBonus.targetMinutes / 60)}
-          completed={Math.floor(hoursBonus.workedMinutes / 60)}
-          unitWord="ghante"
+      {/*
+        The day's own hours rule, or nothing. This used to fall back to the cycle's attendance
+        meter (`27 se zyada din kaam`) whenever the day's hours were missing — a 28-day rule on a
+        one-day card, which is what `Din ki kamai` showed for every past day.
+      */}
+      {hoursBonus !== null && (
+        <HoursBonusBar
+          workedMinutes={hoursBonus.workedMinutes}
+          thresholdMinutes={hoursBonus.thresholdMinutes}
         />
-      ) : (
-        bonus !== null && (
-          <BonusBar
-            threshold={bonus.thresholdDays}
-            target={bonus.targetDays}
-            completed={bonus.completedDays}
-            unitWord="din"
-          />
-        )
       )}
 
       <View style={[styles.stretch, { gap: s(WORK_GROUP.formulaGap) }]}>
@@ -506,75 +520,152 @@ function WorkUnit({
 }
 
 /**
- * The bonus panel (`434:2889`).
+ * The hours bonus panel — locked (`1:12668`) until she has worked the policy's threshold, then
+ * unlocked (`392:8943`).
  *
- * Sentence and geometry are backend-driven: the caller supplies the threshold number, the
- * segment count and the fill from whichever server rule the panel is showing, so a policy change
- * moves this bar without an app release.
+ * One segment per hour of the threshold, so a 7-hour rule draws seven, and each completed hour
+ * fills one. Both the segment count and the unlock point are the server's `thresholdMinutes`,
+ * never a literal 7: a policy change moves this bar without an app release.
  *
- * ## The unit word is the caller's, because GAP-19 got its ruling
- *
- * `434:2892` reads `Bonus ke liye: 7 se zyada ghante kaam` — hours — while the original deployed
- * contract only exposed the day-cycle bonus, so this bar once printed `din` as a documented
- * deviation (`docs/COOK_APP_V13_PIXEL_PERFECT_CLOSURE.md`). The contract has since grown
- * `dailyHours` — the ledger's own hours rule — so the daily card passes `ghante` with the
- * policy's threshold, and the cycle meter keeps `din` with the cycle's. Each word is only ever
- * paired with figures from the rule it names.
+ * Once she reaches it the bonus window opens: the lock opens, the panel turns lime, and the
+ * track restarts as {@link HOURS_BONUS.unlockedSegments} blocks (`392:8946`), one filling for
+ * each full hour past the threshold. The bonus itself has no cap — past the last block the
+ * track stays full and the `EXTRA KAAM BONUS` formula below keeps pricing every minute.
  */
-function BonusBar({
-  threshold,
-  target,
-  completed,
-  unitWord,
+export function HoursBonusBar({
+  workedMinutes,
+  thresholdMinutes,
+  testID = 'bonus-bar',
 }: {
-  threshold: number;
-  target: number;
-  completed: number;
-  unitWord: 'din' | 'ghante';
+  workedMinutes: number;
+  thresholdMinutes: number;
+  testID?: string;
 }): React.ReactElement {
   const { s } = useDesignScale();
-  const segments = Math.max(1, Math.min(31, target));
-  const filled = Math.max(0, Math.min(segments, completed));
+  const unlocked = workedMinutes >= thresholdMinutes;
+  const segments = unlocked
+    ? HOURS_BONUS.unlockedSegments
+    : Math.max(1, Math.min(24, Math.floor(thresholdMinutes / 60)));
+  const hoursIntoStage = Math.floor(
+    (unlocked ? workedMinutes - thresholdMinutes : workedMinutes) / 60,
+  );
+  const filled = Math.max(0, Math.min(segments, hoursIntoStage));
+  const fill = unlocked ? color.lime600 : color.yellow600;
 
   return (
     <View
       style={[
         styles.bonusBox,
-        { borderRadius: s(BONUS.radius), padding: s(BONUS.padding), gap: s(BONUS.gap) },
+        {
+          backgroundColor: unlocked ? UNLOCKED_FILL : color.yellow300,
+          borderRadius: s(HOURS_BONUS.radius),
+          padding: s(HOURS_BONUS.padding),
+          gap: s(HOURS_BONUS.gap),
+        },
         dropShadow(2, 0.05, 1),
       ]}
-      testID="bonus-bar"
+      testID={testID}
     >
-      <Text variant="bonusHint" testID="bonus-bar-hint">
-        {'Bonus ke liye: '}
-        <Text variant="bonusHint" color={color.success}>
-          {`${threshold} se zyada`}
+      <View style={styles.hoursBonusHead}>
+        <View
+          style={[
+            styles.hoursBonusDisc,
+            {
+              width: s(HOURS_BONUS.disc),
+              height: s(HOURS_BONUS.disc),
+              borderRadius: s(HOURS_BONUS.disc / 2),
+            },
+          ]}
+        >
+          <Image
+            source={unlocked ? images.bonusUnlock : images.bonusLock}
+            style={{
+              position: 'absolute',
+              left: s(HOURS_BONUS.glyphInset),
+              top: s(HOURS_BONUS.glyphInset),
+              width: s(HOURS_BONUS.glyph),
+              height: s(HOURS_BONUS.glyph),
+            }}
+            resizeMode="contain"
+            testID={unlocked ? `${testID}-unlocked` : `${testID}-locked`}
+          />
+        </View>
+        {/*
+          One line, as the design sets it (`whitespace-nowrap`). Android measures Livvic Black a
+          little narrower than it draws it, which wrapped the last word of the unlocked sentence
+          onto a second line the row clipped; shrinking to fit keeps it whole.
+        */}
+        <Text
+          variant="bonusHint"
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.85}
+          style={styles.hoursBonusHint}
+          testID={`${testID}-hint`}
+        >
+          {unlocked
+            ? 'AAPKE BONUS UNLOCK HO GAYA HAI'
+            : `BONUS: ${Math.floor(thresholdMinutes / 60)} se zyada ghante kaam`}
         </Text>
-        {` ${unitWord} kaam`}
-      </Text>
+      </View>
       <View
         style={[
           styles.bonusTrack,
           {
-            height: s(BONUS.trackHeight),
-            padding: s(BONUS.trackPadding),
-            gap: s(BONUS.segmentGap),
-            borderRadius: s(BONUS.trackHeight),
+            height: s(HOURS_BONUS.trackHeight),
+            padding: s(HOURS_BONUS.trackPadding),
+            gap: s(HOURS_BONUS.segmentGap),
+            borderRadius: s(HOURS_BONUS.trackHeight),
           },
         ]}
         accessibilityRole="progressbar"
         accessibilityValue={{ min: 0, max: segments, now: filled }}
+        testID={`${testID}-track`}
       >
         {Array.from({ length: segments }, (_, index) => (
           <View
             key={index}
             style={[
               styles.bonusSegment,
-              { backgroundColor: index < filled ? color.lime600 : color.yellow200 },
+              { backgroundColor: index < filled ? fill : color.yellow200 },
             ]}
           />
         ))}
       </View>
+    </View>
+  );
+}
+
+/**
+ * `385:8782` / `392:8957` / `392:9025` — a Kamai period she was on chutti for.
+ *
+ * Replaces the earnings panels for that period: a yellow-bordered banner saying so, the resting
+ * cook, and the caption telling her to come to work to see her kamai. `message` is the period's
+ * own line (`Aaj aap chutti pe hai`, `Ye cycle…`, `Ye mahine…`).
+ */
+export function ChuttiNotice({
+  message,
+  testID = 'chutti-notice',
+}: {
+  message: string;
+  testID?: string;
+}): React.ReactElement {
+  const { s } = useDesignScale();
+  return (
+    <View style={[styles.stretch, { gap: s(CHUTTI.gap) }]} testID={testID}>
+      <Card tone="yellow">
+        <SectionLabel>{message}</SectionLabel>
+      </Card>
+      <Image
+        source={images.chutti}
+        // An explicit width: a stretched `Image` otherwise lays out at its 1215-px intrinsic size.
+        style={{ width: '100%', height: undefined, aspectRatio: CHUTTI.imageAspect }}
+        resizeMode="cover"
+        testID={`${testID}-image`}
+      />
+      <Text variant="overline" align="center" style={styles.upper}>
+        Kamai dekhne ke liye kaam pe aaye
+      </Text>
     </View>
   );
 }
@@ -1380,6 +1471,14 @@ const styles = StyleSheet.create({
   bonusBox: { backgroundColor: color.lime100, alignSelf: 'stretch' },
   bonusTrack: { flexDirection: 'row', backgroundColor: color.surface, overflow: 'hidden' },
   bonusSegment: { flex: 1, borderRadius: 999 },
+  hoursBonusHead: {
+    alignSelf: 'stretch',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  hoursBonusDisc: { backgroundColor: color.surface },
+  hoursBonusHint: { flexShrink: 1, textAlign: 'right' },
 
   formulaRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
   formulaCell: { alignItems: 'center', justifyContent: 'center' },

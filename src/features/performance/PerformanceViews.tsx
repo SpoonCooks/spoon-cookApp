@@ -12,6 +12,7 @@ import {
 import {
   AboveBaseBand,
   BackHeader,
+  ChuttiNotice,
   color,
   CycleWorkCard,
   DailyRatingCard,
@@ -136,8 +137,20 @@ export interface MoneyPeriodViewProps {
   readonly onChangePeriod: (period: EarningsPeriod) => void;
   readonly onOpenDays?: (() => void) | undefined;
   readonly onOpenCycles?: (() => void) | undefined;
+  /**
+   * She was on chutti for this period (`385:8782` / `392:8957` / `392:9025`): the notice replaces
+   * the earnings panels, under the same tabs.
+   */
+  readonly chutti?: boolean;
   readonly refreshControl?: React.ComponentProps<typeof ScrollView>['refreshControl'];
 }
+
+/** The chutti banner line for each period, from `385:8800` and its cycle/month variants. */
+const CHUTTI_MESSAGE: Record<EarningsPeriod, string> = {
+  day: 'Aaj aap chutti pe hai',
+  cycle: 'Ye cycle aap chutti pe hai',
+  month: 'Ye mahine aap chutti pe hai',
+};
 
 /**
  * `575:1744` / `575:1884` / `575:2013` — the three period frames, which are one screen.
@@ -156,16 +169,33 @@ export function MoneyPeriodView({
   onChangePeriod,
   onOpenDays,
   onOpenCycles,
+  chutti = false,
   refreshControl,
 }: MoneyPeriodViewProps): React.ReactElement {
   const copy = periodCopy[period];
+  const tabBar = (
+    <PeriodTabs
+      items={tabs}
+      value={period}
+      onChange={(key) => onChangePeriod(key as EarningsPeriod)}
+    />
+  );
+  if (chutti) {
+    return (
+      <PerformanceScreen
+        testID="money"
+        {...(refreshControl === undefined ? {} : { refreshControl })}
+      >
+        {tabBar}
+        <Block width={WIDTH.panel}>
+          <ChuttiNotice message={CHUTTI_MESSAGE[period]} testID={`money-chutti-${period}`} />
+        </Block>
+      </PerformanceScreen>
+    );
+  }
   return (
     <PerformanceScreen testID="money" {...(refreshControl === undefined ? {} : { refreshControl })}>
-      <PeriodTabs
-        items={tabs}
-        value={period}
-        onChange={(key) => onChangePeriod(key as EarningsPeriod)}
-      />
+      {tabBar}
 
       {period === 'cycle' && days.length > 0 && (
         <Block>
@@ -175,7 +205,7 @@ export function MoneyPeriodView({
 
       <Block width={WIDTH.panel}>
         {period === 'day' ? (
-          <DailyWorkCard view={view} bonus={bonus} hoursBonus={hoursBonus} copy={copy} />
+          <DailyWorkCard view={view} hoursBonus={hoursBonus} copy={copy} />
         ) : (
           <CycleWorkCard
             view={view}
@@ -223,13 +253,14 @@ export function MoneyPeriodView({
 export function PastDayView({
   label,
   view,
-  bonus,
+  hoursBonus,
   rating,
   onBack,
 }: {
   label: string;
   view: EarningsPeriodView;
-  bonus: BonusProgress | null;
+  /** That day's hours rule, or null against an API that predates it — then no bar at all. */
+  hoursBonus: DailyHoursView | null;
   rating: RatingView | null;
   onBack: () => void;
 }): React.ReactElement {
@@ -241,7 +272,7 @@ export function PastDayView({
     >
       <DateBanner label={label} />
       <Block width={WIDTH.panel}>
-        <DailyWorkCard view={view} bonus={bonus} copy={copy} />
+        <DailyWorkCard view={view} hoursBonus={hoursBonus} copy={copy} />
       </Block>
       <Block>
         <MistakesCard view={view} copy={copy} />

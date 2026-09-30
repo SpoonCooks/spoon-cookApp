@@ -1,8 +1,8 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useMemo } from 'react';
-import { toBonusProgress, toEarningsPeriodView } from '@core/api/adapters';
+import { toDayHoursView, toEarningsPeriodView } from '@core/api/adapters';
 import { apiErrorMessage } from '@core/api/errors';
-import { useCookProfile, useEarnings, useEarningsDay } from '@core/api/queries';
+import { useCookProfile, useEarningsDay } from '@core/api/queries';
 import { formatOrdinalDate, type RatingView } from '@core/domain/money';
 import { PastDayView } from '@features/performance/PerformanceViews';
 import { ErrorState, LoadingState } from '@ui';
@@ -31,18 +31,21 @@ export default function PastDayScreen(): React.ReactElement {
   const valid = dateIso.length === 10;
 
   const day = useEarningsDay(dateIso, valid);
-  // Only for bonus progress, which is a cycle-level figure and has no per-day equivalent.
-  const earnings = useEarnings(valid);
   const profile = useCookProfile();
 
-  const view = useMemo(
-    () => (day.data === undefined ? null : toEarningsPeriodView('day', day.data)),
+  /*
+   * That day's own hours and long-hours rule, from the day endpoint. The screen used to borrow
+   * the cycle's attendance progress from `/cook/earnings` for its bonus bar, which printed
+   * `27 se zyada din kaam` — a 28-day rule — on a single day.
+   */
+  const hoursBonus = useMemo(
+    () => (day.data === undefined ? null : toDayHoursView(day.data)),
     [day.data],
   );
 
-  const bonus = useMemo(
-    () => (earnings.data === undefined ? null : toBonusProgress(earnings.data)),
-    [earnings.data],
+  const view = useMemo(
+    () => (day.data === undefined ? null : toEarningsPeriodView('day', day.data, hoursBonus)),
+    [day.data, hoursBonus],
   );
 
   const rating: RatingView | null = useMemo(
@@ -71,7 +74,7 @@ export default function PastDayScreen(): React.ReactElement {
     <PastDayView
       label={formatOrdinalDate(dateIso)}
       view={view}
-      bonus={bonus}
+      hoursBonus={hoursBonus}
       rating={rating}
       onBack={() => router.back()}
     />

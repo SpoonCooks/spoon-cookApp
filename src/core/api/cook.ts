@@ -36,12 +36,12 @@ import {
   cookProfileSchema,
   currentCookJobSchema,
   customerContactSchema,
-  earningsPeriodSchema,
+  earningsDaySchema,
   monthlyAttendanceSchema,
   noContentSchema,
   otpSendSchema,
   type AuthSessionResponse,
-  type CookEarningsPeriodResponse,
+  type CookEarningsDayResponse,
   type CookCyclesResponse,
   type CookDeletionRequestResponse,
   type CookWeeksResponse,
@@ -602,8 +602,8 @@ export async function getEarnings(
 export async function getEarningsDay(
   serviceDate: string,
   opts: Opts = {},
-): Promise<CookEarningsPeriodResponse> {
-  return request(`/cook/earnings/day/${serviceDate}`, earningsPeriodSchema, opts);
+): Promise<CookEarningsDayResponse> {
+  return request(`/cook/earnings/day/${serviceDate}`, earningsDaySchema, opts);
 }
 
 export async function listEarningsCycles(
