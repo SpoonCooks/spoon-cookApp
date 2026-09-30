@@ -10,6 +10,10 @@
  * `.svg` to an `<Image>` renders nothing on Android.
  */
 
+/** `arrival-check.svg` — Figma nodes: . */
+export const arrivalCheck =
+  '<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="90" height="90" viewBox="0 0 90 90" fill="none" xmlns="http://www.w3.org/2000/svg">\n<g id="Frame">\n<path id="Vector" d="M45 82.5C65.7107 82.5 82.5 65.7107 82.5 45C82.5 24.2893 65.7107 7.5 45 7.5C24.2893 7.5 7.5 24.2893 7.5 45C7.5 65.7107 24.2893 82.5 45 82.5Z" stroke="black" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>\n<path id="Vector_2" d="M26.883 45.1902L38.9324 57.4789L63.0313 32.9015" stroke="black" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>\n</g>\n</svg>';
+
 /** `back.svg` — Figma nodes: 592:488. */
 export const back =
   '<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">\n<g id="back" clip-path="url(#clip0_0_4)">\n<g id="Ellipse 1" filter="url(#filter0_d_0_4)">\n<circle cx="16" cy="16" r="14" fill="white"/>\n<circle cx="16" cy="16" r="13.5" stroke="black" stroke-opacity="0.15"/>\n</g>\n<path id="Vector" d="M18.6667 22.6667L12 16L18.6667 9.33333" stroke="black" stroke-opacity="0.7" stroke-width="1.66667" stroke-linecap="round" stroke-linejoin="round"/>\n</g>\n<defs>\n<filter id="filter0_d_0_4" x="-2" y="-2" width="36" height="36" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">\n<feFlood flood-opacity="0" result="BackgroundImageFix"/>\n<feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>\n<feOffset/>\n<feGaussianBlur stdDeviation="2"/>\n<feComposite in2="hardAlpha" operator="out"/>\n<feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.07 0"/>\n<feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_0_4"/>\n<feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow_0_4" result="shape"/>\n</filter>\n<clipPath id="clip0_0_4">\n<rect width="32" height="32" fill="white"/>\n</clipPath>\n</defs>\n</svg>';

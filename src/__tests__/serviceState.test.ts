@@ -29,6 +29,8 @@ const base: ServiceSnapshot = {
   minutesToDeadline: null,
   minutesToArrival: null,
   arrivalTiming: null,
+  arrivedLateByMinutes: null,
+  arrivalSelfieAtIso: null,
   startOtpReady: false,
   endOtpReady: false,
   actualStartIso: null,

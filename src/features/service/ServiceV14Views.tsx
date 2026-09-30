@@ -1,11 +1,14 @@
 import {
   Image,
+  Keyboard,
   Pressable,
   ScrollView,
   StyleSheet,
   View,
   type ImageSourcePropType,
 } from 'react-native';
+import { CameraView, useCameraPermissions } from 'expo-camera';
+import { useEffect, useRef, useState } from 'react';
 import { SvgXml } from 'react-native-svg';
 
 import { formatDurationHours } from '@core/domain/job';
@@ -19,7 +22,7 @@ import {
   useDesignScale,
   type DesignScale,
 } from '@ui';
-import { callIcon, mapPin } from '@ui/icons/figmaV14Icons';
+import { arrivalCheck, callIcon, mapPin } from '@ui/icons/figmaV14Icons';
 
 /**
  * The V14 `Service flow` (`485:4971`) — thirteen renderings of one booking.
@@ -76,13 +79,29 @@ const TRAVEL = {
   lateBorderWidth: 1.5,
 } as const;
 
-/** `468:3940` — the arrival banner: a full-width illustration over a centred headline. */
 /**
- * `468:3941` — the arrival art, `330 x 150` inside the 338-wide status banner.
- *
- * The width is STATED, not stretched. See `promoArt` below for what stretching cost.
+ * `1:10172` / `1:10712` — the arrival banner. The travel banner's layout: the cook's photo beside a
+ * headline pill over a tick (on time) or the minutes late.
  */
-const ARRIVAL = { artWidth: 330, artHeight: 150, gap: 10 } as const;
+const ARRIVAL = {
+  /** `1:10173` — the cook photo, the travel banner's 112 x 150 box. */
+  artWidth: 112,
+  artHeight: 150,
+  gap: 10,
+  columnWidth: 206,
+  /** `1:10175` — the headline pill: 20/28 in `px-12 py-8`, 44 tall. */
+  headlineRadius: 15,
+  headlinePaddingH: 12,
+  headlinePaddingV: 8,
+  /** `1:10177` — the on-time tick: a 100 disc of `#cfff04`, the 90 glyph inset 5. */
+  tickDisc: 100,
+  tickGlyph: 90,
+  /** `1:10717` / `1:10719` — the late box: 103 tall, a `#ffd7d7` fill inset `px-12 py-8`. */
+  lateHeight: 103,
+  lateRadius: 15,
+  latePaddingH: 12,
+  latePaddingV: 8,
+} as const;
 
 /** `468:4045` — `Pahauch gaye`. */
 const ARRIVED_CTA = { radius: 15, paddingH: 12, paddingV: 6, gap: 12, glyph: 40 } as const;
@@ -193,22 +212,6 @@ const CANCEL_BANNER = {
   captionTop: 14,
 } as const;
 
-/**
- * `473:4193` — the drawn height of `622:801`'s art, which its box crops from the BOTTOM only.
- *
- * `start-otp-art.png` is 1402x1122 and the box is 314x217, so covering it draws
- * `314 x 1122 / 1402` = **251.3** units and leaves 34 to crop. `resizeMode="cover"` splits that
- * 17 above and 17 below; the design's fill takes all 34 off the bottom.
- *
- * Measured, not inferred. Fitting the asset to the reference's own art region scores 9.83% when
- * the image is pinned to the top of the box and 13.10% centred, both locating the box at the same
- * row — and aligning the two renders directly needs the app's artwork moved **18 units down**,
- * which takes that region from 24.53% to 8.27%. The other five art frames all measure a best
- * shift of **0** and keep the centred default: their boxes sit within a few units of the source
- * aspect, so there is almost no overflow to place.
- */
-const START_OTP_ART_COVER_HEIGHT = 251.3;
-
 /** `485:4930` — the celebration art on `628:1293`, the tallest of the three `Frame 50`s. */
 const COMPLETED_ART_HEIGHT = 336;
 
@@ -248,20 +251,16 @@ const DONE_CTA = { radius: 20, paddingV: 10, gap: 12, arrowW: 51, arrowH: 49 } a
 const art = {
   travelOnTime: require('@/assets/images/figma-v14/cook-walking.png') as ImageSourcePropType,
   travelLate: require('@/assets/images/figma-v14/travel-late.png') as ImageSourcePropType,
-  arrival: require('@/assets/images/figma-v14/arrival-art.png') as ImageSourcePropType,
+  arrivalOnTime: require('@/assets/images/figma-v14/arrival-on-time.png') as ImageSourcePropType,
+  arrivalLate: require('@/assets/images/figma-v14/arrival-late.png') as ImageSourcePropType,
   cancelled: require('@/assets/images/figma-v14/cancel-art.png') as ImageSourcePropType,
-  startOtp: require('@/assets/images/figma-v14/start-otp-art.png') as ImageSourcePropType,
+  startJob: require('@/assets/images/figma-v14/start-job-art.png') as ImageSourcePropType,
+  reset: require('@/assets/images/figma-v14/reset-icon.png') as ImageSourcePropType,
   endOtp: require('@/assets/images/figma-v14/end-otp-art.png') as ImageSourcePropType,
   completed: require('@/assets/images/figma-v14/end-art.png') as ImageSourcePropType,
-  cooking: require('@/assets/images/figma-v14/cook-photo.png') as ImageSourcePropType,
-  /**
-   * `622:1125` draws a DIFFERENT photograph from the other three cooking frames — the cook wiping
-   * a hob, not stirring a pan. One `art.cooking` for all four put the wrong picture on the frame
-   * a cook sees in her last seven minutes, and it is 314x276 of the screen.
-   */
-  cookingEnding: require('@/assets/images/figma-v14/cooking-ending.png') as ImageSourcePropType,
   extensionClock: require('@/assets/images/figma-v14/extension-clock.png') as ImageSourcePropType,
   done: require('@/assets/images/figma-v14/done-icon.png') as ImageSourcePropType,
+  camera: require('@/assets/images/figma-v14/camera.png') as ImageSourcePropType,
   arrow: require('@/assets/images/figma-v14/arrow-right.png') as ImageSourcePropType,
 
   building: require('@/assets/images/figma-v14/city-buildings.png') as ImageSourcePropType,
@@ -295,28 +294,65 @@ const TRAVEL_TIER: Readonly<
     countdownColor: color.black,
     outlined: false,
   },
+  // `1:10873` — full lime, red figure.
   at_risk: {
     headline: 'LATE ho raha hai',
     art: art.travelLate,
-    fill: color.yellow400,
+    fill: color.lime600,
     countdownColor: color.danger,
     outlined: false,
   },
+  // `1:10796` — solid red, white figure, no outline.
   late: {
     headline: 'Aap LATE hai!',
     art: art.travelLate,
-    fill: color.yellow600,
-    countdownColor: color.danger,
-    outlined: true,
+    fill: color.danger,
+    countdownColor: color.white,
+    outlined: false,
   },
 };
 
 const ARRIVAL_HEADLINE: Readonly<Record<ArrivalTiming, string>> = {
-  on_time: 'Very good! Aap time pe hai',
-  late: 'Aap LATE pahauchi hai!',
+  on_time: 'Time par!',
+  late: 'LATE',
+};
+
+const ARRIVAL_ART: Readonly<Record<ArrivalTiming, ImageSourcePropType>> = {
+  on_time: art.arrivalOnTime,
+  late: art.arrivalLate,
 };
 
 /* ------------------------------------------------------------------ shell --- */
+
+/**
+ * How far the open keyboard reaches up into the shell's content area, in dp. 0 while it is shut.
+ *
+ * The activity declares `adjustResize`, but under Android's edge-to-edge the window is no longer
+ * resized for the keyboard: it is simply drawn over the screen. On the Start / End job screens that
+ * hid the code tiles AND the fixed `Start` / `End` button the moment a cook tapped a tile to type,
+ * and nothing scrolled (founder, 2026-09-30). The shell therefore measures the overlap itself and
+ * lifts its footer and its scroll room by exactly that much.
+ */
+function useKeyboardOverlap(content: React.RefObject<View | null>): number {
+  const [overlap, setOverlap] = useState(0);
+  useEffect(() => {
+    // `did`-events: Android reports only these. `screenY` is the keyboard's top edge in dp.
+    const shown = Keyboard.addListener('keyboardDidShow', (event) => {
+      const keyboardTop = event.endCoordinates.screenY;
+      content.current?.measureInWindow((_x, y, _width, height) => {
+        setOverlap(Math.max(0, y + height - keyboardTop));
+      });
+    });
+    const hidden = Keyboard.addListener('keyboardDidHide', () => {
+      setOverlap(0);
+    });
+    return () => {
+      shown.remove();
+      hidden.remove();
+    };
+  }, [content]);
+  return overlap;
+}
 
 function ServiceShell({
   children,
@@ -325,9 +361,15 @@ function ServiceShell({
   onHelp,
   testID,
   title = 'Active job',
+  onMeasure,
+  footerPaddingBottom = 21,
 }: {
   children: React.ReactNode;
   footer?: React.ReactNode;
+  /** Space under the fixed footer. The `1:10313` family's button area is `p-24` all round. */
+  footerPaddingBottom?: number;
+  /** Reports the height under the nav and the fixed footer's height, for a screen that must fit. */
+  onMeasure?: ((contentHeight: number, footerHeight: number) => void) | undefined;
   gap?: number;
   onHelp?: (() => void) | undefined;
   testID?: string;
@@ -339,6 +381,23 @@ function ServiceShell({
   title?: string;
 }): React.ReactElement {
   const { s } = useDesignScale();
+  const contentHeight = useRef(0);
+  const footerHeight = useRef(0);
+  const content = useRef<View | null>(null);
+  const scroll = useRef<ScrollView | null>(null);
+  const keyboardOverlap = useKeyboardOverlap(content);
+
+  /*
+   * Once the room is there, bring the end of the screen into view. On every screen that types
+   * into a field -- the Start and End job tiles -- the field is the last thing on it, so the end
+   * is where the cook's eyes need to be, right above the lifted button.
+   */
+  useEffect(() => {
+    if (keyboardOverlap <= 0) return;
+    const handle = setTimeout(() => scroll.current?.scrollToEnd({ animated: true }), 50);
+    return () => clearTimeout(handle);
+  }, [keyboardOverlap]);
+
   return (
     <View style={styles.screen} testID={testID}>
       <View
@@ -354,14 +413,24 @@ function ServiceShell({
         </View>
         <HelpPill onPress={onHelp} testID="service-nav-help" />
       </View>
-      <View style={styles.shellContent}>
+      <View
+        ref={content}
+        style={styles.shellContent}
+        onLayout={(event) => {
+          contentHeight.current = event.nativeEvent.layout.height;
+          onMeasure?.(contentHeight.current, footerHeight.current);
+        }}
+      >
         <ScrollView
+          ref={scroll}
+          // A tap on `Start` / `End` with the keyboard up must press the button, not just close it.
+          keyboardShouldPersistTaps="handled"
           contentContainerStyle={[
             styles.body,
             {
               padding: s(BODY.padding),
               gap: s(gap),
-              ...(footer === undefined ? {} : { paddingBottom: s(100) }),
+              paddingBottom: (footer === undefined ? s(BODY.padding) : s(100)) + keyboardOverlap,
             },
           ]}
           testID="service-scroll"
@@ -369,7 +438,18 @@ function ServiceShell({
           {children}
         </ScrollView>
         {footer !== undefined && (
-          <View style={[styles.fixedFooter, { paddingBottom: s(21) }]}>{footer}</View>
+          <View
+            style={[
+              styles.fixedFooter,
+              { paddingBottom: s(footerPaddingBottom), bottom: keyboardOverlap },
+            ]}
+            onLayout={(event) => {
+              footerHeight.current = event.nativeEvent.layout.height;
+              onMeasure?.(contentHeight.current, footerHeight.current);
+            }}
+          >
+            {footer}
+          </View>
         )}
       </View>
     </View>
@@ -831,7 +911,10 @@ export function TravelView({
   );
 }
 
-/** `622:913` — the booking was cancelled while the cook was on the way. */
+/**
+ * `1:10098` — the booking was cancelled while the cook was on the way. Titled `Active job` like
+ * every other Service frame; the old `622:913` titled it `Jaankari`.
+ */
 export function TravelCancelledView({
   job,
   onSeeJobs,
@@ -846,7 +929,7 @@ export function TravelCancelledView({
   const scale = useDesignScale();
   const { s } = scale;
   return (
-    <ServiceShell title="Jaankari" onHelp={onHelp} testID="service-travel-cancelled">
+    <ServiceShell onHelp={onHelp} testID="service-travel-cancelled">
       <Block>
         {/*
          * `622:1022` sits 6 units above `622:1023`, and the caption is at y=14 inside that
@@ -874,7 +957,7 @@ export function TravelCancelledView({
             }}
           >
             <Text variant="travelHeadline" color={color.black} align="center">
-              Ye booking CANCEL ho gayi hai
+              Sorry, ye job CANCEL ho gayi hai
             </Text>
           </View>
         </View>
@@ -899,48 +982,437 @@ export function TravelCancelledView({
 
 /* ---------------------------------------------------------------- arrival --- */
 
+/**
+ * `1:10162` (on time) / `1:10702` (late) — shown once she has pressed `Pahauch gaye`.
+ *
+ * No CTA yet: the way on to the Start OTP is still to be designed (founder, 2026-09-29).
+ */
 export function ArrivalView({
   job,
   timing,
-  onArrived,
+  lateByMinutes = null,
   onMap,
   onCall,
   callError = null,
   onHelp,
-  isSubmitting = false,
+  onTakeSelfie,
 }: {
   job: JobSummary;
   timing: ArrivalTiming;
-  onArrived?: (() => void) | undefined;
+  /** Minutes late at the gate, from the server's arrival record. */
+  lateByMinutes?: number | null;
   onMap?: (() => void) | undefined;
   onCall?: (() => void) | undefined;
   callError?: string | null;
   onHelp?: (() => void) | undefined;
-  isSubmitting?: boolean;
+  /** `308:1408` — `Aage`, which opens the arrival selfie (`1:10236`). */
+  onTakeSelfie?: (() => void) | undefined;
 }): React.ReactElement {
   const { s } = useDesignScale();
   return (
-    <ServiceShell onHelp={onHelp} testID={`service-arrival-${timing}`}>
+    <ServiceShell
+      onHelp={onHelp}
+      testID={`service-arrival-${timing}`}
+      {...(onTakeSelfie === undefined
+        ? {}
+        : {
+            footerPaddingBottom: 0,
+            footer: (
+              <JobActionFooter
+                label="Aage"
+                onPress={onTakeSelfie}
+                disabled={false}
+                testID="service-arrival-selfie"
+              />
+            ),
+          })}
+    >
       <Block>
-        <View style={[styles.arrivalBanner, { gap: s(ARRIVAL.gap) }]}>
-          {/* `468:3941` is the same `absolute inset-0 size-full` as the travel photo. */}
+        <View style={[styles.travelBanner, { gap: s(ARRIVAL.gap) }]}>
+          {/* `1:10173` is `absolute inset-0 object-cover` over the 112 x 150 box. */}
           <View style={{ width: s(ARRIVAL.artWidth), height: s(ARRIVAL.artHeight) }}>
             <Image
-              source={art.arrival}
+              source={ARRIVAL_ART[timing]}
               style={{ width: s(ARRIVAL.artWidth), height: s(ARRIVAL.artHeight) }}
-              resizeMode="contain"
+              resizeMode="cover"
               accessibilityIgnoresInvertColors
             />
           </View>
-          <Text variant="travelHeadline" color={color.black} align="center" style={styles.stretch}>
-            {ARRIVAL_HEADLINE[timing]}
-          </Text>
+          <View
+            style={[
+              styles.arrivalColumn,
+              { width: s(ARRIVAL.columnWidth), height: s(ARRIVAL.artHeight) },
+            ]}
+          >
+            <View
+              style={[
+                styles.travelHeadline,
+                {
+                  borderRadius: s(ARRIVAL.headlineRadius),
+                  paddingHorizontal: s(ARRIVAL.headlinePaddingH),
+                  paddingVertical: s(ARRIVAL.headlinePaddingV),
+                },
+              ]}
+            >
+              <Text
+                variant="travelHeadline"
+                color={color.black}
+                align="center"
+                testID="service-arrival-headline"
+              >
+                {ARRIVAL_HEADLINE[timing]}
+              </Text>
+            </View>
+            {timing === 'on_time' ? (
+              <View
+                style={[
+                  styles.arrivalTick,
+                  {
+                    width: s(ARRIVAL.tickDisc),
+                    height: s(ARRIVAL.tickDisc),
+                    borderRadius: s(ARRIVAL.tickDisc / 2),
+                  },
+                ]}
+                testID="service-arrival-tick"
+              >
+                <SvgXml
+                  xml={arrivalCheck}
+                  width={s(ARRIVAL.tickGlyph)}
+                  height={s(ARRIVAL.tickGlyph)}
+                />
+              </View>
+            ) : (
+              <View
+                style={[
+                  styles.arrivalLate,
+                  {
+                    height: s(ARRIVAL.lateHeight),
+                    paddingHorizontal: s(ARRIVAL.latePaddingH),
+                    paddingVertical: s(ARRIVAL.latePaddingV),
+                  },
+                ]}
+              >
+                <View style={[styles.arrivalLateFill, { borderRadius: s(ARRIVAL.lateRadius) }]}>
+                  <Text
+                    variant="travelCountdown"
+                    color={color.black}
+                    align="center"
+                    testID="service-arrival-late-by"
+                  >
+                    {lateByMinutes === null ? '--' : `${lateByMinutes} mins`}
+                  </Text>
+                </View>
+              </View>
+            )}
+          </View>
         </View>
       </Block>
-      <Block>
-        <ArrivedCta onPress={onArrived} disabled={isSubmitting} testID="service-arrived" />
-      </Block>
       <UserDetailsCard job={job} onMap={onMap} onCall={onCall} callError={callError} />
+    </ServiceShell>
+  );
+}
+
+/* --------------------------------------------------------------- selfie --- */
+
+/**
+ * `1:10247` — the camera box: 483 tall, `rounded-24`, a 1-unit black edge. `308:1611` — the
+ * shutter under it, an 80-unit disc with the 40-unit camera glyph.
+ */
+const SELFIE = {
+  boxHeight: 483,
+  boxRadius: 24,
+  boxBorder: 1,
+  shutter: 80,
+  shutterGlyph: 40,
+} as const;
+
+/** `309:1640` — the fixed button area under the selfie preview: `p-24`, `gap-24`. */
+const JOB_FOOTER = { padding: 24, gap: 24 } as const;
+
+/**
+ * `297:1261` — the `Start` / `End` button area. The frame pads it 24 all round; on the handset
+ * that stacked 48 units of white on top of the nav bar and hid too much of the screen (founder,
+ * 2026-09-30), so it is tightened to 16 at the sides and 8 above and below.
+ */
+const JOB_ACTION = { paddingH: 16, paddingV: 8 } as const;
+
+/** `1:10323` — the Start job photo: 314 x 278, `rounded-20`, in a `px-12 py-6` block. */
+const START_JOB_ART = { width: 314, height: 278, radius: 20, paddingH: 12, paddingV: 6 } as const;
+
+/** `308:1412` — the job OTP block: title over the tiles, 10 apart, in a `px-4 py-6` block. */
+const JOB_OTP = { gap: 10, rowPaddingV: 8 } as const;
+
+/** `1:10285` — the confirmation: tick disc over the headline, 21 apart. */
+const SELFIE_DONE = { gap: 21, tickDisc: 100, tickGlyph: 90 } as const;
+
+/**
+ * `1:10249` — the lime `Photo` button, the same control as `Pahauch gaye` with a camera glyph.
+ */
+function LimeCta({
+  glyph,
+  label,
+  onPress,
+  disabled = false,
+  fill,
+  testID,
+}: {
+  /** Omitted on the job buttons (`297:1262`), which carry the label alone. */
+  readonly glyph?: ImageSourcePropType | undefined;
+  /** `309:1641` — Retake is `#ffe666`; everything else is the lime default. */
+  readonly fill?: string | undefined;
+  readonly label: string;
+  readonly onPress?: (() => void) | undefined;
+  readonly disabled?: boolean;
+  readonly testID: string;
+}): React.ReactElement {
+  const { s } = useDesignScale();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityState={{ disabled }}
+      disabled={disabled}
+      {...(disabled || onPress === undefined ? {} : { onPress })}
+      style={[
+        styles.arrivedCta,
+        disabled
+          ? styles.arrivedCtaDisabled
+          : fill === undefined
+            ? null
+            : { backgroundColor: fill },
+        {
+          borderRadius: s(ARRIVED_CTA.radius),
+          paddingHorizontal: s(ARRIVED_CTA.paddingH),
+          paddingVertical: s(ARRIVED_CTA.paddingV),
+          gap: s(ARRIVED_CTA.gap),
+        },
+      ]}
+      testID={testID}
+    >
+      {glyph === undefined ? null : (
+        <Image
+          source={glyph}
+          style={{ width: s(ARRIVED_CTA.glyph), height: s(ARRIVED_CTA.glyph) }}
+          resizeMode="contain"
+          accessibilityIgnoresInvertColors
+        />
+      )}
+      <Text variant="cardCountdown" color={color.black} align="center">
+        {label}
+      </Text>
+    </Pressable>
+  );
+}
+
+export interface CapturedPhoto {
+  readonly uri: string;
+  readonly mimeType: string;
+}
+
+/**
+ * `1:10236` — the arrival selfie.
+ *
+ * The front camera opens with the screen; `Photo` takes the picture. Retake is not drawn in the
+ * frame (founder, 2026-09-29: required, retake allowed), so once a photo is taken the same box
+ * shows it and the button row becomes `Dobara` / `Bheje`. Nothing is uploaded until she presses
+ * `Bheje`.
+ */
+export function SelfieCaptureView({
+  onSubmit,
+  isSubmitting = false,
+  error = null,
+  onHelp,
+}: {
+  onSubmit?: ((photo: CapturedPhoto) => void) | undefined;
+  isSubmitting?: boolean;
+  error?: string | null;
+  onHelp?: (() => void) | undefined;
+}): React.ReactElement {
+  const { s } = useDesignScale();
+  const [permission, requestPermission] = useCameraPermissions();
+  const camera = useRef<CameraView | null>(null);
+  const [photo, setPhoto] = useState<CapturedPhoto | null>(null);
+  const [capturing, setCapturing] = useState(false);
+  const [captureError, setCaptureError] = useState<string | null>(null);
+  /**
+   * The box is 582 on the 716-unit frame; a phone shorter than the frame cannot hold that above
+   * the fixed button, and the bottom of the photo slid under it. It takes what is left instead,
+   * never more than the design's 582.
+   */
+  const [room, setRoom] = useState<number | null>(null);
+  const boxHeight =
+    room === null ? s(SELFIE.boxHeight) : Math.min(s(SELFIE.boxHeight), Math.max(0, room));
+
+  // Asked for the moment the screen opens, so the camera is simply on when she gets here.
+  const granted = permission?.granted === true;
+  const canAsk = permission !== null && !granted && permission.canAskAgain;
+  useEffect(() => {
+    if (canAsk) void requestPermission();
+    // Once per screen: a refusal is not re-asked in a loop.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [canAsk]);
+
+  const capture = (): void => {
+    if (camera.current === null || capturing) return;
+    setCapturing(true);
+    setCaptureError(null);
+    void camera.current
+      .takePictureAsync({ quality: 0.5, skipProcessing: false })
+      .then((taken) => {
+        setPhoto({ uri: taken.uri, mimeType: 'image/jpeg' });
+      })
+      .catch(() => {
+        setCaptureError('Photo nahi khichi. Dobara try kare.');
+      })
+      .finally(() => {
+        setCapturing(false);
+      });
+  };
+
+  const message = error ?? captureError;
+  const messageLine =
+    message === null ? null : (
+      <Text variant="caption" color={color.danger} align="center" testID="selfie-error">
+        {message}
+      </Text>
+    );
+
+  const footer =
+    photo === null ? (
+      <View
+        style={[
+          styles.selfieShutterArea,
+          { paddingHorizontal: s(JOB_ACTION.paddingH), paddingVertical: s(JOB_ACTION.paddingV) },
+        ]}
+      >
+        {messageLine}
+        {/* `308:1611` — an 80-unit lime disc carrying the camera glyph; no label. */}
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Photo"
+          accessibilityState={{ disabled: capturing }}
+          disabled={capturing}
+          onPress={granted ? capture : () => void requestPermission()}
+          style={[
+            styles.selfieShutter,
+            {
+              width: s(SELFIE.shutter),
+              height: s(SELFIE.shutter),
+              borderRadius: s(SELFIE.shutter / 2),
+            },
+          ]}
+          testID="selfie-capture"
+        >
+          <Image
+            source={art.camera}
+            style={{ width: s(SELFIE.shutterGlyph), height: s(SELFIE.shutterGlyph) }}
+            resizeMode="contain"
+            accessibilityIgnoresInvertColors
+          />
+        </Pressable>
+      </View>
+    ) : (
+      <View style={[styles.stretch, { padding: s(JOB_FOOTER.padding), gap: s(JOB_FOOTER.gap) }]}>
+        {messageLine}
+        <LimeCta
+          glyph={art.reset}
+          label="Retake"
+          fill={color.yellow400}
+          onPress={() => setPhoto(null)}
+          disabled={isSubmitting}
+          testID="selfie-retake"
+        />
+        <LimeCta
+          glyph={art.done}
+          label="Submit"
+          onPress={() => onSubmit?.(photo)}
+          disabled={isSubmitting}
+          testID="selfie-submit"
+        />
+      </View>
+    );
+
+  return (
+    <ServiceShell
+      onHelp={onHelp}
+      footer={footer}
+      footerPaddingBottom={0}
+      testID="service-selfie"
+      onMeasure={(contentHeight, footerHeight) => {
+        // Body padding above, the block's own padding, and a gap before the button.
+        setRoom(contentHeight - footerHeight - s(BODY.padding) - s(BLOCK.paddingV * 2) - s(12));
+      }}
+    >
+      <Block>
+        <View
+          style={[
+            styles.selfieBox,
+            {
+              height: boxHeight,
+              borderRadius: s(SELFIE.boxRadius),
+              borderWidth: s(SELFIE.boxBorder),
+            },
+          ]}
+          testID="selfie-box"
+        >
+          {photo !== null ? (
+            <Image
+              source={{ uri: photo.uri }}
+              style={styles.selfieFill}
+              resizeMode="cover"
+              accessibilityIgnoresInvertColors
+              testID="selfie-preview"
+            />
+          ) : granted ? (
+            <CameraView
+              ref={camera}
+              style={styles.selfieFill}
+              facing="front"
+              testID="selfie-camera"
+            />
+          ) : permission !== null && !permission.canAskAgain ? (
+            <View style={styles.selfieNotice}>
+              <Text variant="title" color={color.white} align="center" testID="selfie-denied">
+                Camera ki permission band hai. Phone ki Settings me Spoon Partner ko Camera ki
+                permission de.
+              </Text>
+            </View>
+          ) : null}
+        </View>
+      </Block>
+    </ServiceShell>
+  );
+}
+
+/** `1:10275` — the selfie is on record. */
+export function SelfieDoneView({
+  onHelp,
+}: {
+  onHelp?: (() => void) | undefined;
+}): React.ReactElement {
+  const { s } = useDesignScale();
+  return (
+    <ServiceShell onHelp={onHelp} testID="service-selfie-done">
+      <View style={[styles.selfieDone, { gap: s(SELFIE_DONE.gap) }]}>
+        <View
+          style={[
+            styles.arrivalTick,
+            {
+              width: s(SELFIE_DONE.tickDisc),
+              height: s(SELFIE_DONE.tickDisc),
+              borderRadius: s(SELFIE_DONE.tickDisc / 2),
+            },
+          ]}
+        >
+          <SvgXml
+            xml={arrivalCheck}
+            width={s(SELFIE_DONE.tickGlyph)}
+            height={s(SELFIE_DONE.tickGlyph)}
+          />
+        </View>
+        <Text variant="cardCountdown" color={color.black} align="center">
+          Photo jama ho gyi hai.
+        </Text>
+      </View>
     </ServiceShell>
   );
 }
@@ -1042,6 +1514,77 @@ function OtpBlock({
   );
 }
 
+/**
+ * `308:1412` / `303:1394` — `Start job` / `End job` over three big code tiles.
+ *
+ * Replaces the V14 card that held the label, a small keypad and its own pill: the action is now
+ * the full-width button in the fixed footer (`JobActionFooter`).
+ */
+function JobOtpBlock({
+  title,
+  code,
+  onChange,
+  isSubmitting,
+  hasError,
+  length,
+  testID,
+}: {
+  title: string;
+  code: string;
+  onChange: (next: string) => void;
+  isSubmitting: boolean;
+  hasError: boolean;
+  length: number;
+  testID: string;
+}): React.ReactElement {
+  const { s } = useDesignScale();
+  return (
+    <Block>
+      <View style={[styles.stretch, { gap: s(JOB_OTP.gap) }]} testID={testID}>
+        <Text variant="cardCountdown" color={color.black} align="center" style={styles.stretch}>
+          {title}
+        </Text>
+        <View style={[styles.stretch, { paddingVertical: s(JOB_OTP.rowPaddingV) }]}>
+          <OtpInput
+            variant="job"
+            length={length}
+            value={code}
+            onChange={onChange}
+            hasError={hasError}
+            disabled={isSubmitting}
+            testID={`${testID}-input`}
+          />
+        </View>
+      </View>
+    </Block>
+  );
+}
+
+/** `297:1261` / `297:1359` — `Start` / `End`, the full-width button in the fixed footer. */
+function JobActionFooter({
+  label,
+  onPress,
+  disabled,
+  testID,
+}: {
+  label: string;
+  onPress?: (() => void) | undefined;
+  disabled: boolean;
+  testID: string;
+}): React.ReactElement {
+  const { s } = useDesignScale();
+  return (
+    <View
+      style={[
+        styles.stretch,
+        { paddingHorizontal: s(JOB_ACTION.paddingH), paddingVertical: s(JOB_ACTION.paddingV) },
+      ]}
+    >
+      <LimeCta label={label} onPress={onPress} disabled={disabled} testID={testID} />
+    </View>
+  );
+}
+
 /** `473:4192` / `628:1251` — the promo image and its caption. */
 function PromoBlock({
   source,
@@ -1122,7 +1665,7 @@ export interface OtpViewProps {
   readonly onHelp?: (() => void) | undefined;
 }
 
-/** `622:801` — the Start OTP promo, then the Start OTP block. */
+/** `1:10313` — the Start job photo, the code tiles, and `Start` fixed at the bottom. */
 export function StartOtpView({
   code,
   onChange,
@@ -1132,21 +1675,47 @@ export function StartOtpView({
   length,
   onHelp,
 }: OtpViewProps): React.ReactElement {
+  const { s } = useDesignScale();
   return (
-    <ServiceShell onHelp={onHelp} testID="service-start-otp">
-      <PromoBlock
-        source={art.startOtp}
-        caption="OTP daalke job start kare"
-        height={217}
-        coverHeight={START_OTP_ART_COVER_HEIGHT}
+    <ServiceShell
+      onHelp={onHelp}
+      gap={JOB_FOOTER.gap}
+      footerPaddingBottom={0}
+      footer={
+        <JobActionFooter
+          label="Start"
+          onPress={onSubmit}
+          disabled={isSubmitting || code.length < length}
+          testID="start-otp-submit"
+        />
+      }
+      testID="service-start-otp"
+    >
+      <View
+        style={[
+          styles.startJobArt,
+          {
+            paddingHorizontal: s(START_JOB_ART.paddingH),
+            paddingVertical: s(START_JOB_ART.paddingV),
+          },
+        ]}
         testID="start-otp-promo"
-      />
-      <OtpBlock
-        label="Start OTP"
-        action="Start"
+      >
+        <Image
+          source={art.startJob}
+          style={{
+            width: s(START_JOB_ART.width),
+            height: s(START_JOB_ART.height),
+            borderRadius: s(START_JOB_ART.radius),
+          }}
+          resizeMode="cover"
+          accessibilityIgnoresInvertColors
+        />
+      </View>
+      <JobOtpBlock
+        title="Start job"
         code={code}
         onChange={onChange}
-        onSubmit={onSubmit}
         isSubmitting={isSubmitting}
         hasError={error !== null}
         length={length}
@@ -1284,7 +1853,23 @@ export function CookingView({
   );
 
   return (
-    <ServiceShell onHelp={onHelp} testID="service-cooking">
+    <ServiceShell
+      onHelp={onHelp}
+      testID="service-cooking"
+      {...(endOtp === null
+        ? {}
+        : {
+            footerPaddingBottom: 0,
+            footer: (
+              <JobActionFooter
+                label="End"
+                onPress={endOtp.onSubmit}
+                disabled={endOtp.isSubmitting || endOtp.code.length < endOtp.length}
+                testID="cooking-end-otp-submit"
+              />
+            ),
+          })}
+    >
       <View
         style={[
           styles.block,
@@ -1319,15 +1904,16 @@ export function CookingView({
           </View>
         )}
       </View>
-      {/* The End OTP shares the live cooking screen with the timer and coaching artwork. */}
+      {/*
+       * `303:1394` — the End job tiles share the live cooking screen with the timer; `End` is the
+       * fixed footer button (`297:1359`).
+       */}
       {endOtp !== null && (
         <>
-          <OtpBlock
-            label="End OTP"
-            action="End"
+          <JobOtpBlock
+            title="End job"
             code={endOtp.code}
             onChange={endOtp.onChange}
-            onSubmit={endOtp.onSubmit}
             isSubmitting={endOtp.isSubmitting}
             hasError={endOtp.error !== null}
             length={endOtp.length}
@@ -1338,14 +1924,6 @@ export function CookingView({
           )}
         </>
       )}
-      <PromoBlock
-        source={isEndingSoon ? art.cookingEnding : art.cooking}
-        caption={isEndingSoon ? 'Clean: SLAB, WALL aur STOVE' : '5+ rating ki koshish kare'}
-        height={276}
-        captionFirst
-        gap={12}
-        testID="cooking-promo"
-      />
     </ServiceShell>
   );
 }
@@ -1596,7 +2174,37 @@ const styles = StyleSheet.create({
   travelCountdown: { alignSelf: 'stretch', alignItems: 'center', justifyContent: 'center' },
 
   cancelBanner: { alignSelf: 'stretch', alignItems: 'center' },
-  arrivalBanner: { alignSelf: 'stretch', alignItems: 'center', justifyContent: 'center' },
+  arrivalColumn: { alignItems: 'center', justifyContent: 'space-between' },
+  arrivalTick: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: color.lime600,
+  },
+  arrivalLate: { alignSelf: 'stretch' },
+  selfieBox: {
+    alignSelf: 'stretch',
+    overflow: 'hidden',
+    borderColor: color.black,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+  },
+  selfieFill: { flex: 1 },
+  selfieShutterArea: { alignSelf: 'stretch', alignItems: 'center' },
+  selfieShutter: { alignItems: 'center', justifyContent: 'center', backgroundColor: color.lime600 },
+  startJobArt: { alignSelf: 'stretch', alignItems: 'center' },
+  selfieNotice: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
+  selfieDone: {
+    flex: 1,
+    alignSelf: 'stretch',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 560,
+  },
+  arrivalLateFill: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: color.dangerTint,
+  },
   arrivedCta: {
     alignSelf: 'stretch',
     flexDirection: 'row',
@@ -1604,8 +2212,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: color.lime600,
   },
-  /** `707:446` — the same control, greyed while the cook is still travelling. */
-  arrivedCtaDisabled: { backgroundColor: color.grey100 },
+  /** `1:9955` — the same control, greyed while the cook is still travelling. */
+  arrivedCtaDisabled: { backgroundColor: color.smoke },
 
   detailsCard: {
     alignItems: 'flex-start',

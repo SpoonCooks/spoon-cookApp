@@ -6,6 +6,24 @@
       "nodes": ["622:664"],
       "sha256": "c59f51b88e1f60b1de3e388f4db769fc96ac12b3dad057c7737a5d2ec695207b"
     },
+    "arrival-check.svg": {
+      "bytes": 589,
+      "constName": "arrivalCheck",
+      "nodes": ["1:10178", "1:10287"],
+      "sha256": "2a07dd407821b6fdca152a94ccff6db6ae3f956d47b9ed525819c3baa80204c5"
+    },
+    "arrival-late.png": {
+      "bytes": 1175858,
+      "constName": "arrivalLate",
+      "nodes": ["1:10713"],
+      "sha256": "916ef9997426c0eb15eb90aebdbf230e42cb3d6f7be571618d7bd30bea3ebd1a"
+    },
+    "arrival-on-time.png": {
+      "bytes": 1280504,
+      "constName": "arrivalOnTime",
+      "nodes": ["1:10173"],
+      "sha256": "5d5b4a4b8b0be84b9ddb781228bd3c47bd8a350acfbf87f8857f01167c1c821e"
+    },
     "arrow-right.png": {
       "bytes": 644,
       "constName": "arrowRight",
@@ -35,6 +53,12 @@
       "constName": "callIcon",
       "nodes": ["614:453"],
       "sha256": "35d798fa1f80ad89a709bb1592c125298940ffcf049a7e566a916e5688b2c1c6"
+    },
+    "camera.png": {
+      "bytes": 1238,
+      "constName": "camera",
+      "nodes": ["297:1260"],
+      "sha256": "a3fc543f5c6e75f176a7d9a73ee8d009b2211e1b13df23308663d6d172b7d6d5"
     },
     "cancel-art.png": {
       "bytes": 34314,
@@ -81,7 +105,7 @@
     "done-icon.png": {
       "bytes": 442,
       "constName": "doneIcon",
-      "nodes": ["622:664"],
+      "nodes": ["309:1649", "622:664"],
       "sha256": "069b4c8324a59a85f2ff596289c2ff2509b1ed68c6b7001086f028b9b314fb2a"
     },
     "end-art.png": {
@@ -174,6 +198,12 @@
       "nodes": ["575:1744"],
       "sha256": "097b9cfbcd2436e529ea36d2543bc28c0b7017e5ed656b2ea8e88d7117ba460d"
     },
+    "reset-icon.png": {
+      "bytes": 1372,
+      "constName": "resetIcon",
+      "nodes": ["309:1644"],
+      "sha256": "bdcd618b584a7072e9e9496516d0ee1a7cdf9a05639da6ce5623c6640cca39ac"
+    },
     "stairs-up.png": {
       "bytes": 659,
       "constName": "stairsUp",
@@ -185,6 +215,12 @@
       "constName": "star",
       "nodes": ["575:1744", "597:1221", "605:2027"],
       "sha256": "0ea4de52d8ad498d6a038acf068345c2d37464f0e18570f3d9ee6b1b2b5fdea5"
+    },
+    "start-job-art.png": {
+      "bytes": 2109660,
+      "constName": "startJobArt",
+      "nodes": ["1:10324"],
+      "sha256": "985ea5071999ad14baa014e5afb7ae18f91b311a381100f82747bfd442224f7b"
     },
     "start-otp-art.png": {
       "bytes": 1459216,

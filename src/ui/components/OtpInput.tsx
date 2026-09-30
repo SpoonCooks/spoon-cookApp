@@ -17,10 +17,13 @@ import { Text } from '../primitives/Text';
  * 35x35 `#ffef99` and the bordered box is outlined — so it is a third variant rather than a
  * recolour of either.
  *
+ * `job` is the Start/End job OTP from `1:10313` onward: three `#ffef99` tiles sharing the row
+ * equally at a 16-unit gap with a 16-unit radius and Livvic Black 40 digits.
+ *
  * These are separate variants rather than one "generic" box because the design genuinely draws
  * them differently — flattening them would make one of the three screens wrong.
  */
-export type OtpInputVariant = 'bordered' | 'tiles' | 'service';
+export type OtpInputVariant = 'bordered' | 'tiles' | 'service' | 'job';
 
 export interface OtpInputProps {
   /** Number of digit boxes. Comes from `otpLength[kind]` — never hardcoded by a screen. */
@@ -78,6 +81,7 @@ export function OtpInput({
 
   const isTiles = variant === 'tiles';
   const isService = variant === 'service';
+  const isJob = variant === 'job';
   // V12 `434:3256`: 35x35 at a 10dp gap, radius 5, flat fill, no stroke.
   const tileStyle = isTiles
     ? { width: s(TILE.size), height: s(TILE.size), borderRadius: s(TILE.radius) }
@@ -87,7 +91,9 @@ export function OtpInput({
           height: s(SERVICE_TILE.height),
           borderRadius: s(SERVICE_TILE.radius),
         }
-      : null;
+      : isJob
+        ? { flex: 1, height: s(JOB_TILE.height), borderRadius: s(JOB_TILE.radius) }
+        : null;
 
   return (
     <Pressable
@@ -101,6 +107,7 @@ export function OtpInput({
           styles.row,
           isTiles && { gap: s(TILE.gap) },
           isService && { gap: s(SERVICE_TILE.gap), justifyContent: 'flex-start' },
+          isJob && { gap: s(JOB_TILE.gap), paddingHorizontal: s(JOB_TILE.inset) },
         ]}
         pointerEvents="none"
       >
@@ -112,22 +119,33 @@ export function OtpInput({
               key={index}
               testID={`${testID ?? 'otp'}-box-${index}`}
               style={[
-                isService ? styles.serviceTile : isTiles ? styles.tile : styles.box,
+                isService ? styles.serviceTile : isTiles || isJob ? styles.tile : styles.box,
                 tileStyle,
-                !isTiles && !isService && char !== '' && styles.boxFilled,
-                !isTiles && !isService && isCursor && styles.boxFocused,
+                !isTiles && !isService && !isJob && char !== '' && styles.boxFilled,
+                !isTiles && !isService && !isJob && isCursor && styles.boxFocused,
+                // The job tiles have one colour whatever the cursor does (founder, 2026-09-30).
                 isTiles && isCursor && styles.tileFocused,
                 isService && isCursor && styles.serviceTileFocused,
                 hasError &&
                   (isService
                     ? styles.serviceTileError
-                    : isTiles
+                    : isTiles || isJob
                       ? styles.tileError
                       : styles.boxError),
                 disabled && styles.boxDisabled,
               ]}
             >
-              <Text variant={isService ? 'cardCountdown' : isTiles ? 'headingLgBold' : 'headingLg'}>
+              <Text
+                variant={
+                  isJob
+                    ? 'otpJobDigit'
+                    : isService
+                      ? 'cardCountdown'
+                      : isTiles
+                        ? 'headingLgBold'
+                        : 'headingLg'
+                }
+              >
                 {char}
               </Text>
             </View>
@@ -150,6 +168,9 @@ export function OtpInput({
         textContentType="oneTimeCode"
         autoComplete="sms-otp"
         maxLength={length}
+        // The field is invisible, but Android still drew its caret handle -- a green teardrop -- on
+        // top of the first box. The boxes show the cursor themselves. The paste menu stays.
+        caretHidden
         // Visually hidden but focusable and still reachable by autofill; `opacity: 0` alone would
         // leave a tappable ghost overlapping the boxes.
         style={styles.hiddenInput}
@@ -169,6 +190,12 @@ const TILE = { size: 35, gap: 10, radius: 5 } as const;
  * column gap over three columns, so each box is `(148 - 2*15) / 3`, and 74 tall with `py-8`.
  */
 const SERVICE_TILE = { width: (148 - 2 * 15) / 3, height: 74 - 16, gap: 15, radius: 5 } as const;
+
+/**
+ * `308:1414` — the job OTP row. The frame's tiles are 142 tall and share the full row; they were
+ * brought down a little on the handset (founder, 2026-09-30): 112 tall, inset 16 each side.
+ */
+const JOB_TILE = { height: 112, gap: 16, radius: 16, inset: 16 } as const;
 
 const styles = StyleSheet.create({
   wrapper: { alignSelf: 'stretch' },

@@ -236,6 +236,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       'ACCESS_FINE_LOCATION',
       'POST_NOTIFICATIONS',
       'INTERNET',
+      // The arrival selfie (`1:10236`), taken in-app at the customer's door.
+      'CAMERA',
     ],
   },
   ios: {
@@ -245,6 +247,16 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   plugins: [
     'expo-router',
     'expo-font',
+    [
+      'expo-camera',
+      {
+        cameraPermission:
+          'Spoon Partner uses the camera for the selfie you take when you reach a customer.',
+        // Photos only: the selfie never records sound.
+        microphonePermission: false,
+        recordAudioAndroid: false,
+      },
+    ],
     [
       'expo-splash-screen',
       {

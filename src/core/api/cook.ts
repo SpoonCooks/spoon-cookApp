@@ -16,6 +16,7 @@ import { request, type RequestOptions } from './client';
 import {
   cookEarningsPolicySchema,
   type CookEarningsPolicy,
+  arrivalSelfieAckSchema,
   authSessionSchema,
   commandAckSchema,
   cookCyclesSchema,
@@ -265,6 +266,36 @@ export async function markArrived(
     method: 'POST',
     body: { assignmentVersion: input.assignmentVersion },
     idempotencyKey: input.idempotencyKey,
+    ...opts,
+  });
+}
+
+/**
+ * The arrival selfie (`1:10236`), taken at the customer's door once she has arrived.
+ *
+ * Multipart, one file in `photo`. The server stores it privately and returns only an id -- never
+ * a link, because a selfie is a personal photo. A retake is simply another upload; the latest
+ * counts. Given a minute rather than the default fifteen seconds: a ~1 MB photo over a weak
+ * connection at a customer's door can legitimately take that long.
+ */
+export async function uploadArrivalSelfie(
+  input: {
+    readonly bookingId: string;
+    readonly photo: { readonly uri: string; readonly mimeType: string };
+  },
+  opts: Opts = {},
+): Promise<{ readonly selfieId: string; readonly capturedAt: string }> {
+  const form = new FormData();
+  // React Native's FormData takes a file descriptor object in place of a Blob.
+  form.append('photo', {
+    uri: input.photo.uri,
+    name: `selfie.${input.photo.mimeType === 'image/png' ? 'png' : 'jpg'}`,
+    type: input.photo.mimeType,
+  } as unknown as Blob);
+  return request(`/cook/bookings/${input.bookingId}/arrival-selfie`, arrivalSelfieAckSchema, {
+    method: 'POST',
+    formData: form,
+    timeoutMs: 60_000,
     ...opts,
   });
 }

@@ -331,6 +331,8 @@ const baseSnapshot: ServiceSnapshot = {
   minutesToDeadline: null,
   minutesToArrival: null,
   arrivalTiming: null,
+  arrivedLateByMinutes: null,
+  arrivalSelfieAtIso: null,
   startOtpReady: false,
   endOtpReady: false,
   actualStartIso: null,
@@ -377,13 +379,23 @@ export const serviceFixtures = {
       minutesToDeadline: -2,
     }),
 
-  /** Backend `cook_arrived` + on time. Figma `Page 5a` (`468:3935`). */
+  /** Backend `cook_arrived` + on time. Figma `arrival- on time` (`1:10162`). */
   arrivedOnTime: (): ServiceSnapshot =>
-    devOnly({ ...baseSnapshot, status: 'cook_arrived', arrivalTiming: 'on_time' }),
+    devOnly({
+      ...baseSnapshot,
+      status: 'cook_arrived',
+      arrivalTiming: 'on_time',
+      arrivedLateByMinutes: 0,
+    }),
 
-  /** Backend `cook_arrived` + late. Figma `Page 5b` (`468:4040`). */
+  /** Backend `cook_arrived` + late. Figma `arrival- late` (`1:10702`), late by `6 min`. */
   arrivedLate: (): ServiceSnapshot =>
-    devOnly({ ...baseSnapshot, status: 'cook_arrived', arrivalTiming: 'late' }),
+    devOnly({
+      ...baseSnapshot,
+      status: 'cook_arrived',
+      arrivalTiming: 'late',
+      arrivedLateByMinutes: 6,
+    }),
 
   /** Backend `cook_arrived` + Start OTP issued, on time. Figma `Page 6a` (`482:4587`). */
   startOtpOnTime: (): ServiceSnapshot =>

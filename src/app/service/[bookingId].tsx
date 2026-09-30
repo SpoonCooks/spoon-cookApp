@@ -9,6 +9,7 @@ import { apiErrorMessage, isApiError } from '@core/api/errors';
 import {
   useJob,
   useMarkArrived,
+  useUploadArrivalSelfie,
   useVerifyEndOtp,
   useVerifyStartOtp,
 } from '@core/api/queries';
@@ -20,12 +21,15 @@ import { BottomNav, ErrorState, LoadingState } from '@ui';
 import { InterruptedView } from '@features/service/ServiceViews';
 import {
   ArrivalView,
+  SelfieCaptureView,
+  SelfieDoneView,
+  StartOtpView,
   CompletedView,
   CookingView,
   EndOtpView,
-  StartOtpView,
   TravelCancelledView,
   TravelView,
+  type CapturedPhoto,
 } from '@features/service/ServiceV14Views';
 
 /**
@@ -56,6 +60,9 @@ import {
  * starts it once the SERVER reports `cook_en_route`.
  */
 
+/** How long `Photo jama ho gyi hai.` stays before the Start OTP. */
+const SELFIE_DONE_MS = 2_500;
+
 /** Live projection cadence. Slow enough not to burn battery, fast enough to catch a cancellation. */
 const POLL_MS = 20_000;
 
@@ -66,12 +73,18 @@ export default function ServiceScreen(): React.ReactElement {
 
   const job = useJob(id, id.length > 0, POLL_MS);
 
-  const verifyStartOtp = useVerifyStartOtp();
   const verifyEndOtp = useVerifyEndOtp();
   const markArrived = useMarkArrived();
+  const verifyStartOtp = useVerifyStartOtp();
+  const uploadSelfie = useUploadArrivalSelfie();
 
-  const [startCode, setStartCode] = useState('');
   const [endCode, setEndCode] = useState('');
+  const [startCode, setStartCode] = useState('');
+  /** She pressed the arrival screen's CTA and is on the camera. Local: it is only a screen. */
+  const [takingSelfie, setTakingSelfie] = useState(false);
+  const [selfieError, setSelfieError] = useState<string | null>(null);
+  /** The `Photo jama ho gyi hai.` beat after a successful upload, before the Start OTP. */
+  const [selfieJustSent, setSelfieJustSent] = useState(false);
   const [otpError, setOtpError] = useState<string | null>(null);
   const [callError, setCallError] = useState<string | null>(null);
 
@@ -230,6 +243,37 @@ export default function ServiceScreen(): React.ReactElement {
     );
   };
 
+  /**
+   * `1:10236` — send the arrival selfie. The flow moves on only when the server has it on record:
+   * the re-read after the upload is what flips `hasArrivalSelfie`.
+   */
+  const submitSelfie = (photo: CapturedPhoto): void => {
+    if (uploadSelfie.isPending) return;
+    setSelfieError(null);
+    uploadSelfie.mutate(
+      { bookingId: id, photo },
+      {
+        onSuccess: () => {
+          setTakingSelfie(false);
+          setSelfieJustSent(true);
+        },
+        onError: (error: unknown) => {
+          setSelfieError(apiErrorMessage(error));
+        },
+      },
+    );
+  };
+
+  /*
+   * `1:10275` is a moment, not a stop: the confirmation holds for a beat and then gives way to the
+   * Start OTP. It has no control of its own in the design.
+   */
+  useEffect(() => {
+    if (!selfieJustSent) return;
+    const handle = setTimeout(() => setSelfieJustSent(false), SELFIE_DONE_MS);
+    return () => clearTimeout(handle);
+  }, [selfieJustSent]);
+
   const submitEndOtp = (): void => {
     /*
      * Reachable from `cooking` as well as `awaiting_end_otp` (founder, 2026-09-02).
@@ -367,20 +411,37 @@ export default function ServiceScreen(): React.ReactElement {
           />
         );
 
+      /*
+       * After `Pahauch gaye`: the arrival screen (`1:10162` / `1:10702`), then the selfie
+       * (`1:10236`), its confirmation (`1:10275`), and only then the Start OTP.
+       *
+       * The server opens the Start OTP the moment she arrives, so `awaiting_start_otp` is the
+       * state all of this really runs in. The selfie is what gates the OTP, and whether one is
+       * on record is the server's answer (`hasArrivalSelfie`), so reopening the job after a
+       * sent selfie goes straight to the OTP.
+       */
       case 'arrived':
-        return (
-          <ArrivalView
-            job={state.job}
-            timing={state.timing}
-            onArrived={confirmArrival}
-            onMap={openGate}
-            onCall={call}
-            callError={callError}
-            isSubmitting={markArrived.isPending}
-          />
-        );
-
-      case 'awaiting_start_otp':
+      case 'awaiting_start_otp': {
+        if (!state.hasArrivalSelfie) {
+          return takingSelfie ? (
+            <SelfieCaptureView
+              onSubmit={submitSelfie}
+              isSubmitting={uploadSelfie.isPending}
+              error={selfieError}
+            />
+          ) : (
+            <ArrivalView
+              job={state.job}
+              timing={state.timing}
+              lateByMinutes={state.lateByMinutes}
+              onMap={openGate}
+              onCall={call}
+              callError={callError}
+              onTakeSelfie={() => setTakingSelfie(true)}
+            />
+          );
+        }
+        if (selfieJustSent || state.kind === 'arrived') return <SelfieDoneView />;
         return (
           <StartOtpView
             length={otpLength.start}
@@ -394,6 +455,7 @@ export default function ServiceScreen(): React.ReactElement {
             isSubmitting={verifyStartOtp.isPending}
           />
         );
+      }
 
       case 'cooking':
         return (

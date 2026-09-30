@@ -163,6 +163,18 @@ export const textStyle = {
     color: color.textPrimary,
   },
   /**
+   * `308:1416` — a digit in the Start/End job OTP tiles. Livvic Black 40.
+   *
+   * On a 48 line, not the frame's 36: the descender guard wants 1.2x, and the tile is 142 tall,
+   * so the extra line height moves nothing.
+   */
+  otpJobDigit: {
+    fontFamily: fontFamily.black,
+    fontSize: 40,
+    lineHeight: 48,
+    color: color.textPrimary,
+  },
+  /**
    * `597:1148` / `614:432` — a V14 screen title. Livvic Black 24 on a 30 line, no tracking.
    *
    * The V14 sections split here: `leave` still titles at 20/28 (`headingLg`), while `Service

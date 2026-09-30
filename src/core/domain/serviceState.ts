@@ -232,11 +232,21 @@ export type ServiceState =
       /** Server permission for the manual arrival fallback; never inferred from ETA. */
       readonly canMarkArrived: boolean;
     }
-  | { readonly kind: 'arrived'; readonly job: JobSummary; readonly timing: ArrivalTiming }
+  | {
+      readonly kind: 'arrived';
+      readonly job: JobSummary;
+      readonly timing: ArrivalTiming;
+      /** How late she reached the gate, in whole minutes. `null` when the server has no arrival. */
+      readonly lateByMinutes: number | null;
+      /** The server has her arrival selfie on record. Until then the flow waits for one. */
+      readonly hasArrivalSelfie: boolean;
+    }
   | {
       readonly kind: 'awaiting_start_otp';
       readonly job: JobSummary;
       readonly timing: ArrivalTiming;
+      readonly lateByMinutes: number | null;
+      readonly hasArrivalSelfie: boolean;
     }
   | {
       readonly kind: 'cooking';
@@ -298,6 +308,13 @@ export interface ServiceSnapshot {
    */
   readonly minutesToArrival: number | null;
   readonly arrivalTiming: ArrivalTiming | null;
+  /**
+   * Minutes between the reach-by time and the server's recorded arrival, never below zero.
+   * `null` until the server has recorded an arrival.
+   */
+  readonly arrivedLateByMinutes: number | null;
+  /** When the latest arrival selfie was taken, per the server. `null` until there is one. */
+  readonly arrivalSelfieAtIso: string | null;
   /** Server says the Start OTP may now be entered. Never inferred from arrival alone. */
   readonly startOtpReady: boolean;
   /** Server says the End OTP may now be entered. */
@@ -348,9 +365,11 @@ export function projectServiceState(snapshot: ServiceSnapshot): ServiceState | n
 
     case 'cook_arrived': {
       const timing = snapshot.arrivalTiming ?? 'on_time';
+      const lateByMinutes = snapshot.arrivedLateByMinutes;
+      const hasArrivalSelfie = snapshot.arrivalSelfieAtIso !== null;
       return snapshot.startOtpReady
-        ? { kind: 'awaiting_start_otp', job, timing }
-        : { kind: 'arrived', job, timing };
+        ? { kind: 'awaiting_start_otp', job, timing, lateByMinutes, hasArrivalSelfie }
+        : { kind: 'arrived', job, timing, lateByMinutes, hasArrivalSelfie };
     }
 
     case 'cooking': {

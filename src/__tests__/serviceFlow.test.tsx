@@ -19,6 +19,7 @@ const mockStartOtp = jest.fn();
 const mockEndOtp = jest.fn();
 const mockArrive = jest.fn();
 const mockStartTravel = jest.fn();
+const mockUploadSelfie = jest.fn();
 const mockTrackerPrepare = jest.fn(async (_target: unknown) => ({ status: 'ready' }));
 const mockTrackerActivate = jest.fn(async (_target: unknown) => ({ status: 'reporting' }));
 const mockTrackerStop = jest.fn();
@@ -32,6 +33,7 @@ jest.mock('@core/api/queries', () => ({
   useVerifyEndOtp: () => ({ mutate: mockEndOtp, isPending: false }),
   useMarkArrived: () => ({ mutate: mockArrive, isPending: false }),
   useStartCommute: () => ({ mutate: mockStartTravel, isPending: false }),
+  useUploadArrivalSelfie: () => ({ mutate: mockUploadSelfie, isPending: false }),
 }));
 
 jest.mock('@core/location/tracker', () => ({
@@ -40,6 +42,11 @@ jest.mock('@core/location/tracker', () => ({
     activate: (target: unknown) => mockTrackerActivate(target),
     stop: () => mockTrackerStop(),
   },
+}));
+
+jest.mock('expo-camera', () => ({
+  CameraView: () => null,
+  useCameraPermissions: () => [{ granted: true, canAskAgain: true }, jest.fn()],
 }));
 
 jest.mock('expo-router', () => ({
@@ -116,6 +123,7 @@ beforeEach(() => {
   mockEndOtp.mockClear();
   mockArrive.mockClear();
   mockStartTravel.mockClear();
+  mockUploadSelfie.mockClear();
   mockTrackerPrepare.mockClear();
   mockTrackerActivate.mockClear();
   mockTrackerStop.mockClear();
@@ -150,8 +158,29 @@ describe('the projection decides the screen', () => {
     expect(screen.getByTestId('service-arrival-on_time')).toBeTruthy();
   });
 
-  it('renders the Start OTP screen only when the SERVER says it is eligible', () => {
+  it('shows the arrival screen after Pahauch gaye, and holds the Start OTP for the selfie', () => {
+    // `1:10162` / `1:10702`. The server opens the Start OTP on arrival, but the flow first takes
+    // the arrival selfie (`1:10236`).
     setJob({ status: 'cook_arrived', otpEligibility: { start: true, end: false } });
+    render(<ServiceScreen />);
+    expect(screen.getByTestId('service-arrival-on_time')).toBeTruthy();
+    expect(screen.queryByTestId('service-start-otp')).toBeNull();
+  });
+
+  it('opens the selfie camera from the arrival screen', () => {
+    setJob({ status: 'cook_arrived', otpEligibility: { start: true, end: false } });
+    render(<ServiceScreen />);
+    fireEvent.press(screen.getByTestId('service-arrival-selfie'));
+    expect(screen.getByTestId('service-selfie')).toBeTruthy();
+    expect(mockUploadSelfie).not.toHaveBeenCalled();
+  });
+
+  it('goes straight to the Start OTP once the server has the selfie', () => {
+    setJob({
+      status: 'cook_arrived',
+      otpEligibility: { start: true, end: false },
+      arrivalSelfie: { capturedAt: '2026-08-21T12:00:00.000Z' },
+    });
     render(<ServiceScreen />);
     expect(screen.getByTestId('service-start-otp')).toBeTruthy();
   });
@@ -179,7 +208,11 @@ describe('the projection decides the screen', () => {
 
 describe('commands do not advance state locally', () => {
   it('sends the Start OTP with the assignment version and an idempotency key', () => {
-    setJob({ status: 'cook_arrived', otpEligibility: { start: true, end: false } });
+    setJob({
+      status: 'cook_arrived',
+      otpEligibility: { start: true, end: false },
+      arrivalSelfie: { capturedAt: '2026-08-21T12:00:00.000Z' },
+    });
     render(<ServiceScreen />);
     // The submit stays disabled until three digits are present, so type the code first.
     fireEvent.changeText(screen.getByTestId('start-otp-input-field'), '482');
@@ -193,7 +226,11 @@ describe('commands do not advance state locally', () => {
   });
 
   it('stays on the Start OTP screen after submitting — only a re-read may move it', () => {
-    setJob({ status: 'cook_arrived', otpEligibility: { start: true, end: false } });
+    setJob({
+      status: 'cook_arrived',
+      otpEligibility: { start: true, end: false },
+      arrivalSelfie: { capturedAt: '2026-08-21T12:00:00.000Z' },
+    });
     render(<ServiceScreen />);
     fireEvent.changeText(screen.getByTestId('start-otp-input-field'), '482');
     fireEvent.press(screen.getByTestId('start-otp-submit'));
@@ -261,11 +298,12 @@ describe('commands do not advance state locally', () => {
     });
   });
 
-  it('sends the manual arrive command only when the cook presses it', () => {
+  it('offers no second Pahauch gaye once the arrival is recorded', () => {
     setJob({ status: 'cook_arrived' });
     render(<ServiceScreen />);
-    fireEvent.press(screen.getByTestId('service-arrived'));
-    expect(mockArrive).toHaveBeenCalledTimes(1);
+    expect(screen.queryByTestId('service-arrived')).toBeNull();
+    expect(screen.queryByTestId('service-travel-arrived')).toBeNull();
+    expect(mockArrive).not.toHaveBeenCalled();
   });
 });
 
