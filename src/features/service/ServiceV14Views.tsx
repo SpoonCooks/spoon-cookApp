@@ -1409,7 +1409,20 @@ export function SelfieDoneView({
             height={s(SELFIE_DONE.tickGlyph)}
           />
         </View>
-        <Text variant="cardCountdown" color={color.black} align="center">
+        {/*
+         * `1:10290` is one line (`whitespace-nowrap`). At 30 on a 405-dp phone it wrapped to two,
+         * so it shrinks just enough to stay on one line instead.
+         */}
+        <Text
+          variant="cardCountdown"
+          color={color.black}
+          align="center"
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.7}
+          style={styles.stretch}
+          testID="selfie-done-text"
+        >
           Photo jama ho gyi hai.
         </Text>
       </View>
