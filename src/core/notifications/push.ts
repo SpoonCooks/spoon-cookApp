@@ -139,8 +139,10 @@ export function deepLinkForPush(payload: CookPushPayload): string {
     // push. Jobs reads the list fresh and shows whichever of those two she is.
     case 'booking.rescheduled':
       return '/jobs';
+    // A new job has not started travel, and there is no screen for it outside Kaam: CHALO there is
+    // the only way into the service flow.
     case 'assignment.committed':
-      return `/service/${payload.bookingId}`;
+      return '/jobs';
     case 'booking.cook_arrived':
     case 'service.started':
     case 'booking.extension.confirmed':

@@ -24,8 +24,7 @@ function load(env: Record<string, string | undefined>) {
 describe('versionCode', () => {
   it('defaults to the build date, so it rises without anyone bumping it', () => {
     const now = new Date();
-    const expected =
-      (now.getFullYear() * 10000 + (now.getMonth() + 1) * 100 + now.getDate()) * 10;
+    const expected = (now.getFullYear() * 10000 + (now.getMonth() + 1) * 100 + now.getDate()) * 10;
 
     const config = load({ EXPO_PUBLIC_API_BASE_URL: 'https://api.test.invalid' });
 

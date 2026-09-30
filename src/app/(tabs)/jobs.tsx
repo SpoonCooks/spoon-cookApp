@@ -70,7 +70,14 @@ export default function JobsScreen(): React.ReactElement {
    * disabled button fell through to the card beneath it and opened the completion screen, so the
    * app answered Go with "Agle booking mein bhi accha kaam kare!".
    */
-  const leadJob = cards.find((card) => !card.isCancelled && !card.isFinished) ?? null;
+  const nextJob = cards.find((card) => !card.isCancelled && !card.isFinished) ?? null;
+  /*
+   * ...and it becomes the `CHALO` card only once it is due: under 45 minutes to the reach-by time
+   * (or past it), or already under way. Before that it is an ordinary tile, as `4a`/`4b` draw
+   * every job, and there is no disabled button with a note underneath explaining why.
+   */
+  const leadJob =
+    nextJob !== null && (nextJob.isInProgress || nextJob.isInChaloWindow) ? nextJob : null;
   const rest = useMemo(
     () => cards.filter((card) => card.bookingId !== leadJob?.bookingId),
     [cards, leadJob],
@@ -119,7 +126,7 @@ export default function JobsScreen(): React.ReactElement {
     });
   };
 
-  // Only the lead card calls this; the other tiles are not pressable.
+  // `CHALO` on a job already under way: back to the Active Job screen. No card opens anything.
   const openJob = (bookingId: string): void => {
     router.push({ pathname: '/service/[bookingId]', params: { bookingId } });
   };
