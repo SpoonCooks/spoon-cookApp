@@ -255,6 +255,18 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
         // Photos only: the selfie never records sound.
         microphonePermission: false,
         recordAudioAndroid: false,
+        /*
+         * No barcode scanning: the selfie only takes a photo. Left on (the default) it bundles
+         * Google ML Kit Barcode Scanning -- `libbarhopper_v3.so`, ~3.7 MB of the AAB across both
+         * ABIs -- for a feature the app never uses.
+         *
+         * This flag only takes effect when expo-camera is compiled from source: the prebuilt
+         * Maven artifact SDK 57 links by default declares ML Kit as a runtime dependency and
+         * ignores it. `expo.autolinking.android.buildFromSource` in package.json forces the
+         * source build. expo-camera checks for ML Kit at runtime (`isMLKitBarcodeScannerAvailable`),
+         * so the photo path is unaffected by its absence.
+         */
+        barcodeScannerEnabled: false,
       },
     ],
     [

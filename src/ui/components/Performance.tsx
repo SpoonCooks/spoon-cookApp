@@ -193,7 +193,7 @@ const images = {
   /** `392:9101` — the open lock once the bonus window is reached. */
   bonusUnlock: require('../../../assets/images/figma-v14/bonus-unlock.png') as ImageSourcePropType,
   /** `392:8955` — the cook at rest, on a Kamai period she was on chutti for. 1215x1295. */
-  chutti: require('../../../assets/images/figma-v14/kamai-chutti.png') as ImageSourcePropType,
+  chutti: require('../../../assets/images/figma-v14/kamai-chutti.webp') as ImageSourcePropType,
   /** `506:1868` — the tick on a present day. */
   dayDone: require('../../../assets/images/figma-v13/day-done.png') as ImageSourcePropType,
 } as const;
@@ -374,19 +374,28 @@ export function DayStrip({
         <View key={`${day.label}-${index}`} style={[styles.dayCell, { gap: s(DAYSTRIP.gap) }]}>
           <View style={{ width: disc, height: disc }}>
             <SvgXml xml={discFor(day.state)} width={disc} height={disc} />
-            {day.state === 'present' && (
-              <Image
-                source={images.dayDone}
-                style={[styles.dayGlyph, { width: s(DAYSTRIP.tick), height: s(DAYSTRIP.tick) }]}
-                resizeMode="contain"
-              />
-            )}
-            {day.state === 'missed' && (
-              <Image
-                source={images.multiply}
-                style={[styles.dayGlyph, { width: s(DAYSTRIP.cross), height: s(DAYSTRIP.cross) }]}
-                resizeMode="contain"
-              />
+            {/*
+             * Centred by a disc-sized overlay, not a fixed `top`: the tick (30) and the cross (34)
+             * are different sizes, so one offset cannot centre both, and `alignSelf` on an
+             * absolutely positioned image left them both drifting left on the handset.
+             */}
+            {day.state !== 'none' && (
+              <View style={styles.dayGlyph} pointerEvents="none">
+                {day.state === 'present' && (
+                  <Image
+                    source={images.dayDone}
+                    style={{ width: s(DAYSTRIP.tick), height: s(DAYSTRIP.tick) }}
+                    resizeMode="contain"
+                  />
+                )}
+                {day.state === 'missed' && (
+                  <Image
+                    source={images.multiply}
+                    style={{ width: s(DAYSTRIP.cross), height: s(DAYSTRIP.cross) }}
+                    resizeMode="contain"
+                  />
+                )}
+              </View>
             )}
           </View>
           <Text variant="dayStripLabel" align="center">
@@ -1459,7 +1468,15 @@ const styles = StyleSheet.create({
    */
   dayStrip: { flexDirection: 'row', alignItems: 'flex-start', flexWrap: 'wrap' },
   dayCell: { width: `${100 / 7}%`, alignItems: 'center' },
-  dayGlyph: { position: 'absolute', alignSelf: 'center', top: '7%' },
+  dayGlyph: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 
   card: { backgroundColor: color.surface, alignSelf: 'stretch' },
   stretch: { alignSelf: 'stretch' },

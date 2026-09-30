@@ -285,7 +285,7 @@ export function PhoneView({
       >
         <View style={[styles.clip, { height: s(PHONE.heroHeight) }]}>
           <Image
-            source={require('@/assets/images/figma-v13/login-hero.png')}
+            source={require('@/assets/images/figma-v13/login-hero.webp')}
             style={{
               width: s(PHONE.heroImageWidth),
               height: s(PHONE.heroImageHeight),
@@ -314,7 +314,7 @@ export function PhoneView({
           ]}
         >
           <Image
-            source={require('@/assets/images/figma-v13/spoon-logo.png')}
+            source={require('@/assets/images/figma-v13/spoon-logo.webp')}
             style={{
               width: s(PHONE.logoBoxWidth),
               height: s(PHONE.logoImageHeight),
@@ -614,7 +614,7 @@ export function OtpView({
           ]}
         >
           <Image
-            source={require('@/assets/images/figma-v13/spoon-logo.png')}
+            source={require('@/assets/images/figma-v13/spoon-logo.webp')}
             style={{
               width: s(PHONE.logoBoxWidth),
               height: s(PHONE.logoImageHeight),
