@@ -153,7 +153,7 @@ const arrowRight = require('@/assets/images/figma-v13/arrow-right.png');
  * props. Comparing the V14 render against it scored 30% on `575:2136` with the layout perfectly
  * placed, because the largest element on the screen was simply the wrong picture.
  */
-const cookResting = require('@/assets/images/figma-v14/cook-resting.png');
+const cookResting = require('@/assets/images/figma-v14/cook-resting.webp');
 
 export interface TopNavProps {
   readonly onHelp?: (() => void) | undefined;

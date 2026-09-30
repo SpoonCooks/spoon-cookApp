@@ -162,11 +162,11 @@
       "nodes": ["462:3617"],
       "sha256": "55d03316c3ab7d38ee27104d6ab7c782da06f465211aae802aac2db4a3bf4f52"
     },
-    "login-hero.png": {
-      "bytes": 1863746,
+    "login-hero.webp": {
+      "bytes": 86588,
       "constName": "loginHero",
       "nodes": ["434:3280"],
-      "sha256": "a47cf07abd39e6bda8159f578cfca4157590abe7b8a2d2271e9f26e9de6482f3"
+      "sha256": "eddf79c9c7b9baef17f9ae3ac85bae240566284715c0a3846833348bf676f5ab"
     },
     "map-pin.svg": {
       "bytes": 367,
@@ -264,11 +264,11 @@
       "nodes": ["434:3330"],
       "sha256": "c9be560db5f3466adea337f0b9c8c6f8ed0bc39c6ef045ecb27fb4f0e1048a67"
     },
-    "spoon-logo.png": {
-      "bytes": 579329,
+    "spoon-logo.webp": {
+      "bytes": 11832,
       "constName": "spoonLogo",
       "nodes": ["434:3116", "434:3280", "434:3224", "434:3174"],
-      "sha256": "bf470773080af0c4b6012bf0a27f8a6bb9c1e92b723915609782bf04b69520e0"
+      "sha256": "4200bac5e9cad57bbacb24321834e0f0229c6ae3814314b7b690315f721049a7"
     },
     "stairs-up.png": {
       "bytes": 659,

@@ -12,17 +12,17 @@
       "nodes": ["1:10178", "1:10287"],
       "sha256": "2a07dd407821b6fdca152a94ccff6db6ae3f956d47b9ed525819c3baa80204c5"
     },
-    "arrival-late.png": {
-      "bytes": 1175858,
+    "arrival-late.webp": {
+      "bytes": 70394,
       "constName": "arrivalLate",
       "nodes": ["1:10713"],
-      "sha256": "916ef9997426c0eb15eb90aebdbf230e42cb3d6f7be571618d7bd30bea3ebd1a"
+      "sha256": "bece9e570e28b5a8a2c5db5237cc8e8bd9156abf63053b4fbb29d042da37c673"
     },
-    "arrival-on-time.png": {
-      "bytes": 1280504,
+    "arrival-on-time.webp": {
+      "bytes": 98648,
       "constName": "arrivalOnTime",
       "nodes": ["1:10173"],
-      "sha256": "5d5b4a4b8b0be84b9ddb781228bd3c47bd8a350acfbf87f8857f01167c1c821e"
+      "sha256": "a3a586c05899a2e6d9b5d2061ae0cb192803844f4d4fa0a0c5c270f7f5ee53a4"
     },
     "arrow-right.png": {
       "bytes": 644,
@@ -84,17 +84,17 @@
       "nodes": ["622:1163"],
       "sha256": "da01f0cc111ab2082a259e4209f7f8256a2b5fe16fdfb81a137feea33525b4e7"
     },
-    "cook-resting.png": {
-      "bytes": 2055392,
+    "cook-resting.webp": {
+      "bytes": 106474,
       "constName": "imgCookResting",
       "nodes": ["572:760"],
-      "sha256": "7bbabf75d34be9c20d0d17eacb7b57e3b1f8bc86ae3d64faffd10fde1ce7dddb"
+      "sha256": "787cc990124110730875eb6c782d6aad7bc197661abf374e7fc34af353cf9d13"
     },
-    "cook-walking.png": {
-      "bytes": 1495906,
+    "cook-walking.webp": {
+      "bytes": 85966,
       "constName": "cookWalking",
       "nodes": ["614:453"],
-      "sha256": "8304e6da25fd036a7f23543b5fcbc5866e7cc6324dc7e5a96c4805d3ab845b5f"
+      "sha256": "29bde0e34d6b3f2ec8f99f32a0fee19e0e570c78845bb233cedbf84005ef159d"
     },
     "cooking-ending.png": {
       "bytes": 1443602,
@@ -108,23 +108,23 @@
       "nodes": ["309:1649", "622:664"],
       "sha256": "069b4c8324a59a85f2ff596289c2ff2509b1ed68c6b7001086f028b9b314fb2a"
     },
-    "end-art.png": {
-      "bytes": 1521288,
+    "end-art.webp": {
+      "bytes": 85816,
       "constName": "endArt",
       "nodes": ["628:1293"],
-      "sha256": "256117f88a9b6ca885e46bb9c9a6fce196f398c4c6728b66e1219351a937bf06"
+      "sha256": "dd2d9c3e9f6503b08aeb395d54aedc7b267b6fb5a4e8d13daba07ede810f3c07"
     },
-    "end-otp-art.png": {
-      "bytes": 1677022,
+    "end-otp-art.webp": {
+      "bytes": 98510,
       "constName": "endOtpArt",
       "nodes": ["628:1249"],
-      "sha256": "5fae879b221ca6e681faf1f410c623a329d98529e627e050d76235084c8810fd"
+      "sha256": "8579e1d4e9360266f33baa317d0cd4b5d885301d0bd480f6a935f3349159455f"
     },
-    "extension-clock.png": {
-      "bytes": 173006,
+    "extension-clock.webp": {
+      "bytes": 16166,
       "constName": "extensionClock",
       "nodes": ["622:1163"],
-      "sha256": "1ef8dfede36a1c82b3224e88a300e064fe9591802f02c6214bcc40800f897649"
+      "sha256": "f26dea68c397ec0e1ff67329434e6eab9e5efb478f93b3a6cf7ec5214fed6ba1"
     },
     "home-page.png": {
       "bytes": 850,
@@ -216,11 +216,11 @@
       "nodes": ["575:1744", "597:1221", "605:2027"],
       "sha256": "0ea4de52d8ad498d6a038acf068345c2d37464f0e18570f3d9ee6b1b2b5fdea5"
     },
-    "start-job-art.png": {
-      "bytes": 2109660,
+    "start-job-art.webp": {
+      "bytes": 126000,
       "constName": "startJobArt",
       "nodes": ["1:10324"],
-      "sha256": "985ea5071999ad14baa014e5afb7ae18f91b311a381100f82747bfd442224f7b"
+      "sha256": "8a60aed5bba85c2d06932c0f1241c49884978b1a3924764180cc3f7d8c3b7ec5"
     },
     "start-otp-art.png": {
       "bytes": 1459216,
@@ -240,11 +240,11 @@
       "nodes": ["575:1744", "603:1924"],
       "sha256": "47a65003ccedf30cc1fc130fe14ae02384e925ab2982ba1942bb5224bd06f65e"
     },
-    "travel-late.png": {
-      "bytes": 1430737,
+    "travel-late.webp": {
+      "bytes": 80286,
       "constName": "travelLate",
       "nodes": ["622:530", "622:597"],
-      "sha256": "a6c89c44e495131c1fb2891b955bd97309264267240b0afb10f85cd1c498b0b2"
+      "sha256": "3b8942864d0417a3db084237c35c14ddbb4cf63ee086bd511d7d94a1e6a67fe2"
     },
     "whats-app.png": {
       "bytes": 1419,
