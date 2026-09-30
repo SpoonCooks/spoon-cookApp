@@ -138,6 +138,8 @@ describe('the cooking projection', () => {
     minutesToDeadline: null,
     minutesToArrival: null,
     arrivalTiming: null,
+    arrivedLateByMinutes: null,
+    arrivalSelfieAtIso: null,
     startOtpReady: false,
     endOtpReady: false,
     actualStartIso: '2026-08-25T07:00:00.000Z',

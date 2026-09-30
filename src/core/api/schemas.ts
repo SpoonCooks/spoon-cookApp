@@ -252,6 +252,11 @@ export const cookJobSchema = z.object({
   }),
   actualEnd: isoString.nullable(),
   arrivedAt: isoString.nullable(),
+  /**
+   * The latest arrival selfie she has sent for this booking. Optional because a deployment that
+   * predates the selfie sends no field at all -- which reads the same as "none yet".
+   */
+  arrivalSelfie: z.object({ capturedAt: isoString }).nullable().optional(),
   timing: z.object({
     customerCommitmentAt: isoString,
     eta: isoString.nullable(),
@@ -701,6 +706,9 @@ export type CookCycleDetailResponse = z.infer<typeof cookCycleDetailSchema>;
  * cook has already performed.
  */
 export const commandAckSchema = z.looseObject({});
+
+/** `POST /v1/cook/bookings/:bookingId/arrival-selfie` -- the `data` of the answer. */
+export const arrivalSelfieAckSchema = z.object({ selfieId: z.string(), capturedAt: isoString });
 
 /**
  * For a route that answers **204 No Content**.

@@ -254,8 +254,8 @@ function toExtension(job: CookJobResponse): ExtensionProjection {
 /**
  * Build the snapshot `projectServiceState` consumes.
  *
- * `arrivalTiming` reuses the travel ruling: the backend does not publish a separate arrival
- * verdict, and whether the cook arrived late is exactly whether they were late in transit.
+ * `arrivalTiming` is read from the server's recorded arrival against the reach-by time once she has
+ * arrived, and from the travel ruling before that.
  * `interruption` is set when the booking was cancelled or the cook no longer holds the current
  * assignment — either way the actionable flow must stop.
  */
@@ -270,8 +270,24 @@ export function toServiceSnapshot(
   if (status === null) return null;
 
   const travelTiming = toTravelTiming(job.timing.riskState);
+  /*
+   * Late by how much, from two SERVER timestamps: the reach-by time and the recorded arrival.
+   * Once she has arrived that is the verdict; before it, the travel ruling stands in.
+   */
+  const arrivedLateByMinutes =
+    job.arrivedAt === null
+      ? null
+      : Math.max(0, minutesBetween(job.timing.customerCommitmentAt, job.arrivedAt));
   const arrivalTiming: ArrivalTiming | null =
-    travelTiming === null ? null : travelTiming === 'late' ? 'late' : 'on_time';
+    arrivedLateByMinutes !== null
+      ? arrivedLateByMinutes > 0
+        ? 'late'
+        : 'on_time'
+      : travelTiming === null
+        ? null
+        : travelTiming === 'late'
+          ? 'late'
+          : 'on_time';
 
   const interruption =
     status === 'cancelled'
@@ -299,6 +315,8 @@ export function toServiceSnapshot(
     minutesToArrival:
       job.timing.eta === null ? null : Math.abs(minutesBetween(job.serverTime, job.timing.eta)),
     arrivalTiming,
+    arrivedLateByMinutes,
+    arrivalSelfieAtIso: job.arrivalSelfie?.capturedAt ?? null,
     startOtpReady: job.otpEligibility.start,
     endOtpReady: job.otpEligibility.end,
     actualStartIso: job.timer.serviceStartedAt,

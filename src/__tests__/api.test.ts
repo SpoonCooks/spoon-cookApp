@@ -658,3 +658,25 @@ describe('bonus progress', () => {
     expect(progress).toBeNull();
   });
 });
+
+describe('how late she arrived', () => {
+  // Reach-by 05:30 UTC. Both instants are the server's; the device clock is never read.
+  const arrivedAt = (iso: string | null) =>
+    toServiceSnapshot(job({ status: 'cook_arrived', arrivedAt: iso }), 0);
+
+  it('counts the minutes past the reach-by time', () => {
+    const snap = arrivedAt('2026-08-21T05:36:00.000Z');
+    expect(snap?.arrivedLateByMinutes).toBe(6);
+    expect(snap?.arrivalTiming).toBe('late');
+  });
+
+  it('is on time, not negative, when she arrived early', () => {
+    const snap = arrivedAt('2026-08-21T05:20:00.000Z');
+    expect(snap?.arrivedLateByMinutes).toBe(0);
+    expect(snap?.arrivalTiming).toBe('on_time');
+  });
+
+  it('says nothing until the server has recorded an arrival', () => {
+    expect(arrivedAt(null)?.arrivedLateByMinutes).toBeNull();
+  });
+});

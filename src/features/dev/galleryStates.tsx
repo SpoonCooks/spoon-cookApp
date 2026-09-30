@@ -134,6 +134,26 @@ function ServiceOtpFixture({ kind }: { kind: 'start' | 'end' }): React.ReactElem
   return kind === 'start' ? <StartOtpView {...props} /> : <EndOtpView {...props} />;
 }
 
+/** `1:10401` onward draw the End job tiles filled with `1 1 1` under every timer. */
+function CookingFixture(
+  props: Omit<React.ComponentProps<typeof CookingView>, 'endOtp'>,
+): React.ReactElement {
+  const [code, setCode] = useState('111');
+  return (
+    <CookingView
+      {...props}
+      endOtp={{
+        code,
+        onChange: (next: string) => setCode(next.slice(0, otpLength.end)),
+        onSubmit: noop,
+        isSubmitting: false,
+        error: null,
+        length: otpLength.end,
+      }}
+    />
+  );
+}
+
 /** One of the three OTP frames, which differ only in code, countdown and error. */
 function otp(
   id: string,
@@ -549,14 +569,14 @@ export const galleryEntries: readonly GalleryEntry[] = [
     <TravelCancelledView job={serviceV14Fixtures.job()} />
   )),
   service('service/arrival-on-time', '622:664', 'Arrival - on time', () => (
-    <ArrivalView job={serviceV14Fixtures.job()} timing="on_time" />
+    <ArrivalView job={serviceV14Fixtures.job()} timing="on_time" lateByMinutes={0} />
   )),
   service('service/arrival-late', '622:733', 'Arrival - late', () => (
-    <ArrivalView job={serviceV14Fixtures.job()} timing="late" />
+    <ArrivalView job={serviceV14Fixtures.job()} timing="late" lateByMinutes={6} />
   )),
   service('service/start-otp', '622:801', 'Start OTP', () => <ServiceOtpFixture kind="start" />),
   service('service/timer-hours', '622:1036', 'Cooking - hours and minutes', () => (
-    <CookingView
+    <CookingFixture
       hoursRemaining={2}
       minutesRemaining={20}
       isEndingSoon={false}
@@ -564,7 +584,7 @@ export const galleryEntries: readonly GalleryEntry[] = [
     />
   )),
   service('service/timer-minutes', '622:1085', 'Cooking - minutes', () => (
-    <CookingView
+    <CookingFixture
       hoursRemaining={null}
       minutesRemaining={59}
       isEndingSoon={false}
@@ -572,12 +592,17 @@ export const galleryEntries: readonly GalleryEntry[] = [
     />
   )),
   service('service/timer-ending', '622:1125', 'Cooking - last 7 mins', () => (
-    <CookingView hoursRemaining={null} minutesRemaining={7} isEndingSoon extensionMinutes={null} />
+    <CookingFixture
+      hoursRemaining={null}
+      minutesRemaining={7}
+      isEndingSoon
+      extensionMinutes={null}
+    />
   )),
   service('service/timer-extension', '622:1163', 'Cooking - extension window open', () => (
     // The banner is shown because the window is open, never because a button was pressed. Here it
     // is open by construction; in the app it comes from two server timestamps.
-    <CookingView
+    <CookingFixture
       hoursRemaining={null}
       minutesRemaining={28}
       isEndingSoon={false}

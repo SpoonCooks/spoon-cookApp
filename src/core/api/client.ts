@@ -39,6 +39,13 @@ export interface RequestOptions {
   readonly signal?: AbortSignal;
   /** Endpoints callable while signed out (`/auth/*`). */
   readonly anonymous?: boolean;
+  /**
+   * A multipart body, sent in place of `body`. The `Content-Type` header is left for `fetch` to
+   * set, because only it knows the boundary.
+   */
+  readonly formData?: FormData;
+  /** Overrides the default timeout -- an upload over a weak connection needs longer. */
+  readonly timeoutMs?: number;
 }
 
 function buildUrl(path: string, query: RequestOptions['query']): string {
@@ -163,7 +170,7 @@ async function send(
   const controller = new AbortController();
   const timeout = setTimeout(() => {
     controller.abort();
-  }, requestTimeoutMs);
+  }, options.timeoutMs ?? requestTimeoutMs);
 
   const onExternalAbort = (): void => {
     controller.abort();
@@ -171,11 +178,22 @@ async function send(
   options.signal?.addEventListener('abort', onExternalAbort);
 
   const headers: Record<string, string> = { Accept: 'application/json' };
-  if (options.body !== undefined) headers['Content-Type'] = 'application/json';
+  if (options.body !== undefined && options.formData === undefined) {
+    headers['Content-Type'] = 'application/json';
+  }
   if (token !== null) headers['Authorization'] = `Bearer ${token}`;
   if (options.idempotencyKey !== undefined) headers['Idempotency-Key'] = options.idempotencyKey;
 
   try {
+    if (options.formData !== undefined) {
+      return await sendMultipart(
+        buildUrl(path, options.query),
+        options.method ?? 'POST',
+        headers,
+        options.formData,
+        controller.signal,
+      );
+    }
     return await fetch(buildUrl(path, options.query), {
       method: options.method ?? 'GET',
       headers,
@@ -186,6 +204,67 @@ async function send(
     clearTimeout(timeout);
     options.signal?.removeEventListener('abort', onExternalAbort);
   }
+}
+
+/**
+ * A multipart upload, over React Native's own `XMLHttpRequest` rather than `fetch`.
+ *
+ * Expo replaces the global `fetch` with its WinterCG implementation, and that one refuses React
+ * Native's file part -- `{ uri, name, type }` -- with "Unsupported FormDataPart implementation".
+ * The native XHR is the path that streams such a part from disk. The answer is handed back as a
+ * `Response`, so everything after the send -- session refresh, error envelopes, schema checks --
+ * is the same code a JSON call runs.
+ */
+/**
+ * The XHR's answer, shaped as the `Response` the rest of `request` reads.
+ *
+ * A plain object rather than `new Response(text)`, so this path does not depend on which
+ * `Response` implementation happens to be global (Expo installs its own). Only `status`, `ok` and
+ * the two body readers are used, so only those are provided.
+ */
+function xhrResponse(status: number, text: string): Response {
+  return {
+    status,
+    ok: status >= 200 && status < 300,
+    json: () => Promise.resolve().then(() => JSON.parse(text) as unknown),
+    text: () => Promise.resolve(text),
+  } as unknown as Response;
+}
+
+function sendMultipart(
+  url: string,
+  method: string,
+  headers: Readonly<Record<string, string>>,
+  body: FormData,
+  signal: AbortSignal,
+): Promise<Response> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open(method, url);
+    for (const [name, value] of Object.entries(headers)) xhr.setRequestHeader(name, value);
+    const abortError = (): Error => Object.assign(new Error('Aborted'), { name: 'AbortError' });
+    const onAbort = (): void => {
+      xhr.abort();
+    };
+    if (signal.aborted) {
+      reject(abortError());
+      return;
+    }
+    signal.addEventListener('abort', onAbort);
+    xhr.onload = () => {
+      signal.removeEventListener('abort', onAbort);
+      resolve(xhrResponse(xhr.status, xhr.responseText));
+    };
+    xhr.onerror = () => {
+      signal.removeEventListener('abort', onAbort);
+      reject(new TypeError('Network request failed'));
+    };
+    xhr.onabort = () => {
+      signal.removeEventListener('abort', onAbort);
+      reject(abortError());
+    };
+    xhr.send(body);
+  });
 }
 
 function transportError(error: unknown, externalSignal: AbortSignal | undefined): ApiError {

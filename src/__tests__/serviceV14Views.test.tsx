@@ -3,6 +3,7 @@ import { fireEvent, render, screen } from '@testing-library/react-native';
 import { serviceV14Fixtures } from '@core/fixtures';
 import type { JobSummary } from '@core/domain/serviceState';
 import {
+  ArrivalView,
   CompletedView,
   CookingView,
   StartOtpView,
@@ -19,13 +20,11 @@ import {
  * the thirteenth does not.
  */
 
-describe('622:913 — travel- cancel is not just another Active job frame', () => {
-  it('titles the screen Jaankari, not Active job', () => {
-    // Read from the reference render, not the layer name: names are stale throughout this file —
-    // `628:1316` is NAMED `Serving at` and READS `Active job`. Twelve Service frames title
-    // `Active job`; this one titles `Jaankari`, and the app printed `Active job` on all thirteen.
+describe('1:10098 — travel- cancelled', () => {
+  it('titles the screen Active job, like every other Service frame', () => {
+    // `622:913` titled this one `Jaankari`; the revised frame reads `Active job`.
     render(<TravelCancelledView job={serviceV14Fixtures.job()} />);
-    expect(screen.getByTestId('service-nav-title')).toHaveTextContent('Jaankari');
+    expect(screen.getByTestId('service-nav-title')).toHaveTextContent('Active job');
   });
 
   it('drops both customer actions, because the booking is gone', () => {
@@ -38,7 +37,7 @@ describe('622:913 — travel- cancel is not just another Active job frame', () =
 
   it('still says what happened and offers the way out', () => {
     render(<TravelCancelledView job={serviceV14Fixtures.job()} />);
-    expect(screen.getByText('Ye booking CANCEL ho gayi hai')).toBeTruthy();
+    expect(screen.getByText('Sorry, ye job CANCEL ho gayi hai')).toBeTruthy();
     expect(screen.getByTestId('service-see-jobs')).toBeTruthy();
   });
 });
@@ -354,7 +353,8 @@ describe('622:1036 — the End OTP sits beside the timer, not instead of it', ()
     // The regression that mattered: the timer must survive.
     expect(screen.getByTestId('service-timer')).toBeTruthy();
     expect(screen.getByTestId('cooking-end-otp')).toBeTruthy();
-    expect(screen.getByTestId('cooking-promo')).toBeTruthy();
+    // The coaching promo is gone from the cooking screen (founder, 2026-09-30).
+    expect(screen.queryByTestId('cooking-promo')).toBeNull();
   });
 
   it('offers it from the first minute, not only near the end', () => {
@@ -386,7 +386,6 @@ describe('622:1036 — the End OTP sits beside the timer, not instead of it', ()
 
     expect(screen.queryByTestId('cooking-end-otp')).toBeNull();
     expect(screen.getByTestId('service-timer')).toBeTruthy();
-    expect(screen.getByTestId('cooking-promo')).toBeTruthy();
   });
 
   it('renders both confirmed extension rows in the 2x state', () => {
@@ -404,17 +403,26 @@ describe('622:1036 — the End OTP sits beside the timer, not instead of it', ()
     expect(screen.getByTestId('service-extension-minutes-2')).toHaveTextContent('10 mins');
     expect(screen.getByTestId('service-timer')).toHaveTextContent('38 mins');
   });
+});
 
-  it('uses the cleaning coaching copy in the last-seven-minutes state', () => {
-    render(
-      <CookingView
-        hoursRemaining={null}
-        minutesRemaining={7}
-        isEndingSoon
-        extensionMinutes={null}
-      />,
-    );
+describe('the arrival screens (`1:10162`, `1:10702`)', () => {
+  it('says Time par! with the tick when she arrived on time', () => {
+    render(<ArrivalView job={serviceV14Fixtures.job()} timing="on_time" lateByMinutes={0} />);
+    expect(screen.getByTestId('service-arrival-headline')).toHaveTextContent('Time par!');
+    expect(screen.getByTestId('service-arrival-tick')).toBeTruthy();
+    expect(screen.queryByTestId('service-arrival-late-by')).toBeNull();
+  });
 
-    expect(screen.getByText('Clean: SLAB, WALL aur STOVE')).toBeTruthy();
+  it('says LATE and by how much when she arrived late', () => {
+    render(<ArrivalView job={serviceV14Fixtures.job()} timing="late" lateByMinutes={6} />);
+    expect(screen.getByTestId('service-arrival-headline')).toHaveTextContent('LATE');
+    expect(screen.getByTestId('service-arrival-late-by')).toHaveTextContent('6 mins');
+    expect(screen.queryByTestId('service-arrival-tick')).toBeNull();
+  });
+
+  it('keeps Map dekhe and Call kare', () => {
+    render(<ArrivalView job={serviceV14Fixtures.job()} timing="late" lateByMinutes={6} />);
+    expect(screen.getByTestId('service-map')).toBeTruthy();
+    expect(screen.getByTestId('service-call')).toBeTruthy();
   });
 });
