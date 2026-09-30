@@ -123,7 +123,8 @@ export function OtpInput({
                 tileStyle,
                 !isTiles && !isService && !isJob && char !== '' && styles.boxFilled,
                 !isTiles && !isService && !isJob && isCursor && styles.boxFocused,
-                (isTiles || isJob) && isCursor && styles.tileFocused,
+                // The job tiles have one colour whatever the cursor does (founder, 2026-09-30).
+                isTiles && isCursor && styles.tileFocused,
                 isService && isCursor && styles.serviceTileFocused,
                 hasError &&
                   (isService
@@ -167,6 +168,9 @@ export function OtpInput({
         textContentType="oneTimeCode"
         autoComplete="sms-otp"
         maxLength={length}
+        // The field is invisible, but Android still drew its caret handle -- a green teardrop -- on
+        // top of the first box. The boxes show the cursor themselves. The paste menu stays.
+        caretHidden
         // Visually hidden but focusable and still reachable by autofill; `opacity: 0` alone would
         // leave a tappable ghost overlapping the boxes.
         style={styles.hiddenInput}

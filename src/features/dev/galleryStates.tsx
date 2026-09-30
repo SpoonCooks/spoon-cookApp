@@ -569,10 +569,20 @@ export const galleryEntries: readonly GalleryEntry[] = [
     <TravelCancelledView job={serviceV14Fixtures.job()} />
   )),
   service('service/arrival-on-time', '622:664', 'Arrival - on time', () => (
-    <ArrivalView job={serviceV14Fixtures.job()} timing="on_time" lateByMinutes={0} />
+    <ArrivalView
+      job={serviceV14Fixtures.job()}
+      timing="on_time"
+      lateByMinutes={0}
+      onTakeSelfie={noop}
+    />
   )),
   service('service/arrival-late', '622:733', 'Arrival - late', () => (
-    <ArrivalView job={serviceV14Fixtures.job()} timing="late" lateByMinutes={6} />
+    <ArrivalView
+      job={serviceV14Fixtures.job()}
+      timing="late"
+      lateByMinutes={6}
+      onTakeSelfie={noop}
+    />
   )),
   service('service/start-otp', '622:801', 'Start OTP', () => <ServiceOtpFixture kind="start" />),
   service('service/timer-hours', '622:1036', 'Cooking - hours and minutes', () => (

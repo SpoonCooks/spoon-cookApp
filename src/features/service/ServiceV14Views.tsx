@@ -1,5 +1,6 @@
 import {
   Image,
+  Keyboard,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -324,6 +325,36 @@ const ARRIVAL_ART: Readonly<Record<ArrivalTiming, ImageSourcePropType>> = {
 
 /* ------------------------------------------------------------------ shell --- */
 
+/**
+ * How far the open keyboard reaches up into the shell's content area, in dp. 0 while it is shut.
+ *
+ * The activity declares `adjustResize`, but under Android's edge-to-edge the window is no longer
+ * resized for the keyboard: it is simply drawn over the screen. On the Start / End job screens that
+ * hid the code tiles AND the fixed `Start` / `End` button the moment a cook tapped a tile to type,
+ * and nothing scrolled (founder, 2026-09-30). The shell therefore measures the overlap itself and
+ * lifts its footer and its scroll room by exactly that much.
+ */
+function useKeyboardOverlap(content: React.RefObject<View | null>): number {
+  const [overlap, setOverlap] = useState(0);
+  useEffect(() => {
+    // `did`-events: Android reports only these. `screenY` is the keyboard's top edge in dp.
+    const shown = Keyboard.addListener('keyboardDidShow', (event) => {
+      const keyboardTop = event.endCoordinates.screenY;
+      content.current?.measureInWindow((_x, y, _width, height) => {
+        setOverlap(Math.max(0, y + height - keyboardTop));
+      });
+    });
+    const hidden = Keyboard.addListener('keyboardDidHide', () => {
+      setOverlap(0);
+    });
+    return () => {
+      shown.remove();
+      hidden.remove();
+    };
+  }, [content]);
+  return overlap;
+}
+
 function ServiceShell({
   children,
   footer,
@@ -353,6 +384,21 @@ function ServiceShell({
   const { s } = useDesignScale();
   const contentHeight = useRef(0);
   const footerHeight = useRef(0);
+  const content = useRef<View | null>(null);
+  const scroll = useRef<ScrollView | null>(null);
+  const keyboardOverlap = useKeyboardOverlap(content);
+
+  /*
+   * Once the room is there, bring the end of the screen into view. On every screen that types
+   * into a field -- the Start and End job tiles -- the field is the last thing on it, so the end
+   * is where the cook's eyes need to be, right above the lifted button.
+   */
+  useEffect(() => {
+    if (keyboardOverlap <= 0) return;
+    const handle = setTimeout(() => scroll.current?.scrollToEnd({ animated: true }), 50);
+    return () => clearTimeout(handle);
+  }, [keyboardOverlap]);
+
   return (
     <View style={styles.screen} testID={testID}>
       <View
@@ -369,6 +415,7 @@ function ServiceShell({
         <HelpPill onPress={onHelp} testID="service-nav-help" />
       </View>
       <View
+        ref={content}
         style={styles.shellContent}
         onLayout={(event) => {
           contentHeight.current = event.nativeEvent.layout.height;
@@ -376,12 +423,15 @@ function ServiceShell({
         }}
       >
         <ScrollView
+          ref={scroll}
+          // A tap on `Start` / `End` with the keyboard up must press the button, not just close it.
+          keyboardShouldPersistTaps="handled"
           contentContainerStyle={[
             styles.body,
             {
               padding: s(BODY.padding),
               gap: s(gap),
-              ...(footer === undefined ? {} : { paddingBottom: s(100) }),
+              paddingBottom: (footer === undefined ? s(BODY.padding) : s(100)) + keyboardOverlap,
             },
           ]}
           testID="service-scroll"
@@ -390,7 +440,10 @@ function ServiceShell({
         </ScrollView>
         {footer !== undefined && (
           <View
-            style={[styles.fixedFooter, { paddingBottom: s(footerPaddingBottom) }]}
+            style={[
+              styles.fixedFooter,
+              { paddingBottom: s(footerPaddingBottom), bottom: keyboardOverlap },
+            ]}
             onLayout={(event) => {
               footerHeight.current = event.nativeEvent.layout.height;
               onMeasure?.(contentHeight.current, footerHeight.current);
@@ -991,10 +1044,7 @@ export function ArrivalView({
   onCall?: (() => void) | undefined;
   callError?: string | null;
   onHelp?: (() => void) | undefined;
-  /**
-   * Opens the arrival selfie (`1:10236`). PLACEHOLDER control: the founder is designing this
-   * screen's CTA (2026-09-29); it borrows the selfie screen's own `Photo` button until then.
-   */
+  /** `308:1408` — `Aage`, which opens the arrival selfie (`1:10236`). */
   onTakeSelfie?: (() => void) | undefined;
 }): React.ReactElement {
   const { s } = useDesignScale();
@@ -1005,15 +1055,14 @@ export function ArrivalView({
       {...(onTakeSelfie === undefined
         ? {}
         : {
+            footerPaddingBottom: 0,
             footer: (
-              <Block>
-                <LimeCta
-                  glyph={art.camera}
-                  label="Photo"
-                  onPress={onTakeSelfie}
-                  testID="service-arrival-selfie"
-                />
-              </Block>
+              <JobActionFooter
+                label="Aage"
+                onPress={onTakeSelfie}
+                disabled={false}
+                testID="service-arrival-selfie"
+              />
             ),
           })}
     >
@@ -1104,8 +1153,17 @@ export function ArrivalView({
 
 /* --------------------------------------------------------------- selfie --- */
 
-/** `1:10247` — the camera box: 582 tall, `rounded-24`, a 1-unit `#ffd600` edge. */
-const SELFIE = { boxHeight: 582, boxRadius: 24, boxBorder: 1 } as const;
+/**
+ * `1:10247` — the camera box: 483 tall, `rounded-24`, a 1-unit black edge. `308:1611` — the
+ * shutter under it, an 80-unit disc with the 40-unit camera glyph.
+ */
+const SELFIE = {
+  boxHeight: 483,
+  boxRadius: 24,
+  boxBorder: 1,
+  shutter: 80,
+  shutterGlyph: 40,
+} as const;
 
 /** `309:1640` — the fixed button area under the selfie preview: `p-24`, `gap-24`. */
 const JOB_FOOTER = { padding: 24, gap: 24 } as const;
@@ -1259,16 +1317,38 @@ export function SelfieCaptureView({
 
   const footer =
     photo === null ? (
-      <Block>
+      <View
+        style={[
+          styles.selfieShutterArea,
+          { paddingHorizontal: s(JOB_ACTION.paddingH), paddingVertical: s(JOB_ACTION.paddingV) },
+        ]}
+      >
         {messageLine}
-        <LimeCta
-          glyph={art.camera}
-          label="Photo"
-          onPress={granted ? capture : () => void requestPermission()}
+        {/* `308:1611` — an 80-unit lime disc carrying the camera glyph; no label. */}
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Photo"
+          accessibilityState={{ disabled: capturing }}
           disabled={capturing}
+          onPress={granted ? capture : () => void requestPermission()}
+          style={[
+            styles.selfieShutter,
+            {
+              width: s(SELFIE.shutter),
+              height: s(SELFIE.shutter),
+              borderRadius: s(SELFIE.shutter / 2),
+            },
+          ]}
           testID="selfie-capture"
-        />
-      </Block>
+        >
+          <Image
+            source={art.camera}
+            style={{ width: s(SELFIE.shutterGlyph), height: s(SELFIE.shutterGlyph) }}
+            resizeMode="contain"
+            accessibilityIgnoresInvertColors
+          />
+        </Pressable>
+      </View>
     ) : (
       <View style={[styles.stretch, { padding: s(JOB_FOOTER.padding), gap: s(JOB_FOOTER.gap) }]}>
         {messageLine}
@@ -1294,7 +1374,7 @@ export function SelfieCaptureView({
     <ServiceShell
       onHelp={onHelp}
       footer={footer}
-      footerPaddingBottom={photo === null ? 21 : 0}
+      footerPaddingBottom={0}
       testID="service-selfie"
       onMeasure={(contentHeight, footerHeight) => {
         // Body padding above, the block's own padding, and a gap before the button.
@@ -1308,8 +1388,6 @@ export function SelfieCaptureView({
             {
               height: boxHeight,
               borderRadius: s(SELFIE.boxRadius),
-              // `309:1626` — the taken photo sits in a black edge; the live camera in yellow.
-              ...(photo === null ? {} : { borderColor: color.black }),
               borderWidth: s(SELFIE.boxBorder),
             },
           ]}
@@ -2145,10 +2223,12 @@ const styles = StyleSheet.create({
   selfieBox: {
     alignSelf: 'stretch',
     overflow: 'hidden',
-    borderColor: color.yellow600,
+    borderColor: color.black,
     backgroundColor: 'rgba(0,0,0,0.4)',
   },
   selfieFill: { flex: 1 },
+  selfieShutterArea: { alignSelf: 'stretch', alignItems: 'center' },
+  selfieShutter: { alignItems: 'center', justifyContent: 'center', backgroundColor: color.lime600 },
   startJobArt: { alignSelf: 'stretch', alignItems: 'center' },
   selfieNotice: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
   selfieDone: {
