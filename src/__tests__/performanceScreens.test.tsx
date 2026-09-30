@@ -140,9 +140,12 @@ describe('12- money daily (575:1744)', () => {
     expect(screen.getByTestId('work-card-extra')).toHaveTextContent('+₹263');
   });
 
-  it('takes the bonus threshold from backend policy, not the design’s literal 7', () => {
+  it('draws no bonus bar when the day’s hours are unknown, never the cycle’s attendance meter', () => {
+    // This fixture predates `dailyHours`. The card used to fall back to the 28-day attendance
+    // rule (`27 se zyada din kaam`), a cycle meter on a one-day card.
     render(<MoneyScreen />);
-    expect(screen.getByTestId('bonus-bar-hint')).toHaveTextContent(/27 se zyada/);
+    expect(screen.queryByTestId('bonus-bar')).toBeNull();
+    expect(screen.queryByText(/din kaam/)).toBeNull();
   });
 
   it('shows — for mistake counts a deployment without `counts` cannot supply', () => {

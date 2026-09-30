@@ -89,9 +89,9 @@ describe('gallery entries', () => {
     expect(leave).toHaveLength(7);
   });
 
-  it('covers all seven performance frames', () => {
+  it('covers all ten performance frames', () => {
     const performance = galleryEntries.filter((entry) => entry.section === 'performance');
-    expect(performance).toHaveLength(7);
+    expect(performance).toHaveLength(10);
   });
 
   /**
@@ -131,11 +131,11 @@ describe('gallery entries', () => {
     expect(claimed).toEqual([]);
   });
 
-  it('accounts for all 47 finalized screens, built plus pending', () => {
-    expect(figmaScreens).toHaveLength(47);
-    expect(builtScreens()).toHaveLength(47);
+  it('accounts for all 50 finalized screens, built plus pending', () => {
+    expect(figmaScreens).toHaveLength(50);
+    expect(builtScreens()).toHaveLength(50);
     expect(pendingScreens).toHaveLength(0);
-    expect(galleryEntries).toHaveLength(47);
+    expect(galleryEntries).toHaveLength(50);
 
     // Every pending id is a real screen, so the ledger cannot name a frame that does not exist.
     const inventory = new Set(figmaScreens.map((screen) => screen.nodeId));
@@ -200,10 +200,10 @@ describe('gallery bottom nav', () => {
     }
   });
 
-  it('covers all 33 nav-bearing frames and no others', () => {
+  it('covers all 36 nav-bearing frames and no others', () => {
     const withBar = galleryEntries.filter((entry) => bottomNavTabFor(entry) !== null);
-    expect(withBar).toHaveLength(33);
-    expect(galleryEntries).toHaveLength(47);
+    expect(withBar).toHaveLength(36);
+    expect(galleryEntries).toHaveLength(50);
   });
 
   it('highlights the destination measured from each section reference render', () => {

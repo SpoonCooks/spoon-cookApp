@@ -14,6 +14,7 @@ import { useAttendanceRange, useCookProfile, useEarnings } from '@core/api/queri
 import {
   earningsPeriodLabels,
   earningsPeriods,
+  isChuttiPeriod,
   type EarningsPeriod,
   type RatingView,
 } from '@core/domain/money';
@@ -57,11 +58,19 @@ export default function MoneyScreen(): React.ReactElement {
   const earnings = useEarnings();
   const profile = useCookProfile();
 
-  // The Mon–Sun strip is stored attendance for the seven-day window, not an earnings fact.
+  /*
+   * Stored attendance, read once for everything this screen draws from it: the cycle's day strip
+   * and whether she was on chutti for the selected period. One range covers both — the rolling
+   * 28-day `monthly` window through the end of her current cycle, which can run past today.
+   */
   const week = earnings.data?.sevenDay ?? null;
+  const today = earnings.data?.daily.startDate ?? '';
+  const monthStart = earnings.data?.monthly.startDate ?? '';
+  const rangeEnd = week !== null && week.endDate > today ? week.endDate : today;
   const attendance = useAttendanceRange(
-    { from: week?.startDate ?? '', to: week?.endDate ?? '' },
-    period === 'cycle' && week !== null,
+    // Her current cycle holds today, so it starts within the last seven days — inside the 28.
+    { from: monthStart, to: rangeEnd },
+    earnings.data !== undefined,
   );
 
   const hoursBonus = useMemo(
@@ -115,6 +124,16 @@ export default function MoneyScreen(): React.ReactElement {
     });
   }, [week, attendance.data]);
 
+  const chutti = useMemo(() => {
+    if (earnings.data === undefined || attendance.data === undefined) return false;
+    const window = periodResponseFor(earnings.data, period);
+    return isChuttiPeriod(
+      attendance.data,
+      { from: window.startDate, to: window.endDate },
+      earnings.data.daily.startDate,
+    );
+  }, [earnings.data, attendance.data, period]);
+
   if (earnings.isPending) return <LoadingState testID="money-loading" />;
 
   if (earnings.isError) {
@@ -158,10 +177,14 @@ export default function MoneyScreen(): React.ReactElement {
       onChangePeriod={setPeriod}
       onOpenDays={() => router.push('/money/days')}
       onOpenCycles={() => router.push('/money/cycles')}
+      chutti={chutti}
       refreshControl={
         <RefreshControl
-          refreshing={earnings.isFetching}
-          onRefresh={() => void earnings.refetch()}
+          refreshing={earnings.isFetching || attendance.isFetching}
+          onRefresh={() => {
+            void earnings.refetch();
+            void attendance.refetch();
+          }}
         />
       }
     />

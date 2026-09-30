@@ -599,6 +599,15 @@ export const cookDailyHoursSchema = z.object({
 });
 export type CookDailyHoursResponse = z.infer<typeof cookDailyHoursSchema>;
 
+/**
+ * `GET /cook/earnings/day/:date` — one past service day, plus that day's worked hours and
+ * long-hours rule. `.nullish()` so a deployment that predates `dailyHours` still parses.
+ */
+export const earningsDaySchema = earningsPeriodSchema.extend({
+  dailyHours: cookDailyHoursSchema.nullish(),
+});
+export type CookEarningsDayResponse = z.infer<typeof earningsDaySchema>;
+
 export const cookCycleSummarySchema = z.object({
   cycleId: z.string(),
   startDate: serviceDate,
