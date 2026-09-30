@@ -342,6 +342,14 @@ describe('job card', () => {
     expect(card.action).toBe('start_travel');
   });
 
+  it('puts a job in the CHALO window only under 45 minutes to its reach-by time, or past it', () => {
+    // Commitment 05:30 UTC. The window is measured on the SERVER's clock, never the handset's.
+    const at = (serverTime: string): boolean => toJobCard(job({ serverTime })).isInChaloWindow;
+    expect(at('2026-08-21T04:45:00.000Z')).toBe(false); // 45 mins: still an ordinary card
+    expect(at('2026-08-21T04:46:00.000Z')).toBe(true); // 44 mins
+    expect(at('2026-08-21T05:40:00.000Z')).toBe(true); // 10 mins late: she still has to go
+  });
+
   it('is not actionable once travel has begun', () => {
     expect(toJobCard(job({ status: 'cook_en_route' })).isActionable).toBe(false);
   });

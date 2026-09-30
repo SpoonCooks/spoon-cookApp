@@ -1,4 +1,5 @@
 import { render, screen, fireEvent } from '@testing-library/react-native';
+import { router } from 'expo-router';
 
 import ServiceScreen from '@/app/service/[bookingId]';
 
@@ -127,6 +128,7 @@ beforeEach(() => {
   mockTrackerActivate.mockClear();
   mockTrackerStop.mockClear();
   mockRefetch.mockClear();
+  (router.replace as jest.Mock).mockClear();
   setJob();
 });
 
@@ -319,10 +321,21 @@ describe('location reporting lifecycle', () => {
     expect(mockTrackerStop).not.toHaveBeenCalled();
   });
 
-  it('renders an independent Start Travel action for an assigned job', () => {
+  it('has no Job details screen: an unstarted job goes back to Kaam', () => {
     setJob({ status: 'assigned' });
     render(<ServiceScreen />);
-    expect(screen.getByTestId('service-assigned')).toBeTruthy();
-    expect(screen.getByTestId('service-start-travel')).toBeTruthy();
+    expect(screen.queryByTestId('service-assigned')).toBeNull();
+    expect(screen.queryByTestId('service-start-travel')).toBeNull();
+    expect(router.replace).toHaveBeenCalledWith('/jobs');
+  });
+
+  it('waits for the re-read in flight after CHALO instead of bouncing back', () => {
+    // The instant after CHALO, the cached projection can still say `assigned` while the fresh
+    // read that will say `cook_en_route` is on its way.
+    setJob({ status: 'assigned' });
+    mockJob = { ...mockJob, isFetching: true };
+    render(<ServiceScreen />);
+    expect(screen.getByTestId('service-loading')).toBeTruthy();
+    expect(router.replace).not.toHaveBeenCalled();
   });
 });

@@ -5,23 +5,17 @@ import { jobsV14Fixtures } from '@core/fixtures';
 import { JobsView } from '@features/jobs/JobViews';
 
 /**
- * Re-entering the job the cook is already on.
+ * Getting into a job from Kaam, and back into one she is already on.
  *
- * ## The blocker this closes
+ * `CHALO` is the only control on the Kaam screen (founder, 2026-09-29). No card opens anything
+ * and there is no "Job details" screen: on a job she has not set off for, `CHALO` starts travel
+ * and lands on the Active Job screen; on a job she is already on, it takes her straight back to
+ * that screen.
  *
- * On the installed V13 build the ONLY route into a job was the lead card's Start Travel button.
- * That button is eligibility-gated and it is a one-way door: once it had fired and the booking
- * moved to `cook_en_route`, the CTA no longer applied and there was no other control on the card,
- * so a cook who backed out — or whose app was killed by Android mid-travel — could not get back
- * to the job they were physically driving to. Nothing was broken in the backend; the screen
- * simply had no way in.
- *
- * ## What is pinned here
- *
- * That opening a job and being allowed to start travelling are SEPARATE questions. Details is
- * reachable from the lead card in any state; Start Travel remains the server's ruling. If those two
- * are ever collapsed back into one control this fails, which is the point — the regression is a
- * one-line prop change away and is invisible in review.
+ * The second half is the one that matters. On the V13 build the lead card's Start Travel button
+ * was a one-way door: once travel began the CTA no longer applied, and a cook who backed out -- or
+ * whose app was killed mid-travel -- could not get back to the job she was driving to. Tapping
+ * the card used to be that way back; now `CHALO` is.
  */
 
 const withSafeArea = (node: React.ReactElement): React.ReactElement => (
@@ -37,12 +31,20 @@ const withSafeArea = (node: React.ReactElement): React.ReactElement => (
 
 function renderJobs(overrides: {
   readonly isActionable: boolean;
+  readonly isInProgress?: boolean;
   readonly onOpenJob?: (bookingId: string) => void;
   readonly onStartTravel?: (bookingId: string) => void;
 }): { readonly leadBookingId: string; readonly otherBookingId: string | undefined } {
   const state = jobsV14Fixtures.countdown(20, 'soon');
   const leadJob =
-    state.leadJob === null ? null : { ...state.leadJob, isActionable: overrides.isActionable };
+    state.leadJob === null
+      ? null
+      : {
+          ...state.leadJob,
+          isActionable: overrides.isActionable,
+          isInProgress: overrides.isInProgress ?? false,
+          blockedReason: overrides.isActionable ? null : ('ALREADY_STARTED' as const),
+        };
 
   render(
     withSafeArea(
@@ -66,53 +68,35 @@ function renderJobs(overrides: {
   };
 }
 
-describe('a job can be opened without being startable', () => {
-  it('opens the lead job from the card itself, not from Start Travel', () => {
+describe('CHALO is the only way in', () => {
+  it('opens nothing from the lead card itself', () => {
     const opened: string[] = [];
     const started: string[] = [];
-    const { leadBookingId } = renderJobs({
+    renderJobs({
       isActionable: true,
       onOpenJob: (id) => opened.push(id),
       onStartTravel: (id) => started.push(id),
     });
 
-    // The card, not the CTA inside it.
-    fireEvent.press(screen.getAllByLabelText(/job details$/)[0] as never);
+    fireEvent.press(screen.getByTestId('job-lead-card'));
 
-    expect(opened).toEqual([leadBookingId]);
-    // Opening a job must not silently dispatch a command that moves a real booking.
+    expect(opened).toEqual([]);
     expect(started).toEqual([]);
   });
 
-  it('still opens the job when the server says travel may NOT start', () => {
-    // This is the state the stuck build could not escape: already travelling, so the CTA no
-    // longer applies. Details has to stay reachable or the cook is locked out of their own job.
-    const opened: string[] = [];
-    const { leadBookingId } = renderJobs({
-      isActionable: false,
-      onOpenJob: (id) => opened.push(id),
-    });
-
-    fireEvent.press(screen.getAllByLabelText(/job details$/)[0] as never);
-
-    expect(opened).toEqual([leadBookingId]);
-  });
-
-  it('opens nothing from a non-lead tile: only the lead card is a way in', () => {
+  it('opens nothing from a non-lead tile', () => {
     const opened: string[] = [];
     const { otherBookingId } = renderJobs({
       isActionable: true,
       onOpenJob: (id) => opened.push(id),
     });
 
-    // Only the lead card carries the details action.
-    expect(screen.getAllByLabelText(/job details$/)).toHaveLength(1);
     fireEvent.press(screen.getByTestId(`job-tile-${otherBookingId ?? ''}`));
 
     expect(opened).toEqual([]);
   });
 
-  it('keeps Start Travel working as its own separate control', () => {
+  it('starts travel on a job she has not set off for', () => {
     const opened: string[] = [];
     const started: string[] = [];
     const { leadBookingId } = renderJobs({
@@ -124,8 +108,41 @@ describe('a job can be opened without being startable', () => {
     fireEvent.press(screen.getByTestId('job-lead-cta'));
 
     expect(started).toEqual([leadBookingId]);
-    // Pressing the CTA must not ALSO fire the card's navigation underneath it.
     expect(opened).toEqual([]);
+  });
+
+  it('takes her back to a job she is already on, without starting travel again', () => {
+    // Already travelling, so the server withholds Start Travel. CHALO must still get her in.
+    const opened: string[] = [];
+    const started: string[] = [];
+    const { leadBookingId } = renderJobs({
+      isActionable: false,
+      isInProgress: true,
+      onOpenJob: (id) => opened.push(id),
+      onStartTravel: (id) => started.push(id),
+    });
+
+    const cta = screen.getByTestId('job-lead-cta');
+    expect(cta.props.accessibilityState?.disabled).toBe(false);
+    fireEvent.press(cta);
+
+    expect(opened).toEqual([leadBookingId]);
+    expect(started).toEqual([]);
+    expect(screen.queryByTestId('job-lead-blocked')).toBeNull();
+  });
+
+  it('stays disabled on a job she may not start yet and is not on', () => {
+    const opened: string[] = [];
+    const started: string[] = [];
+    renderJobs({
+      isActionable: false,
+      onOpenJob: (id) => opened.push(id),
+      onStartTravel: (id) => started.push(id),
+    });
+
+    expect(screen.getByTestId('job-lead-cta').props.accessibilityState?.disabled).toBe(true);
+    expect(opened).toEqual([]);
+    expect(started).toEqual([]);
   });
 });
 

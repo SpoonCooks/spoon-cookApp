@@ -24,7 +24,12 @@ import type {
 } from '../domain/money';
 import { formatDateRange } from '../domain/money';
 import { toLeaveRequestStatus } from '../domain/leave';
-import { jobUrgencyFrom } from '../domain/job';
+import {
+  CHALO_WINDOW_MINUTES,
+  jobUrgencyFrom,
+  jobUrgencyFromMinutes,
+  moreUrgent,
+} from '../domain/job';
 import type { JobAction, JobCardModel } from '../domain/job';
 import type {
   ArrivalTiming,
@@ -209,8 +214,14 @@ export function toJobCard(job: CookJobResponse): JobCardModel {
     isCancelled: status === 'cancelled',
     // Terminal the other way. Both are history; neither is work she still has to do.
     isFinished: status === 'completed',
-    // `4c` / `4d` / `4e`: the server's ruling, never the handset's clock.
-    urgency: jobUrgencyFrom(job.departure?.urgency),
+    isInProgress: status === 'cook_en_route' || status === 'cook_arrived' || status === 'cooking',
+    isInChaloWindow:
+      minutesBetween(job.serverTime, job.timing.customerCommitmentAt) < CHALO_WINDOW_MINUTES,
+    // `4c` / `4d` / `4e`: the countdown (on the server's clock), escalated by the server's ruling.
+    urgency: moreUrgent(
+      jobUrgencyFromMinutes(minutesBetween(job.serverTime, job.timing.customerCommitmentAt)),
+      jobUrgencyFrom(job.departure?.urgency),
+    ),
     address: toAddress(job),
     gate: toGate(job),
   };
