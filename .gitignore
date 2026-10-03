@@ -2,6 +2,10 @@ node_modules/
 .expo/
 dist/
 android/
+# ...but local Expo modules keep their native source in modules/*/android
+!/modules/*/android/
+/modules/*/android/build/
+.gradle/
 ios/
 *.log
 .figma-cache/

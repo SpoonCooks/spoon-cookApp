@@ -1,6 +1,7 @@
 import { Image, Pressable, StyleSheet, View, type ImageSourcePropType } from 'react-native';
 
 import { useDesignScale } from '../theme/designScale';
+import { useTappableBottomInset } from '../theme/useTappableBottomInset';
 import { Text } from '../primitives/Text';
 import { color, dropShadow } from '../theme/tokens';
 
@@ -103,10 +104,19 @@ export interface BottomNavProps {
 
 export function BottomNav({ active, onSelect, testID }: BottomNavProps): React.ReactElement {
   const { s } = useDesignScale();
+  // Edge-to-edge draws under the system bar; clear 3-button navigation, add nothing under gestures.
+  const bottomInset = useTappableBottomInset();
 
   return (
     <View
-      style={[styles.bar, { paddingHorizontal: s(NAV.paddingH), paddingVertical: s(NAV.paddingV) }]}
+      style={[
+        styles.bar,
+        {
+          paddingHorizontal: s(NAV.paddingH),
+          paddingTop: s(NAV.paddingV),
+          paddingBottom: s(NAV.paddingV) + bottomInset,
+        },
+      ]}
       testID={testID}
     >
       <View
