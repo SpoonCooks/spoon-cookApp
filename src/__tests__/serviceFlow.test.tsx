@@ -54,9 +54,14 @@ jest.mock('expo-router', () => ({
   useLocalSearchParams: () => ({ bookingId: 'b1' }),
 }));
 
-jest.mock('react-native-safe-area-context', () => ({
-  useSafeAreaInsets: () => ({ top: 24, bottom: 16, left: 0, right: 0 }),
-}));
+jest.mock('react-native-safe-area-context', () => {
+  const { createContext } = jest.requireActual<typeof import('react')>('react');
+  return {
+    useSafeAreaInsets: () => ({ top: 24, bottom: 16, left: 0, right: 0 }),
+    // `BottomNav` reads the raw context (see `useTappableBottomInset`), so the mock must export it.
+    SafeAreaInsetsContext: createContext(null),
+  };
+});
 
 /** A `CookJobResponse` in the shape `cookJobSchema` validates. */
 function jobResponse(overrides: Record<string, unknown> = {}): Record<string, unknown> {
