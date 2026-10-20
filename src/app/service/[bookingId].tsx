@@ -17,7 +17,7 @@ import { isNavigableGate, openGateNavigation } from '@core/location/navigation';
 import { locationTracker } from '@core/location/tracker';
 import { otpLength } from '@core/domain/otp';
 import { projectServiceState, type ServiceState } from '@core/domain/serviceState';
-import { BottomNav, ErrorState, LoadingState } from '@ui';
+import { BottomNav, ErrorState, LoadingState, useBottomInsetBelowNav } from '@ui';
 import { InterruptedView } from '@features/service/ServiceViews';
 import {
   ArrivalView,
@@ -68,6 +68,8 @@ const POLL_MS = 20_000;
 
 export default function ServiceScreen(): React.ReactElement {
   const insets = useSafeAreaInsets();
+  // `BottomNav` already clears the 3-button panel, so pad only by what it does not.
+  const bottomBelowNav = useBottomInsetBelowNav();
   const { bookingId } = useLocalSearchParams<{ bookingId?: string }>();
   const id = bookingId ?? '';
 
@@ -535,7 +537,7 @@ export default function ServiceScreen(): React.ReactElement {
    * that destination rather than stacking a second navigator inside this one.
    */
   return (
-    <View style={[styles.flex, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
+    <View style={[styles.flex, { paddingTop: insets.top, paddingBottom: bottomBelowNav }]}>
       <View style={styles.flex} testID={`service-${id}`}>
         {body}
       </View>

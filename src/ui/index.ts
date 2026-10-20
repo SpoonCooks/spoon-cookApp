@@ -32,6 +32,7 @@ export {
   snapFontSize,
   androidRasterisedFontPx,
 } from './theme/designScale';
+export { useBottomInsetBelowNav, bottomInsetBelowNav } from './theme/useTappableBottomInset';
 export { figmaStroke } from './theme/stroke';
 export type { FigmaStrokeOptions } from './theme/stroke';
 export type { DesignScale } from './theme/designScale';
