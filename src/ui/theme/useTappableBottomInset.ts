@@ -20,3 +20,21 @@ export function useTappableBottomInset(): number {
   // eslint-disable-next-line react-hooks/exhaustive-deps -- `safeAreaBottom` is the re-measure trigger
   return useMemo(() => getTappableBottomInset(), [safeAreaBottom]);
 }
+
+/**
+ * What is left of the bottom safe-area inset once `BottomNav` has cleared the tappable controls.
+ *
+ * A screen that pads itself by `insets.bottom` AND draws `BottomNav` clears the 3-button panel
+ * twice: the bar adds the panel's height and the screen pads by it again, which floats the bar
+ * about 135px (one panel) above where it belongs. Under gestures the tappable inset is 0, so this
+ * is the whole safe-area bottom and nothing changes there.
+ */
+export function bottomInsetBelowNav(safeAreaBottom: number, tappableBottom: number): number {
+  return Math.max(0, safeAreaBottom - tappableBottom);
+}
+
+/** `bottomInsetBelowNav` for the current window, for screens that draw `BottomNav` themselves. */
+export function useBottomInsetBelowNav(): number {
+  const safeAreaBottom = useContext(SafeAreaInsetsContext)?.bottom ?? 0;
+  return bottomInsetBelowNav(safeAreaBottom, useTappableBottomInset());
+}

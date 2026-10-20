@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { areFixturesAvailable } from '@core/fixtures';
 import { bottomNavTabFor, galleryEntryFor } from '@features/dev/galleryStates';
-import { BottomNav, color, Text } from '@ui';
+import { BottomNav, color, Text, useBottomInsetBelowNav } from '@ui';
 
 /**
  * Renders one V14 state from the development gallery.
@@ -47,6 +47,7 @@ export default function DevGalleryState(): React.ReactElement | null {
   // Without them a presentational view would render at y=0 and every comparison would inherit
   // that offset; with them applied twice it would render an inset too low. See `ownsSafeArea`.
   const insets = useSafeAreaInsets();
+  const bottomBelowNav = useBottomInsetBelowNav();
 
   if (!areFixturesAvailable()) return null;
 
@@ -71,7 +72,10 @@ export default function DevGalleryState(): React.ReactElement | null {
         styles.host,
         entry.ownsSafeArea === true
           ? null
-          : { paddingTop: insets.top, paddingBottom: insets.bottom },
+          : {
+              paddingTop: insets.top,
+              paddingBottom: activeTab !== null ? bottomBelowNav : insets.bottom,
+            },
         /*
          * The bar sits ABOVE the device's own navigation bar, exactly as
          * `service/[bookingId].tsx` places it. Without this the bar would be flush to the window
@@ -81,7 +85,9 @@ export default function DevGalleryState(): React.ReactElement | null {
          * Applied only when a bar is actually drawn, so the fourteen frames without one keep the
          * geometry their evidence was taken at.
          */
-        activeTab !== null && entry.ownsSafeArea === true ? { paddingBottom: insets.bottom } : null,
+        activeTab !== null && entry.ownsSafeArea === true
+          ? { paddingBottom: bottomBelowNav }
+          : null,
       ]}
       testID={`gallery-${entry.id}`}
     >
