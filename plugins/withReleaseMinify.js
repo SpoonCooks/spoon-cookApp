@@ -28,12 +28,21 @@ const { withDangerousMod, withGradleProperties } = require('expo/config-plugins'
  *
  * ## Keep rules
  *
- * No keep rules are needed today. The code R8 cannot see being used -- Expo modules and their
- * records, React Native's TurboModules, Reanimated and Worklets, SVG, notifications, location
- * and task-manager -- arrives with its own consumer rules, and `TappableInsetModule` is an Expo
- * module, covered by expo-modules-core's `-keep ... extends Module`. A new native dependency
- * without consumer rules is where a release-only crash would come from, which is why a minified
- * build has to be exercised on a handset, not just compiled.
+ * Almost everything R8 cannot see being used -- Expo modules and their records, React Native's
+ * TurboModules, Reanimated and Worklets, SVG, notifications, location and task-manager -- arrives
+ * with its own consumer rules, and `TappableInsetModule` is an Expo module, covered by
+ * expo-modules-core's `-keep ... extends Module`. `Class.forName("...")` with a literal is safe
+ * too: R8 rewrites the literal when it renames the class (`ExpoModulesPackageList` became `e9.d`
+ * and still loads).
+ *
+ * The one gap is a class named only in a MANIFEST. expo-modules-core declares
+ * `RNHeadlessAppLoader` as `<meta-data android:value="...">` and `AppLoaderProvider` reads that
+ * string at runtime; R8 never sees a reference, so the first minified build deleted the class and
+ * logged `ClassNotFoundException: ...RNHeadlessAppLoader` at launch. It is what starts the JS
+ * runtime headless -- for expo-task-manager's background location while the app is closed -- so
+ * its absence would not show on a foreground test. Of the 110 classes the merged manifest and
+ * every `Class.forName` in the dependencies name, it was the only one removed (checked against
+ * `mapping/release/usage.txt`). Re-run that check when a native dependency is added.
  *
  * ## The one `-dontwarn`
  *
@@ -54,6 +63,8 @@ const RULES = `${RULES_MARKER} Added by plugins/withReleaseMinify.js -- see the 
 -dontwarn com.google.mlkit.vision.barcode.**
 -dontwarn com.google.mlkit.vision.codescanner.**
 -dontwarn com.google.mlkit.vision.common.**
+# Named only in expo-modules-core's manifest meta-data and loaded by Class.forName at runtime.
+-keep class expo.modules.adapters.react.apploader.RNHeadlessAppLoader { *; }
 ${RULES_MARKER} end`;
 
 /** Appends the rules once; a re-run (or a prebuild without --clean) does not duplicate them. */

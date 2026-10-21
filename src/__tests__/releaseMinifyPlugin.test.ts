@@ -58,7 +58,15 @@ describe('withReleaseMinify', () => {
         '-dontwarn com.google.mlkit.vision.barcode.**',
         '-dontwarn com.google.mlkit.vision.codescanner.**',
         '-dontwarn com.google.mlkit.vision.common.**',
+        '-keep class expo.modules.adapters.react.apploader.RNHeadlessAppLoader { *; }',
       ]);
+    });
+
+    it('keeps the headless app loader that expo-modules-core names only in its manifest', () => {
+      // Without it R8 deletes the class and background tasks cannot start the JS runtime.
+      expect(plugin.applyRules('')).toContain(
+        '-keep class expo.modules.adapters.react.apploader.RNHeadlessAppLoader { *; }',
+      );
     });
 
     it('never silences more than ML Kit', () => {
