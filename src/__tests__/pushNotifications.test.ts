@@ -3,7 +3,7 @@
  *
  * The governing rule (backend `notification-dispatch.ts`): a notification carries "safe
  * identifiers only" and the app "refreshes state from the API rather than trusting anything in
- * here." So the tests below assert two things — that the two real payload shapes are understood,
+ * here." So the tests below assert two things — that the three real payload shapes are understood,
  * and that nothing else is ever acted upon.
  */
 
@@ -78,6 +78,20 @@ describe('parseCookPushPayload', () => {
   ])('ignores %s', (_label, data) => {
     expect(parseCookPushPayload(data)).toBeNull();
   });
+
+  // Backend `next-day-notice.ts`: the one cook-level push, sent at her next-day gate. It names no
+  // booking, so it is the only shape accepted without a `bookingId`.
+  it('reads the next-day digest, which names no booking', () => {
+    expect(
+      parseCookPushPayload({ eventType: 'cook.next_day_bookings', date: '2026-10-22' }),
+    ).toEqual({ kind: 'next_day' });
+  });
+
+  it('reads the next-day digest even with a bookingId beside it', () => {
+    expect(
+      parseCookPushPayload({ bookingId: BOOKING, eventType: 'cook.next_day_bookings' }),
+    ).toEqual({ kind: 'next_day' });
+  });
 });
 
 describe('deepLinkForPush', () => {
@@ -117,6 +131,19 @@ describe('deepLinkForPush', () => {
     for (const eventType of cookPushEventTypes) {
       expect(deepLinkForPush({ kind: 'event', bookingId: BOOKING, eventType })).toMatch(/^\//);
     }
+  });
+});
+
+describe('next-day digest', () => {
+  it('opens Kaam, where tomorrow is listed', () => {
+    expect(deepLinkForPush({ kind: 'next_day' })).toBe('/jobs');
+  });
+
+  it('refreshes the job list so tomorrow appears without a pull', () => {
+    expect(invalidationKeysForPush({ kind: 'next_day' })).toEqual([
+      ['cook', 'jobs'],
+      ['cook', 'me'],
+    ]);
   });
 });
 

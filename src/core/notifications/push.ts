@@ -18,6 +18,8 @@
  *
  *   `notification-dispatch.ts`  → `data: { bookingId, eventType }`
  *   `alert-dispatch-service.ts` → `data: { bookingId, alertKind }`
+ *   `notification-dispatch.ts`  → `data: { eventType: 'cook.next_day_bookings', date }` — the
+ *                                  one cook-level push: no booking, sent once at her next-day gate
  *
  * Both are `Record<string, string>` because FCM data values are always strings. They are parsed
  * defensively: an unrecognised shape yields `null` and is ignored rather than guessed at.
@@ -86,20 +88,32 @@ function isBookingId(value: unknown): value is string {
   return typeof value === 'string' && BOOKING_ID.test(value);
 }
 
+/**
+ * The next-day digest (backend `next-day-notice.ts`): tomorrow's bookings have just become
+ * visible to this cook. It names no booking — it is about her day, not one job — so it is the one
+ * payload without a `bookingId`.
+ */
+export const NEXT_DAY_BOOKINGS_EVENT = 'cook.next_day_bookings';
+
 export type CookPushPayload =
   | { readonly kind: 'event'; readonly bookingId: string; readonly eventType: CookPushEventType }
-  | { readonly kind: 'alert'; readonly bookingId: string; readonly alertKind: CookPushAlertKind };
+  | { readonly kind: 'alert'; readonly bookingId: string; readonly alertKind: CookPushAlertKind }
+  | { readonly kind: 'next_day' };
 
 /**
  * Parse an FCM data payload.
  *
  * Returns `null` for anything unrecognised. Being strict here is what keeps an arbitrary push from
- * steering navigation: only the two documented shapes, with a non-empty `bookingId` and a
- * known enum member, produce a payload the app will act on.
+ * steering navigation: only the documented shapes, with a uuid `bookingId` and a known enum
+ * member (or the exact next-day event, which carries no booking), produce a payload the app will
+ * act on.
  */
 export function parseCookPushPayload(data: unknown): CookPushPayload | null {
   if (typeof data !== 'object' || data === null) return null;
   const record = data as Record<string, unknown>;
+
+  // Checked first: it is the only shape with no `bookingId`. It can only open Kaam and refresh it.
+  if (record.eventType === NEXT_DAY_BOOKINGS_EVENT) return { kind: 'next_day' };
 
   const bookingId = record.bookingId;
   if (!isBookingId(bookingId)) return null;
@@ -127,6 +141,8 @@ export function parseCookPushPayload(data: unknown): CookPushPayload | null {
  * the list fresh and shows whatever is actually true.
  */
 export function deepLinkForPush(payload: CookPushPayload): string {
+  // Tomorrow's jobs are listed in Kaam, beside today's.
+  if (payload.kind === 'next_day') return '/jobs';
   if (payload.kind === 'alert') {
     return `/service/${payload.bookingId}`;
   }
