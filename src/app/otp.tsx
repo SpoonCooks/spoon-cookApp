@@ -6,7 +6,9 @@ import { cookAccessDenialCopy } from '@core/domain/auth';
 import { loginResendSeconds, otpLength } from '@core/domain/otp';
 import { OtpView } from '@features/login/LoginViews';
 import { completeLogin, sendLoginOtp } from '@core/session/auth';
+import { clearPendingOtp } from '@core/session/tokens';
 import { useSession } from '@core/session/store';
+import { extractOtp, listenForSms } from '../../modules/sms-user-consent';
 
 /**
  * Pages 2a / 2b / 2c — OTP verification (Figma `434:3224`, `434:3174`, `434:3116`, V13).
@@ -50,6 +52,7 @@ export default function OtpScreen(): React.ReactElement {
               cookProfileStatus: 'active',
               profile: state.profile,
             });
+            void clearPendingOtp();
             router.replace('/jobs');
             return;
           }
@@ -102,13 +105,31 @@ export default function OtpScreen(): React.ReactElement {
     [error, verify],
   );
 
+  // One-tap code entry: Google's consent sheet hands over the SMS body, and the code goes through
+  // the same path as typing it. A ref keeps the listener from restarting on every keystroke.
+  const changeRef = useRef(change);
+  useEffect(() => {
+    changeRef.current = change;
+  }, [change]);
+  useEffect(
+    () =>
+      listenForSms((message) => {
+        const found = extractOtp(message, otpLength.login);
+        if (found !== null) changeRef.current(found);
+      }),
+    [],
+  );
+
   return (
     <OtpView
       phone={typeof phone === 'string' ? phone : ''}
       code={code}
       onChange={change}
       onSubmit={() => verify(code)}
-      onEditPhone={() => router.back()}
+      onEditPhone={() => {
+        void clearPendingOtp();
+        router.back();
+      }}
       onResend={resend}
       secondsLeft={secondsLeft}
       error={error}

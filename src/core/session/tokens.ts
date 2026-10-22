@@ -17,6 +17,9 @@ const ACCESS_KEY = 'spoon.cook.accessToken';
 const REFRESH_KEY = 'spoon.cook.refreshToken';
 const EXPIRES_KEY = 'spoon.cook.accessTokenExpiresAt';
 const DEVICE_KEY = 'spoon.cook.deviceId';
+const PENDING_OTP_KEY = 'spoon.cook.pendingOtp';
+/** How long a sent code stays worth resuming; the backend's own code expires well inside this. */
+const PENDING_OTP_TTL_MS = 10 * 60 * 1000;
 
 export interface StoredSession {
   readonly accessToken: string;
@@ -90,6 +93,56 @@ export async function deviceId(): Promise<string> {
   const generated = `cook-${Math.random().toString(36).slice(2)}${Date.now().toString(36)}`;
   await SecureStore.setItemAsync(DEVICE_KEY, generated);
   return generated;
+}
+
+/**
+ * The number an OTP was just sent to, kept so the cook lands back on the OTP page if Android
+ * reclaims the app while they are in their messages app reading the code. Without it a cold
+ * start has nothing but the Login screen to offer, and the code they are holding is orphaned.
+ *
+ * Holds the phone only — never a code or a token — and expires, so a stale entry from days ago
+ * cannot hijack a normal launch.
+ */
+export async function savePendingOtp(
+  localTenDigits: string,
+  now: number = Date.now(),
+): Promise<void> {
+  try {
+    await SecureStore.setItemAsync(
+      PENDING_OTP_KEY,
+      JSON.stringify({ phone: localTenDigits, at: now }),
+    );
+  } catch {
+    // Resume is a convenience; sending the code already succeeded.
+  }
+}
+
+export async function readPendingOtp(now: number = Date.now()): Promise<string | null> {
+  const raw = await readKey(PENDING_OTP_KEY);
+  if (raw === null) return null;
+  try {
+    const parsed = JSON.parse(raw) as { phone?: unknown; at?: unknown };
+    if (
+      typeof parsed.phone === 'string' &&
+      typeof parsed.at === 'number' &&
+      now - parsed.at >= 0 &&
+      now - parsed.at < PENDING_OTP_TTL_MS
+    ) {
+      return parsed.phone;
+    }
+  } catch {
+    // Fall through to clearing the unreadable entry.
+  }
+  await clearPendingOtp();
+  return null;
+}
+
+export async function clearPendingOtp(): Promise<void> {
+  try {
+    await SecureStore.deleteItemAsync(PENDING_OTP_KEY);
+  } catch {
+    // Nothing to clear.
+  }
 }
 
 /** Test seam — resets the module-level cache between tests. */

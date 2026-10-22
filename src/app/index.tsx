@@ -2,6 +2,7 @@ import { router } from 'expo-router';
 import { useEffect } from 'react';
 
 import { restoreSession } from '@core/session/auth';
+import { readPendingOtp } from '@core/session/tokens';
 import { useSession } from '@core/session/store';
 import { BootView } from '@features/login/LoginViews';
 
@@ -36,8 +37,13 @@ export default function BootScreen(): React.ReactElement {
   }, [auth.kind, restoreComplete]);
 
   useEffect(() => {
-    if (auth.kind === 'signed_out') router.replace('/login');
-    else if (auth.kind === 'signed_in') router.replace('/jobs');
+    if (auth.kind === 'signed_out') {
+      router.replace('/login');
+      // The app was reclaimed while the cook read their code: put them back on the OTP page.
+      void readPendingOtp().then((phone) => {
+        if (phone !== null) router.push({ pathname: '/otp', params: { phone } });
+      });
+    } else if (auth.kind === 'signed_in') router.replace('/jobs');
   }, [auth.kind]);
 
   return <BootView />;
