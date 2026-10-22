@@ -19,13 +19,13 @@ describe('pending OTP resume', () => {
   it('returns the phone while the sent code is still fresh', async () => {
     await savePendingOtp('9876543210', 1_000);
 
-    await expect(readPendingOtp(1_000 + 5 * 60 * 1000)).resolves.toBe('9876543210');
+    await expect(readPendingOtp(1_000 + 4 * 60 * 1000)).resolves.toBe('9876543210');
   });
 
   it('forgets it once the window has passed', async () => {
     await savePendingOtp('9876543210', 1_000);
 
-    await expect(readPendingOtp(1_000 + 11 * 60 * 1000)).resolves.toBeNull();
+    await expect(readPendingOtp(1_000 + 5 * 60 * 1000)).resolves.toBeNull();
     await expect(readPendingOtp(1_000)).resolves.toBeNull();
   });
 

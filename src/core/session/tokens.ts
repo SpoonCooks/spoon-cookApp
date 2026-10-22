@@ -18,8 +18,8 @@ const REFRESH_KEY = 'spoon.cook.refreshToken';
 const EXPIRES_KEY = 'spoon.cook.accessTokenExpiresAt';
 const DEVICE_KEY = 'spoon.cook.deviceId';
 const PENDING_OTP_KEY = 'spoon.cook.pendingOtp';
-/** How long a sent code stays worth resuming; the backend's own code expires well inside this. */
-const PENDING_OTP_TTL_MS = 10 * 60 * 1000;
+/** The backend's `LOGIN_OTP_TTL_SECONDS` default (300): after this the code is dead, so resuming is pointless. */
+const PENDING_OTP_TTL_MS = 5 * 60 * 1000;
 
 export interface StoredSession {
   readonly accessToken: string;

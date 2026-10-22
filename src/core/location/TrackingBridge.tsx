@@ -38,7 +38,10 @@ export function TrackingBridge(): null {
     const sub = AppState.addEventListener('change', (next) => {
       const active = next === 'active';
       locationTracker.setAppState(active);
-      if (active) void currentJob.refetch();
+      // `refetch()` ignores `enabled`, so without this guard a cook returning to the OTP page from
+      // her messages app sent an authenticated read with no session. Its 401 signed the store out
+      // and `SessionGate` sent her back to Login.
+      if (active && signedIn) void currentJob.refetch();
     });
 
     locationTracker.setAppState(AppState.currentState !== 'background');

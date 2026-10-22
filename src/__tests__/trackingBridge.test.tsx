@@ -1,4 +1,5 @@
-import { render } from '@testing-library/react-native';
+import { act, render } from '@testing-library/react-native';
+import { AppState } from 'react-native';
 
 import { TrackingBridge } from '@core/location/TrackingBridge';
 
@@ -170,5 +171,49 @@ describe('a revised travel time is shown without waiting for the poll', () => {
     const { unmount } = render(<TrackingBridge />);
     unmount();
     expect(mockUnsubscribeEta).toHaveBeenCalledTimes(1);
+  });
+});
+
+/**
+ * Coming back from the Messages app with the OTP page open used to land the cook on Login.
+ *
+ * `refetch()` ignores `enabled: false`, so the foreground handler fired an authenticated read
+ * with no session. The 401 went through `handleSessionLoss`, which flipped the store to
+ * `signed_out`, and `SessionGate` replaced the route with `/login`: the app "refreshed" with the
+ * process alive, in the middle of the sign-in it was supposed to be waiting on.
+ */
+describe('returning to the foreground', () => {
+  let foreground: (status: string) => void;
+
+  beforeEach(() => {
+    jest.spyOn(AppState, 'addEventListener').mockImplementation(((
+      _event: string,
+      handler: (status: string) => void,
+    ) => {
+      foreground = handler;
+      return { remove: jest.fn() };
+    }) as never);
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it('re-reads the current job for a signed-in cook', () => {
+    mockSignedIn = true;
+    mount(null);
+
+    act(() => foreground('active'));
+
+    expect(mockRefetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('sends no authenticated read while nobody is signed in, e.g. on the OTP page', () => {
+    mockSignedIn = false;
+    mount(null);
+
+    act(() => foreground('active'));
+
+    expect(mockRefetch).not.toHaveBeenCalled();
   });
 });
