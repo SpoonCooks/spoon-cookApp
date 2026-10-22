@@ -115,7 +115,9 @@ function handleSessionLoss(error: unknown): void {
   if (!isSessionExpired(error)) return;
   // `client.ts` has already cleared the keystore by this point: a 401 that survives a refresh
   // attempt clears the stored session before it throws. This is the in-memory half.
-  if (useSession.getState().auth.kind === 'signed_out') return;
+  // Only a signed-in session can be lost. A 401 from a stale screen while the cook is mid-OTP
+  // (`otp_pending`) is not news, and acting on it threw her back to Login.
+  if (useSession.getState().auth.kind !== 'signed_in') return;
   useSession.getState().signOut();
 }
 

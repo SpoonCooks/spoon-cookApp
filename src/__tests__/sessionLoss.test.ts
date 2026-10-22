@@ -103,4 +103,19 @@ describe('a session that ends underneath the cook', () => {
 
     expect(useSession.getState().auth).toBe(before);
   });
+
+  it('leaves a cook who is mid-OTP alone when a stale screen answers 401', () => {
+    /*
+     * Logging out leaves the signed-in screens mounted under Login. Returning from the messages
+     * app to the OTP page refocused them, their reads 401ed, and the cook was thrown back to Login
+     * mid-sign-in. There is no session to lose until she has one.
+     */
+    useSession.setState({ auth: { kind: 'otp_pending', phone: '9876543210' } });
+    const before = useSession.getState().auth;
+
+    onQueryError(createQueryClient())(revoked);
+    onMutationError(createQueryClient())(revoked);
+
+    expect(useSession.getState().auth).toBe(before);
+  });
 });

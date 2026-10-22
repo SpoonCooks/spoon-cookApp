@@ -4,6 +4,7 @@ import { useCallback, useState } from 'react';
 import { apiErrorMessage } from '@core/api/errors';
 import { useCookProfile, useRequestAccountDeletion, useSignOut } from '@core/api/queries';
 import { useSession } from '@core/session/store';
+import { leaveToLogin } from '@core/navigation/leaveToLogin';
 import { formatPhone } from '@features/profile/profileModel';
 import { ProfileView, type ProfileSheet } from '@features/profile/ProfileView';
 import { ErrorState, LoadingState } from '@ui';
@@ -71,7 +72,7 @@ export default function ProfileScreen(): React.ReactElement {
       void signOut.mutateAsync().then(
         () => {
           setSheet('none');
-          router.replace('/login');
+          leaveToLogin();
         },
         () => {
           /* Held by the mutation and rendered in the sheet. */
