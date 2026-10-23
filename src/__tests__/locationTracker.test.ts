@@ -351,6 +351,58 @@ describe('stopping', () => {
     expect(h.timers).toHaveLength(1);
   });
 
+  /*
+   * 23 Oct 2026: production logged 401s on location reports, and the tracker treated every 4xx as
+   * the end of the job. One expired session left a cook travelling with no further samples, so
+   * the server never saw her reach the gate. Only the three answers that really end the job stop
+   * it now; everything else is retried, further apart each time.
+   */
+  it.each([
+    ['UNAUTHENTICATED', 401],
+    ['RATE_LIMITED', 429],
+    ['INVALID_REQUEST', 400],
+  ] as const)('keeps trying after a %s %i, backing off', async (code, status) => {
+    const h = harness();
+    h.report.mockRejectedValue(new ApiError({ kind: 'server', message: code, status, code }));
+    await h.tracker.start(target);
+
+    const delays: number[] = [];
+    for (let attempt = 0; attempt < 6; attempt += 1) {
+      await h.tick();
+      expect(h.tracker.getState().status).toBe('reporting');
+      expect(h.timers).toHaveLength(1);
+      delays.push(h.timers[0]?.ms ?? -1);
+    }
+    expect(delays).toEqual([5_000, 10_000, 20_000, 40_000, 60_000, 60_000]);
+  });
+
+  it('returns to the server cadence once a report gets through again', async () => {
+    const h = harness();
+    h.report.mockRejectedValueOnce(
+      new ApiError({ kind: 'server', message: 'expired', status: 401, code: 'UNAUTHENTICATED' }),
+    );
+    await h.tracker.start(target);
+    await h.tick();
+    expect(h.timers[0]?.ms).toBe(5_000);
+
+    await h.tick();
+    expect(h.tracker.getState().status).toBe('reporting');
+    expect(h.timers).toHaveLength(1);
+    expect(h.timers[0]?.ms).not.toBe(10_000);
+  });
+
+  it.each([
+    ['INVALID_BOOKING_STATE', 409],
+    ['FORBIDDEN', 403],
+  ] as const)('stops on %s, which ends the job', async (code, status) => {
+    const h = harness();
+    h.report.mockRejectedValue(new ApiError({ kind: 'server', message: code, status, code }));
+    await h.tracker.start(target);
+    await h.tick();
+    expect(h.tracker.getState().status).toBe('stopped');
+    expect(h.timers).toHaveLength(0);
+  });
+
   it('keeps trying on a 5xx', async () => {
     const h = harness();
     h.report.mockRejectedValue(
@@ -461,6 +513,33 @@ describe('native background callback', () => {
       }),
     );
     expect(h.clear).not.toHaveBeenCalled();
+  });
+
+  it('keeps the persisted target through a temporary 401', async () => {
+    const h = backgroundHarness();
+    h.report.mockRejectedValue(
+      new ApiError({ kind: 'server', message: 'expired', status: 401, code: 'UNAUTHENTICATED' }),
+    );
+    await processBackgroundLocations({ locations: [location] }, h.deps);
+
+    expect(h.clear).not.toHaveBeenCalled();
+    expect(h.stop).not.toHaveBeenCalled();
+  });
+
+  it('discards the persisted target when the job was given to someone else', async () => {
+    const h = backgroundHarness();
+    h.report.mockRejectedValue(
+      new ApiError({
+        kind: 'server',
+        message: 'stale',
+        status: 409,
+        code: 'ACTIVE_ASSIGNMENT_CHANGED',
+      }),
+    );
+    await processBackgroundLocations({ locations: [location] }, h.deps);
+
+    expect(h.clear).toHaveBeenCalledTimes(1);
+    expect(h.stop).toHaveBeenCalledTimes(1);
   });
 
   it('clears the persisted target only after the backend commits arrival', async () => {
