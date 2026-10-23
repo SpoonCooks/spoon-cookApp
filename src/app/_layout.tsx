@@ -1,6 +1,7 @@
+import { leaveToLogin } from '@core/navigation/leaveToLogin';
 import { QueryClientProvider, useQueryClient } from '@tanstack/react-query';
 import { useFonts } from 'expo-font';
-import { Stack, router } from 'expo-router';
+import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
@@ -103,7 +104,7 @@ function SessionGate(): null {
 
   useEffect(() => {
     if (kind !== 'signed_out') return;
-    router.replace('/login');
+    leaveToLogin();
     client.removeQueries();
   }, [kind, client]);
 

@@ -5,7 +5,7 @@ import { apiErrorMessage } from '@core/api/errors';
 import { normalisePhone } from '@core/domain/auth';
 import { PhoneView } from '@features/login/LoginViews';
 import { sendLoginOtp } from '@core/session/auth';
-import { readLastPhone } from '@core/session/tokens';
+import { readLastPhone, savePendingOtp } from '@core/session/tokens';
 import { useSession } from '@core/session/store';
 
 /**
@@ -46,6 +46,7 @@ export default function LoginScreen(): React.ReactElement {
     void sendLoginOtp(normalised)
       .then(() => {
         beginOtp(normalised);
+        void savePendingOtp(normalised);
         router.push({ pathname: '/otp', params: { phone: normalised } });
       })
       .catch((cause: unknown) => {
