@@ -17,6 +17,7 @@ const ACCESS_KEY = 'spoon.cook.accessToken';
 const REFRESH_KEY = 'spoon.cook.refreshToken';
 const EXPIRES_KEY = 'spoon.cook.accessTokenExpiresAt';
 const DEVICE_KEY = 'spoon.cook.deviceId';
+const LAST_PHONE_KEY = 'spoon.cook.lastPhone';
 
 export interface StoredSession {
   readonly accessToken: string;
@@ -90,6 +91,25 @@ export async function deviceId(): Promise<string> {
   const generated = `cook-${Math.random().toString(36).slice(2)}${Date.now().toString(36)}`;
   await SecureStore.setItemAsync(DEVICE_KEY, generated);
   return generated;
+}
+
+/**
+ * The ten-digit number from this install's last successful sign-in, so Login can prefill it.
+ *
+ * Deliberately outside `clearSession` — sign-out removes only the three token keys, so a signed-out
+ * cook still finds their own number waiting. Best-effort both ways: a keystore failure must never
+ * block sign-in or Login.
+ */
+export async function readLastPhone(): Promise<string | null> {
+  return readKey(LAST_PHONE_KEY);
+}
+
+export async function writeLastPhone(localTenDigits: string): Promise<void> {
+  try {
+    await SecureStore.setItemAsync(LAST_PHONE_KEY, localTenDigits);
+  } catch {
+    // Convenience only; the sign-in already succeeded.
+  }
 }
 
 /** Test seam — resets the module-level cache between tests. */

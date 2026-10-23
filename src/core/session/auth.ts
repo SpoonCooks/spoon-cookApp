@@ -25,7 +25,7 @@
 import { getCookProfile, logout, requestLoginOtp, verifyLoginOtp } from '../api/cook';
 import { isApiError } from '../api/errors';
 import { gateCookAccess, type AuthState, type CookProfile } from '../domain/auth';
-import { clearSession, deviceId, loadSession, saveSession } from './tokens';
+import { clearSession, deviceId, loadSession, saveSession, writeLastPhone } from './tokens';
 
 /** `9876543210` → `+919876543210`, the format both OTP routes validate. */
 export function toE164(localTenDigits: string): string {
@@ -100,6 +100,7 @@ export async function completeLogin(input: {
   });
 
   if (state.kind !== 'signed_in') await clearSession();
+  else await writeLastPhone(input.localTenDigits);
   return state;
 }
 
