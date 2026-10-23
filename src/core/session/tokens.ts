@@ -20,6 +20,7 @@ const DEVICE_KEY = 'spoon.cook.deviceId';
 const PENDING_OTP_KEY = 'spoon.cook.pendingOtp';
 /** The backend's `LOGIN_OTP_TTL_SECONDS` default (300): after this the code is dead, so resuming is pointless. */
 const PENDING_OTP_TTL_MS = 5 * 60 * 1000;
+const LAST_PHONE_KEY = 'spoon.cook.lastPhone';
 
 export interface StoredSession {
   readonly accessToken: string;
@@ -142,6 +143,25 @@ export async function clearPendingOtp(): Promise<void> {
     await SecureStore.deleteItemAsync(PENDING_OTP_KEY);
   } catch {
     // Nothing to clear.
+  }
+}
+
+/**
+ * The ten-digit number from this install's last successful sign-in, so Login can prefill it.
+ *
+ * Deliberately outside `clearSession` — sign-out removes only the three token keys, so a signed-out
+ * cook still finds their own number waiting. Best-effort both ways: a keystore failure must never
+ * block sign-in or Login.
+ */
+export async function readLastPhone(): Promise<string | null> {
+  return readKey(LAST_PHONE_KEY);
+}
+
+export async function writeLastPhone(localTenDigits: string): Promise<void> {
+  try {
+    await SecureStore.setItemAsync(LAST_PHONE_KEY, localTenDigits);
+  } catch {
+    // Convenience only; the sign-in already succeeded.
   }
 }
 

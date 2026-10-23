@@ -44,6 +44,43 @@ const FIRST_SAMPLE_DELAY_MS = 0;
 const MIN_INTERVAL_MS = 5_000;
 const MAX_INTERVAL_MS = 300_000;
 
+/** The ceiling on the retry delay after repeated failed reports. */
+const MAX_RETRY_INTERVAL_MS = 60_000;
+
+/**
+ * The server's answers that mean this cook may no longer report for this booking: the job was
+ * given to someone else (`ACTIVE_ASSIGNMENT_CHANGED`), it is no longer travelling
+ * (`INVALID_BOOKING_STATE` — arrived, cancelled, finished), or it is not hers (`FORBIDDEN`).
+ *
+ * Every other failure is temporary and must NOT end tracking. It used to: any 4xx stopped the
+ * session for good, so one expired-session 401 or a rate-limit 429 left a cook travelling with no
+ * further samples, and "Pahuch gaye" could never open at the door. Production logged four such
+ * 401s on location reports on the morning of 23 Oct 2026.
+ */
+const TERMINAL_REPORT_CODES: ReadonlySet<string> = new Set([
+  'ACTIVE_ASSIGNMENT_CHANGED',
+  'INVALID_BOOKING_STATE',
+  'FORBIDDEN',
+]);
+
+/** Whether a failed report means this booking's tracking is over, rather than a retry. */
+export function endsTracking(error: unknown): boolean {
+  return (
+    error instanceof ApiError &&
+    error.kind === 'server' &&
+    error.code !== null &&
+    TERMINAL_REPORT_CODES.has(error.code)
+  );
+}
+
+/** Exponential back-off from the floor interval, capped, for consecutive failed reports. */
+function retryDelay(consecutiveFailures: number): number {
+  return Math.min(
+    MIN_INTERVAL_MS * 2 ** Math.max(0, consecutiveFailures - 1),
+    MAX_RETRY_INTERVAL_MS,
+  );
+}
+
 /** A fix older than this is stale — the backend would reject it, so it is not sent. */
 const MAX_FIX_AGE_MS = 60_000;
 
@@ -238,6 +275,8 @@ export class LocationTracker {
   private timer: ReturnType<typeof setTimeout> | null = null;
   private running = false;
   private prepared = false;
+  /** Reports that failed in a row; spaces out the retries. Reset by any accepted report. */
+  private consecutiveFailures = 0;
   // Expo can report `unknown` before React Native publishes the first lifecycle event. Treat that
   // state as foreground so the deterministic first fix is not lost; the root bridge immediately
   // replaces it with the real AppState value on mount.
@@ -421,6 +460,7 @@ export class LocationTracker {
       return this.state;
     }
     this.callbacks = callbacks;
+    this.consecutiveFailures = 0;
     const prepared = await this.prepare(target);
     return prepared.status === 'ready' ? this.activate(target, callbacks) : prepared;
   }
@@ -530,19 +570,22 @@ export class LocationTracker {
       }
 
       // The server's cadence, not ours.
+      this.consecutiveFailures = 0;
       this.schedule(clampInterval(result.nextReportAfterSeconds));
     } catch (error) {
       if (error instanceof ApiError) {
         // A superseded assignment or a booking that left `cook_en_route` means this cook is no
         // longer entitled to report. Stopping is the correct response, not a retry.
-        if (error.kind === 'server' && error.status !== null && error.status < 500) {
+        if (endsTracking(error)) {
           this.setState({ status: 'stopped', lastReason: error.code ?? 'rejected' });
           this.stop();
           return;
         }
-        // Offline or a 5xx: the cook is still travelling. Keep trying at the floor interval.
-        this.setState({ lastReason: error.kind });
-        this.schedule(MIN_INTERVAL_MS);
+        // Anything else — offline, a 5xx, an expired session, a rate limit — is temporary: the
+        // cook is still travelling. Keep trying, spacing the attempts out while they keep failing.
+        this.consecutiveFailures += 1;
+        this.setState({ lastReason: error.code ?? error.kind });
+        this.schedule(retryDelay(this.consecutiveFailures));
         return;
       }
       this.setState({ status: 'failed', lastReason: 'unexpected' });
@@ -611,18 +654,14 @@ export async function processBackgroundLocations(
         nextReportAtMs: now + clampInterval(result.nextReportAfterSeconds),
       });
     } catch (error) {
-      if (
-        error instanceof ApiError &&
-        error.kind === 'server' &&
-        error.status !== null &&
-        error.status < 500
-      ) {
+      if (endsTracking(error)) {
         // The assignment/status fence rejected this target. Stop the native service and discard
         // the target so a stale task cannot keep sending samples after reassignment/cancellation.
         await deps.clear();
         await deps.stop();
       }
-      // Offline and 5xx errors keep the record. The next native fix retries at the floor interval.
+      // Every other failure — offline, 5xx, 401, 429 — keeps the record; the next native fix
+      // retries.
       return;
     }
   }

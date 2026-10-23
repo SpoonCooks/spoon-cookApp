@@ -1,11 +1,11 @@
 import { router } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { apiErrorMessage } from '@core/api/errors';
 import { normalisePhone } from '@core/domain/auth';
 import { PhoneView } from '@features/login/LoginViews';
 import { sendLoginOtp } from '@core/session/auth';
-import { savePendingOtp } from '@core/session/tokens';
+import { readLastPhone, savePendingOtp } from '@core/session/tokens';
 import { useSession } from '@core/session/store';
 
 /**
@@ -24,6 +24,18 @@ export default function LoginScreen(): React.ReactElement {
   const [raw, setRaw] = useState('');
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Prefill the number from this device's last sign-in — only while the field is still empty, so
+  // it never overwrites something the cook already typed or the keyboard autofilled.
+  useEffect(() => {
+    let cancelled = false;
+    void readLastPhone().then((stored) => {
+      if (!cancelled && stored !== null) setRaw((current) => (current === '' ? stored : current));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const normalised = normalisePhone(raw);
 
