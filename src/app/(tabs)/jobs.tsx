@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { RefreshControl, StyleSheet, View } from 'react-native';
 
 import { toJobCard } from '@core/api/adapters';
@@ -38,6 +38,23 @@ import { openSupportWhatsApp } from '@core/support/whatsapp';
  * reassignment is refused with `ACTIVE_ASSIGNMENT_CHANGED` and the list is re-read, rather than
  * starting travel to a job that is no longer theirs.
  */
+/**
+ * Whether this launch of the app has already decided about taking her back to a job.
+ *
+ * Module state on purpose: it lives exactly as long as the app process. A cook whose app was
+ * killed mid-job -- by Android in the background, by a crash, or by her -- relaunches onto Kaam,
+ * and nothing there used to take her back: Sucharita, 2026-10-24, started a service, lost the
+ * screen, and never reached the End OTP. So the first time Kaam loads after a launch, a job she is
+ * already on opens its Active Job screen. Only once: after that, Kaam is somewhere she can stand
+ * without being pulled away, and the resume card is her way back.
+ */
+let launchResumeDecided = false;
+
+/** Tests only: start the next render as a fresh launch. */
+export function resetLaunchResumeForTests(): void {
+  launchResumeDecided = false;
+}
+
 export default function JobsScreen(): React.ReactElement {
   const [submittingId, setSubmittingId] = useState<string | null>(null);
   const [commandError, setCommandError] = useState<string | null>(null);
@@ -82,6 +99,14 @@ export default function JobsScreen(): React.ReactElement {
     () => cards.filter((card) => card.bookingId !== leadJob?.bookingId),
     [cards, leadJob],
   );
+
+  useEffect(() => {
+    if (launchResumeDecided || jobs.data === undefined) return;
+    launchResumeDecided = true;
+    if (leadJob?.isInProgress === true) {
+      router.push({ pathname: '/service/[bookingId]', params: { bookingId: leadJob.bookingId } });
+    }
+  }, [jobs.data, leadJob]);
 
   const startTravel = (bookingId: string): void => {
     const card = cards.find((item) => item.bookingId === bookingId);
@@ -179,7 +204,10 @@ export default function JobsScreen(): React.ReactElement {
       dateLabel={formatServerDate(jobs.data?.serverTime ?? profile.data?.serverTime ?? null)}
       leadJob={leadJob}
       // `4c` / `4d` / `4e`: the tier the SERVER ruled for this job, not a client guess.
-      {...(leadJob === null ? {} : { leadUrgency: leadJob.urgency })}
+      // A job already under way is never urgent to leave for: it keeps the calm colourway.
+      {...(leadJob === null
+        ? {}
+        : { leadUrgency: leadJob.isInProgress ? 'soon' : leadJob.urgency })}
       jobs={rest}
       breakWindow={breakWindow}
       onStartTravel={startTravel}

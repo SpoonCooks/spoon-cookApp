@@ -216,6 +216,14 @@ export function toJobCard(job: CookJobResponse): JobCardModel {
     // Terminal the other way. Both are history; neither is work she still has to do.
     isFinished: status === 'completed',
     isInProgress: status === 'cook_en_route' || status === 'cook_arrived' || status === 'cooking',
+    progress:
+      status === 'cook_en_route'
+        ? 'travelling'
+        : status === 'cook_arrived'
+          ? 'arrived'
+          : status === 'cooking'
+            ? 'cooking'
+            : null,
     isInChaloWindow:
       minutesBetween(job.serverTime, job.timing.customerCommitmentAt) < CHALO_WINDOW_MINUTES,
     // `4c` / `4d` / `4e`: the countdown (on the server's clock), escalated by the server's ruling.
