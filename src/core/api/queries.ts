@@ -176,11 +176,42 @@ export function useEarningsPolicy(enabled = true): UseQueryResult<CookEarningsPo
   });
 }
 
+/**
+ * When the profile should next re-read itself because Mark Present is about to open, or `false`.
+ *
+ * The profile was only re-read when the screen mounted or the app came back to the foreground. A
+ * cook who opened Hazri before the check-in window and left it there kept reading "Abhi jaldi
+ * hai. 6:00 AM se button dabaye" with the button off long after 6:00: the server had opened it and
+ * nothing asked (Sanchita, 2026-10-24, reproduced on a Galaxy S21 on 2026-10-24).
+ *
+ * The wait is measured on the SERVER's clock -- `checkInOpensAt` minus the `serverTime` that came
+ * back with it -- never against the handset's, so a wrong phone clock cannot open the button early
+ * or hold it shut. A second and a half is added so the read lands after the boundary, not on it.
+ *
+ * If the server says the window should already be open and still reports it closed, this falls
+ * back to a slow poll rather than a tight loop.
+ */
+export const CHECK_IN_RECHECK_MARGIN_MS = 1_500;
+export const CHECK_IN_RECHECK_FALLBACK_MS = 15_000;
+
+export function checkInRecheckDelayMs(profile: CookProfileResponse | undefined): number | false {
+  const today = profile?.today;
+  if (today === undefined || today.canCheckIn) return false;
+  if (today.reason !== 'BEFORE_CHECK_IN_WINDOW' || today.checkInOpensAt === null) return false;
+  const opensAt = Date.parse(today.checkInOpensAt);
+  const serverNow = Date.parse(profile?.serverTime ?? '');
+  if (!Number.isFinite(opensAt) || !Number.isFinite(serverNow)) return false;
+  const wait = opensAt - serverNow + CHECK_IN_RECHECK_MARGIN_MS;
+  return wait > 0 ? wait : CHECK_IN_RECHECK_FALLBACK_MS;
+}
+
 export function useCookProfile(enabled = true): UseQueryResult<CookProfileResponse> {
   return useQuery({
     queryKey: queryKeys.profile,
     queryFn: ({ signal }) => api.getCookProfile({ signal }),
     enabled,
+    // Re-read when the check-in window opens; `false` (no polling) in every other state.
+    refetchInterval: (query) => checkInRecheckDelayMs(query.state.data),
   });
 }
 
