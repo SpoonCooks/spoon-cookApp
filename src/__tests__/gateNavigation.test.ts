@@ -48,35 +48,36 @@ describe('isNavigableGate', () => {
 });
 
 describe('gateNavigationUrl', () => {
-  it('builds an Android geo: URI that repeats the coordinate', () => {
-    // Without `q=<lat>,<lng>` many maps apps treat the label as a free-text search and recentre
-    // on a different place with a similar name — which would send the cook to the wrong gate.
-    expect(gateNavigationUrl(gate, 'android')).toBe(
-      'geo:28.459500,77.026600?q=28.459500,77.026600(Society%20gate)',
+  it('builds a Google Maps URL on Android that opens on Walk', () => {
+    // A `geo:` URI cannot carry a travel mode, so Google Maps opened it on Drive. The URL API can.
+    const url = gateNavigationUrl(gate, 'android');
+    expect(url).toBe(
+      'https://www.google.com/maps/dir/?api=1&destination=28.459500,77.026600&travelmode=walking',
     );
+    expect(url).not.toContain('driving');
   });
 
-  it('builds an Apple Maps driving URL on iOS', () => {
+  it('builds an Apple Maps walking URL on iOS', () => {
     expect(gateNavigationUrl(gate, 'ios')).toBe(
-      'maps://?daddr=28.459500,77.026600&dirflg=d&q=Society%20gate',
+      'maps://?daddr=28.459500,77.026600&dirflg=w&q=Society%20gate',
     );
   });
 
-  it('falls back to a universal https URL', () => {
+  it('falls back to a universal https URL on Walk', () => {
     expect(gateWebFallbackUrl(gate)).toBe(
-      'https://www.google.com/maps/dir/?api=1&destination=28.459500,77.026600&travelmode=driving',
+      'https://www.google.com/maps/dir/?api=1&destination=28.459500,77.026600&travelmode=walking',
     );
   });
 
-  it('URI-encodes a label containing separators', () => {
-    const url = gateNavigationUrl({ ...gate, label: 'Gate 2, A&B Block' }, 'android');
-    expect(url).toContain('(Gate%202%2C%20A%26B%20Block)');
+  it('URI-encodes a label containing separators on iOS', () => {
+    const url = gateNavigationUrl({ ...gate, label: 'Gate 2, A&B Block' }, 'ios');
+    expect(url).toContain('&q=Gate%202%2C%20A%26B%20Block');
   });
 
-  it('omits the caption when there is no label', () => {
-    expect(gateNavigationUrl({ ...gate, label: null }, 'android')).toBe(
-      'geo:28.459500,77.026600?q=28.459500,77.026600',
-    );
+  it('routes to the coordinate only: the Android URL carries no label to search for', () => {
+    const named = gateNavigationUrl(gate, 'android');
+    const unnamed = gateNavigationUrl({ ...gate, label: null }, 'android');
+    expect(named).toBe(unnamed);
   });
 
   it('returns null rather than a URL to nowhere for an unnavigable gate', () => {
@@ -93,15 +94,24 @@ describe('gateNavigationUrl', () => {
 });
 
 describe('openGateNavigation', () => {
-  it('opens the platform scheme when a handler exists', async () => {
+  it('opens the Android Walk link without probing canOpenURL', async () => {
+    const openUrl = jest.fn().mockResolvedValue(true);
+    const canOpenUrl = jest.fn().mockResolvedValue(false);
+    const opened = await openGateNavigation(gate, { openUrl, canOpenUrl, platform: 'android' });
+    expect(opened).toBe(true);
+    expect(canOpenUrl).not.toHaveBeenCalled();
+    expect(openUrl).toHaveBeenCalledWith(expect.stringContaining('travelmode=walking'));
+  });
+
+  it('opens the iOS scheme when a handler exists', async () => {
     const openUrl = jest.fn().mockResolvedValue(true);
     const opened = await openGateNavigation(gate, {
       openUrl,
       canOpenUrl: async () => true,
-      platform: 'android',
+      platform: 'ios',
     });
     expect(opened).toBe(true);
-    expect(openUrl).toHaveBeenCalledWith(expect.stringContaining('geo:28.459500,77.026600'));
+    expect(openUrl).toHaveBeenCalledWith(expect.stringContaining('dirflg=w'));
   });
 
   it('falls back to https when the scheme has no handler', async () => {
@@ -109,20 +119,20 @@ describe('openGateNavigation', () => {
     const opened = await openGateNavigation(gate, {
       openUrl,
       canOpenUrl: async () => false,
-      platform: 'android',
+      platform: 'ios',
     });
     expect(opened).toBe(true);
     expect(openUrl).toHaveBeenCalledWith(expect.stringContaining('https://www.google.com/maps'));
   });
 
-  it('falls back when canOpenURL throws (Android package visibility)', async () => {
+  it('falls back when canOpenURL throws', async () => {
     const openUrl = jest.fn().mockResolvedValue(true);
     const opened = await openGateNavigation(gate, {
       openUrl,
       canOpenUrl: async () => {
         throw new Error('package visibility');
       },
-      platform: 'android',
+      platform: 'ios',
     });
     expect(opened).toBe(true);
     expect(openUrl).toHaveBeenCalledWith(expect.stringContaining('https://'));
