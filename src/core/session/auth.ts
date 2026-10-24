@@ -105,18 +105,47 @@ export async function completeLogin(input: {
 }
 
 /**
+ * Stands in for the profile when restore could not reach the server. Nothing reads identity from
+ * the session store except the phone, which restore never had (see {@link restoreSession}); every
+ * screen reads the real profile through `useCookProfile`.
+ */
+const UNVERIFIED_OFFLINE_PROFILE: CookProfile = {
+  cookId: '',
+  name: '',
+  photoUrl: null,
+  phone: '',
+  rating: null,
+};
+
+/**
  * Restore a session on cold start.
  *
  * `null` means "go to Login". Any stored token is re-validated against `GET /v1/cook/me` rather
  * than trusted, so a cook whose approval was revoked while the app was closed does not get in on
- * a stale token. A transport failure is NOT treated as a revoked session — the tokens are kept and
- * the error is propagated, so a cook with no signal is not silently logged out.
+ * a stale token. A transport failure (offline or timeout) is NOT treated as a revoked session: the
+ * tokens are kept and she enters the app unverified, so a cook with no signal is neither logged out
+ * nor shown Login. Any other failure is propagated, and the boot screen sends her to Login.
  */
 export async function restoreSession(): Promise<CookProfile | null> {
   const stored = await loadSession();
   if (stored === null) return null;
 
-  const profileResponse = await getCookProfile();
+  let profileResponse: Awaited<ReturnType<typeof getCookProfile>>;
+  try {
+    profileResponse = await getCookProfile();
+  } catch (error) {
+    // No signal is not a revoked session. The tokens are intact (nothing above or below deletes
+    // them on a transport failure), so enter the app and let each screen show its own
+    // "Internet nahi mil raha" card, which re-reads when the network returns. Sending her to Login
+    // here — as the boot screen did for ANY failure — hid a session she still has.
+    //
+    // The approval re-check is skipped, not forgotten: the first authenticated read after the
+    // network returns is answered 401 for a revoked session and `handleSessionLoss` signs her out.
+    if (isApiError(error) && (error.kind === 'offline' || error.kind === 'timeout')) {
+      return UNVERIFIED_OFFLINE_PROFILE;
+    }
+    throw error;
+  }
   const state = gateCookAccess({
     role: 'cook',
     userStatus: 'active',
