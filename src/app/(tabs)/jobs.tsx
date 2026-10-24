@@ -38,24 +38,6 @@ import { openSupportWhatsApp } from '@core/support/whatsapp';
  * reassignment is refused with `ACTIVE_ASSIGNMENT_CHANGED` and the list is re-read, rather than
  * starting travel to a job that is no longer theirs.
  */
-/**
- * Whether this launch of the app has already decided about taking her back to a job.
- *
- * Module state on purpose: it lives exactly as long as the app process. A cook whose app was
- * killed mid-job -- by Android in the background, by a crash, or by her -- relaunches onto Kaam,
- * and nothing there used to take her back: Sucharita, 2026-10-24, started a service, lost the
- * screen, and never reached the End OTP. So the first time Kaam loads after a launch, a job she is
- * already on opens its Active Job screen at the stage she left it. Only once: after that, Kaam is
- * somewhere she can stand without being pulled away, and `CHALO` on the job's card opens the same
- * screen.
- */
-let launchResumeDecided = false;
-
-/** Tests only: start the next render as a fresh launch. */
-export function resetLaunchResumeForTests(): void {
-  launchResumeDecided = false;
-}
-
 export default function JobsScreen(): React.ReactElement {
   const [submittingId, setSubmittingId] = useState<string | null>(null);
   const [commandError, setCommandError] = useState<string | null>(null);
@@ -101,13 +83,17 @@ export default function JobsScreen(): React.ReactElement {
     [cards, leadJob],
   );
 
+  /*
+   * While a job is under way Kaam is that job (founder, 2026-10-24): the list is not shown and the
+   * tab opens the Active Job screen at the stage she is in. A cook who lost the screen mid-service
+   * otherwise saw the list instead of her End OTP (Sucharita, 2026-10-24). Waits for a settled read
+   * so a just-finished job's stale cache cannot bounce her back into it.
+   */
+  const ongoingJob = leadJob?.isInProgress === true ? leadJob : null;
   useEffect(() => {
-    if (launchResumeDecided || jobs.data === undefined) return;
-    launchResumeDecided = true;
-    if (leadJob?.isInProgress === true) {
-      router.push({ pathname: '/service/[bookingId]', params: { bookingId: leadJob.bookingId } });
-    }
-  }, [jobs.data, leadJob]);
+    if (ongoingJob === null || jobs.isFetching) return;
+    router.push({ pathname: '/service/[bookingId]', params: { bookingId: ongoingJob.bookingId } });
+  }, [ongoingJob, jobs.isFetching]);
 
   const startTravel = (bookingId: string): void => {
     const card = cards.find((item) => item.bookingId === bookingId);
@@ -157,7 +143,9 @@ export default function JobsScreen(): React.ReactElement {
     router.push({ pathname: '/service/[bookingId]', params: { bookingId } });
   };
 
-  if (jobs.isPending || profile.isPending) return <LoadingState testID="jobs-loading" />;
+  if (jobs.isPending || profile.isPending || ongoingJob !== null) {
+    return <LoadingState testID="jobs-loading" />;
+  }
 
   if (jobs.isError) {
     /*
