@@ -7,7 +7,6 @@ import {
   formatDurationHours,
   formatMinutes,
   type JobCardModel,
-  type JobProgress,
   type JobUrgency,
 } from '@core/domain/job';
 import { color, figmaStroke, HelpPill, Text, useDesignScale, type DesignScale } from '@ui';
@@ -146,28 +145,6 @@ const TIER: Readonly<
     ctaVariant: 'ctaAlarm',
   },
 };
-
-/**
- * A job she is already on: travelling, at the gate, or cooking.
- *
- * Not a countdown and not `CHALO`. When the app is reopened mid-job it lands on Kaam, and a card
- * reading "40 mins / CHALO" over a job she was cooking told her to set off again -- and on builds
- * before 2026-09-29 that `CHALO` was disabled, so she could not get back to the End OTP at all
- * (Sucharita, 2026-10-24). It says where she is and offers the way back, in the calm colourway:
- * a job under way is never "late to leave", so it never turns red.
- */
-const RESUME = { ...TIER.soon, ctaLabel: 'Wapas jaye' } as const;
-
-const PROGRESS_LABEL: Readonly<Record<JobProgress, string>> = {
-  travelling: 'Raaste mein',
-  arrived: 'Pahuch gaye',
-  cooking: 'Kaam jaari',
-};
-
-/** What the lead card says about a job under way, in place of its countdown. */
-export function resumeCardLabel(job: JobCardModel): string {
-  return job.progress === null ? PROGRESS_LABEL.cooking : PROGRESS_LABEL[job.progress];
-}
 
 /**
  * `285:922` / `285:934` — a job that is over. Neither card has a border; the disc carries a cross
@@ -439,8 +416,7 @@ function LeadJobCard({
   isSubmitting: boolean;
 }): React.ReactElement {
   const { s } = scale;
-  const resumes = job.isInProgress;
-  const tier = resumes ? RESUME : TIER[urgency];
+  const tier = TIER[urgency];
   /*
    * `CHALO` is the card's only control (founder, 2026-09-29): the card itself opens nothing.
    *
@@ -449,6 +425,7 @@ function LeadJobCard({
    * the Active Job screen instead. Without that, a cook who backed out mid-travel, or whose app was
    * killed, would have no way back to the job she is driving to.
    */
+  const resumes = job.isInProgress;
   const enabled = resumes || (job.isActionable && !isSubmitting);
   const press = resumes
     ? onOpenJob === undefined
@@ -482,14 +459,8 @@ function LeadJobCard({
         <View style={styles.headRow}>
           <View style={[styles.headLeft, { width: s(CARD.headWidth), gap: s(CARD.headGap) }]}>
             <IconDisc size={LEAD.disc} fill={tier.disc} scale={scale} />
-            {/* The countdown slot is sized for "26 mins"; a stage label takes the heading size so
-                "Raaste mein" fits on a 360 dp phone instead of truncating. */}
-            <Text
-              variant={resumes ? 'headingLg' : 'cardCountdown'}
-              numberOfLines={1}
-              testID="job-lead-countdown"
-            >
-              {resumes ? resumeCardLabel(job) : leadCardTimeLabel(job)}
+            <Text variant="cardCountdown" numberOfLines={1} testID="job-lead-countdown">
+              {leadCardTimeLabel(job)}
             </Text>
           </View>
           <DurationChip minutes={job.serviceDurationMinutes} fill={tier.chip} scale={scale} />

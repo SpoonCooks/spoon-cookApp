@@ -86,13 +86,6 @@ export interface JobCardModel {
    */
   readonly isInProgress: boolean;
   /**
-   * Which part of a job under way she is in, null when it is not under way.
-   *
-   * Drives the resume card: a job she is already on shows where she is ("Kaam jaari") and a way
-   * back, not a countdown and a `CHALO` that read as "set off again".
-   */
-  readonly progress: JobProgress | null;
-  /**
    * The reach-by time is under {@link CHALO_WINDOW_MINUTES} away on the SERVER's clock, or has
    * already passed.
    *
@@ -266,6 +259,3 @@ export function groupJobsByDate(
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([dateIso, list]) => ({ dateIso, label: labelFor(dateIso), jobs: list }));
 }
-
-/** The three statuses in which a job is under way. */
-export type JobProgress = 'travelling' | 'arrived' | 'cooking';

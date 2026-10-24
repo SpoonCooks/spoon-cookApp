@@ -45,8 +45,9 @@ import { openSupportWhatsApp } from '@core/support/whatsapp';
  * killed mid-job -- by Android in the background, by a crash, or by her -- relaunches onto Kaam,
  * and nothing there used to take her back: Sucharita, 2026-10-24, started a service, lost the
  * screen, and never reached the End OTP. So the first time Kaam loads after a launch, a job she is
- * already on opens its Active Job screen. Only once: after that, Kaam is somewhere she can stand
- * without being pulled away, and the resume card is her way back.
+ * already on opens its Active Job screen at the stage she left it. Only once: after that, Kaam is
+ * somewhere she can stand without being pulled away, and `CHALO` on the job's card opens the same
+ * screen.
  */
 let launchResumeDecided = false;
 
@@ -204,10 +205,7 @@ export default function JobsScreen(): React.ReactElement {
       dateLabel={formatServerDate(jobs.data?.serverTime ?? profile.data?.serverTime ?? null)}
       leadJob={leadJob}
       // `4c` / `4d` / `4e`: the tier the SERVER ruled for this job, not a client guess.
-      // A job already under way is never urgent to leave for: it keeps the calm colourway.
-      {...(leadJob === null
-        ? {}
-        : { leadUrgency: leadJob.isInProgress ? 'soon' : leadJob.urgency })}
+      {...(leadJob === null ? {} : { leadUrgency: leadJob.urgency })}
       jobs={rest}
       breakWindow={breakWindow}
       onStartTravel={startTravel}

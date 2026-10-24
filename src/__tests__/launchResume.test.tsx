@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react-native';
+import { fireEvent, render, screen } from '@testing-library/react-native';
 import { router } from 'expo-router';
 
 import JobsScreen, { resetLaunchResumeForTests } from '@/app/(tabs)/jobs';
@@ -9,9 +9,9 @@ import type { JobCardModel } from '@core/domain/job';
  * Back into a job after the app is reopened mid-job (Sucharita, 2026-10-24).
  *
  * The app always launches onto Kaam. A cook whose app was killed while cooking used to see the job
- * as a "40 mins / CHALO" card and never got back to the End OTP. Now the first Kaam load after a
- * launch opens the Active Job screen of a job she is already on, once; the card itself says where
- * she is and offers "Wapas jaye" instead of a countdown.
+ * on Kaam and never got back to the End OTP. Now the first Kaam load after a launch opens the
+ * Active Job screen of a job she is already on, at its current stage, once; after that `CHALO` on
+ * the job's card opens the same screen.
  */
 
 let mockJobs: readonly JobCardModel[] = [];
@@ -50,7 +50,6 @@ const cooking: JobCardModel = {
   bookingId: 'booking-cooking',
   isActionable: false,
   isInProgress: true,
-  progress: 'cooking',
   // Past its reach-by time: a countdown card would have gone red here.
   minutesToDeadline: null,
   urgency: 'critical',
@@ -60,7 +59,6 @@ const notStarted: JobCardModel = {
   ...base,
   bookingId: 'booking-later',
   isInProgress: false,
-  progress: null,
 };
 
 beforeEach(() => {
@@ -91,14 +89,18 @@ describe('reopening the app mid-job', () => {
     expect(router.push).not.toHaveBeenCalled();
   });
 
-  it('shows where she is and a way back, not a countdown and CHALO', () => {
+  it('CHALO on the job she is on opens it again, at its current stage', () => {
     mockJobs = [cooking];
     render(<JobsScreen />);
+    (router.push as jest.Mock).mockClear();
 
-    expect(screen.getByTestId('job-lead-countdown')).toHaveTextContent('Kaam jaari');
     const cta = screen.getByTestId('job-lead-cta');
-    expect(cta).toHaveTextContent(/wapas jaye/i);
-    expect(cta).not.toHaveTextContent(/chalo/i);
     expect(cta.props.accessibilityState?.disabled).toBe(false);
+    fireEvent.press(cta);
+
+    expect(router.push).toHaveBeenCalledWith({
+      pathname: '/service/[bookingId]',
+      params: { bookingId: 'booking-cooking' },
+    });
   });
 });
