@@ -27,6 +27,8 @@ import {
 
 import { tearDownSession } from '../session/auth';
 import { useSession } from '../session/store';
+import * as Network from 'expo-network';
+
 import * as api from './cook';
 import { isApiError, isSessionExpired } from './errors';
 import type {
@@ -122,7 +124,7 @@ function handleSessionLoss(error: unknown): void {
 }
 
 export function createQueryClient(): QueryClient {
-  return new QueryClient({
+  const client = new QueryClient({
     queryCache: new QueryCache({ onError: handleSessionLoss }),
     mutationCache: new MutationCache({ onError: handleSessionLoss }),
     defaultOptions: {
@@ -134,6 +136,34 @@ export function createQueryClient(): QueryClient {
       mutations: { retry: false },
     },
   });
+  // A read that FAILED is not retried by `refetchOnWindowFocus` — the library does not treat it as
+  // due — so a cook who opened the app offline stayed on "Firse koshish kare" after the network
+  // came back, until she tapped the button. Coming back to the app is the moment she expects it
+  // to work, so re-read every mounted read that is currently showing an error.
+  const reReadErrored = (): void => {
+    void client.refetchQueries({
+      type: 'active',
+      predicate: (query) => query.state.status === 'error',
+    });
+  };
+  focusManager.subscribe((focused) => {
+    if (focused) reReadErrored();
+  });
+  // The other half: the network returns while the card is already on screen and she never left
+  // the app. Only the offline -> online edge matters. This deliberately does NOT feed
+  // `onlineManager`: that would pause reads while offline instead of failing them, and the
+  // screens would spin where they now show the error card.
+  let reachable = true;
+  try {
+    Network.addNetworkStateListener((state) => {
+      const now = state.isConnected === true && state.isInternetReachable !== false;
+      if (now && !reachable) reReadErrored();
+      reachable = now;
+    });
+  } catch {
+    // No native module (older build / test): focus re-read above still applies.
+  }
+  return client;
 }
 
 export const queryKeys = {
