@@ -482,7 +482,13 @@ function LeadJobCard({
         <View style={styles.headRow}>
           <View style={[styles.headLeft, { width: s(CARD.headWidth), gap: s(CARD.headGap) }]}>
             <IconDisc size={LEAD.disc} fill={tier.disc} scale={scale} />
-            <Text variant="cardCountdown" numberOfLines={1} testID="job-lead-countdown">
+            {/* The countdown slot is sized for "26 mins"; a stage label takes the heading size so
+                "Raaste mein" fits on a 360 dp phone instead of truncating. */}
+            <Text
+              variant={resumes ? 'headingLg' : 'cardCountdown'}
+              numberOfLines={1}
+              testID="job-lead-countdown"
+            >
               {resumes ? resumeCardLabel(job) : leadCardTimeLabel(job)}
             </Text>
           </View>
