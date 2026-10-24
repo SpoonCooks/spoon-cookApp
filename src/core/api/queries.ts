@@ -122,7 +122,7 @@ function handleSessionLoss(error: unknown): void {
 }
 
 export function createQueryClient(): QueryClient {
-  return new QueryClient({
+  const client = new QueryClient({
     queryCache: new QueryCache({ onError: handleSessionLoss }),
     mutationCache: new MutationCache({ onError: handleSessionLoss }),
     defaultOptions: {
@@ -134,6 +134,18 @@ export function createQueryClient(): QueryClient {
       mutations: { retry: false },
     },
   });
+  // A read that FAILED is not retried by `refetchOnWindowFocus` — the library does not treat it as
+  // due — so a cook who opened the app offline stayed on "Firse koshish kare" after the network
+  // came back, until she tapped the button. Coming back to the app is the moment she expects it
+  // to work, so re-read every mounted read that is currently showing an error.
+  focusManager.subscribe((focused) => {
+    if (!focused) return;
+    void client.refetchQueries({
+      type: 'active',
+      predicate: (query) => query.state.status === 'error',
+    });
+  });
+  return client;
 }
 
 export const queryKeys = {
