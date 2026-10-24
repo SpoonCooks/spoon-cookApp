@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { AppState, Linking, StyleSheet, View } from 'react-native';
+import { AppState, BackHandler, Linking, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { toServiceSnapshot } from '@core/api/adapters';
@@ -342,6 +342,31 @@ export default function ServiceScreen(): React.ReactElement {
     );
   };
 
+  /* ------------------------------------------------- ongoing: stay on it --- */
+
+  /**
+   * While the job is under way this screen is where she stays (founder, 2026-10-24).
+   *
+   * The Kaam list is not reachable until it ends: the `Kaam` tab does nothing here, and Android's
+   * back button sends the app to the background rather than revealing the list under this screen.
+   * The other tabs still work, and Kaam brings her back here.
+   */
+  const ongoing =
+    state !== null &&
+    (state.kind === 'travelling' ||
+      state.kind === 'arrived' ||
+      state.kind === 'awaiting_start_otp' ||
+      state.kind === 'cooking' ||
+      state.kind === 'awaiting_end_otp');
+  useEffect(() => {
+    if (!ongoing) return;
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      BackHandler.exitApp();
+      return true;
+    });
+    return () => sub.remove();
+  }, [ongoing]);
+
   /* ------------------------------------------------- not started: go back --- */
 
   /**
@@ -544,6 +569,8 @@ export default function ServiceScreen(): React.ReactElement {
       <BottomNav
         active="kaam"
         onSelect={(tab) => {
+          // Kaam IS this job while it is under way; there is no list to go back to.
+          if (tab === 'kaam' && ongoing) return;
           router.replace(tab === 'kaam' ? '/(tabs)/jobs' : `/(tabs)/${TAB_ROUTE[tab]}`);
         }}
         testID="service-bottom-nav"

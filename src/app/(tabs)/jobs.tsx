@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { RefreshControl, StyleSheet, View } from 'react-native';
 
 import { toJobCard } from '@core/api/adapters';
@@ -83,6 +83,18 @@ export default function JobsScreen(): React.ReactElement {
     [cards, leadJob],
   );
 
+  /*
+   * While a job is under way Kaam is that job (founder, 2026-10-24): the list is not shown and the
+   * tab opens the Active Job screen at the stage she is in. A cook who lost the screen mid-service
+   * otherwise saw the list instead of her End OTP (Sucharita, 2026-10-24). Waits for a settled read
+   * so a just-finished job's stale cache cannot bounce her back into it.
+   */
+  const ongoingJob = leadJob?.isInProgress === true ? leadJob : null;
+  useEffect(() => {
+    if (ongoingJob === null || jobs.isFetching) return;
+    router.push({ pathname: '/service/[bookingId]', params: { bookingId: ongoingJob.bookingId } });
+  }, [ongoingJob, jobs.isFetching]);
+
   const startTravel = (bookingId: string): void => {
     const card = cards.find((item) => item.bookingId === bookingId);
     if (card === undefined || submittingId !== null) return;
@@ -131,7 +143,9 @@ export default function JobsScreen(): React.ReactElement {
     router.push({ pathname: '/service/[bookingId]', params: { bookingId } });
   };
 
-  if (jobs.isPending || profile.isPending) return <LoadingState testID="jobs-loading" />;
+  if (jobs.isPending || profile.isPending || ongoingJob !== null) {
+    return <LoadingState testID="jobs-loading" />;
+  }
 
   if (jobs.isError) {
     /*
