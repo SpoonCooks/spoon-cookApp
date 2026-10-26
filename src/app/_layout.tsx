@@ -8,7 +8,8 @@ import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { createQueryClient } from '@core/api/queries';
-import { logBuildProvenance } from '@core/buildProvenance';
+import { getBuildProvenance, logBuildProvenance } from '@core/buildProvenance';
+import { CrashBridge, crashReporter } from '@core/crash';
 import { TrackingBridge } from '@core/location/TrackingBridge';
 import { usePushNotifications } from '@core/notifications/usePushNotifications';
 import { selectIsSignedIn, useSession } from '@core/session/store';
@@ -16,6 +17,12 @@ import { color } from '@ui';
 
 // Held until Livvic is ready so the first paint is never in a fallback face.
 void SplashScreen.preventAutoHideAsync();
+
+/**
+ * Render failures anywhere under the root. expo-router looks for this export by name; it reports the
+ * error and then shows the router's own error screen, unchanged. See `RouteErrorBoundary`.
+ */
+export { RouteErrorBoundary as ErrorBoundary } from '@core/crash';
 
 /**
  * Root layout.
@@ -39,6 +46,9 @@ export default function RootLayout(): React.ReactElement | null {
 
   useEffect(() => {
     logBuildProvenance();
+    // Before fonts, so even a failure while loading them says which build it came from. The release
+    // SHA is what picks the source map for a JS frame (Crashlytics does not symbolicate those).
+    crashReporter.init(getBuildProvenance());
   }, []);
 
   useEffect(() => {
@@ -51,6 +61,7 @@ export default function RootLayout(): React.ReactElement | null {
   return (
     <QueryClientProvider client={queryClient}>
       <TrackingBridge />
+      <CrashBridge />
       <PushBridge />
       <SessionGate />
       <SafeAreaProvider>
