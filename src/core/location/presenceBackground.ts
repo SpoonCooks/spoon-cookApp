@@ -3,6 +3,9 @@ import * as Location from 'expo-location';
 import * as TaskManager from 'expo-task-manager';
 
 import { reportPresenceLocation } from '@core/api/cook';
+// The file, not the `@core/crash` barrel: this module can be loaded headless, and the barrel
+// drags React and expo-router in with it.
+import { reportTaskError } from '@core/crash/reportTaskError';
 
 /**
  * Keeps an idle cook's position fresh while the app is not on screen.
@@ -163,12 +166,24 @@ export async function processPresenceLocations(
 }
 
 TaskManager.defineTask(PRESENCE_TASK_NAME, async ({ data, error }) => {
-  if (error !== null && error !== undefined) return;
+  if (error !== null && error !== undefined) {
+    // The task manager's own failure. It used to vanish here; with no screen up, nothing else
+    // would ever say that her presence stopped being reported.
+    reportTaskError('presence', error);
+    return;
+  }
   /*
    * The foreground ping owns the visible case, exactly as the assignment tracker does. Without
    * this the two would both report while the app is open, doubling her data use to say the
    * same thing twice.
    */
   if (AppState.currentState === 'active') return;
-  await processPresenceLocations(data);
+  try {
+    await processPresenceLocations(data);
+  } catch (failure) {
+    // `processPresenceLocations` already absorbs a failed report, so anything reaching here is
+    // unexpected. Reported, then rethrown: crash reporting must not change what the task does.
+    reportTaskError('presence', failure);
+    throw failure;
+  }
 });

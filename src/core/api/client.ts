@@ -17,6 +17,7 @@
  */
 
 import { apiPathPrefix, requestTimeoutMs, requireApiBaseUrl } from '../config';
+import { crashReporter } from '../crash/crashReporter';
 import {
   clearSession,
   loadSession,
@@ -333,22 +334,28 @@ export async function request<T extends z.ZodTypeAny>(
   try {
     payload = await response.json();
   } catch {
-    throw new ApiError({
-      kind: 'contract',
-      message: 'Response was not valid JSON',
-      status: response.status,
-    });
+    throw reportContractFailure(
+      new ApiError({
+        kind: 'contract',
+        message: 'Response was not valid JSON',
+        status: response.status,
+      }),
+      path,
+    );
   }
 
   // Unwrap `{ data }` explicitly rather than through a generic envelope schema: the generic form
   // defeats Zod's output inference and collapses `z.infer<T>` to a mapped-type expression.
   if (typeof payload !== 'object' || payload === null || !('data' in payload)) {
-    throw new ApiError({
-      kind: 'contract',
-      message: 'Response was not wrapped in the { data } envelope',
-      status: response.status,
-      contractDetail: '(root)',
-    });
+    throw reportContractFailure(
+      new ApiError({
+        kind: 'contract',
+        message: 'Response was not wrapped in the { data } envelope',
+        status: response.status,
+        contractDetail: '(root)',
+      }),
+      path,
+    );
   }
 
   const parsed = schema.safeParse((payload as { data: unknown }).data);
@@ -358,14 +365,44 @@ export async function request<T extends z.ZodTypeAny>(
       .map((issue) => issue.path.join('.') || '(root)')
       .slice(0, 8)
       .join(', ');
-    throw new ApiError({
-      kind: 'contract',
-      message: 'Response did not match the expected contract',
-      status: response.status,
-      contractDetail: detail,
-    });
+    throw reportContractFailure(
+      new ApiError({
+        kind: 'contract',
+        message: 'Response did not match the expected contract',
+        status: response.status,
+        contractDetail: detail,
+      }),
+      path,
+    );
   }
   return parsed.data as z.infer<T>;
+}
+
+/** `/v1/cook/bookings/<uuid>/arrive?x=1` becomes `/v1/cook/bookings/:id/arrive`. */
+function routeTemplate(path: string): string {
+  return (path.split('?')[0] ?? path).replace(
+    /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi,
+    ':id',
+  );
+}
+
+/**
+ * A response that did not match what the app expects: the backend and this build disagree about
+ * the contract. `ApiError` documents it as "worth reporting", and it is the failure a cook can do
+ * nothing about, so it is reported once here, at the one place all three kinds are raised.
+ *
+ * The route is part of the message so that two endpoints failing in the same minute are two
+ * reports, not one. Only the template, the HTTP status and the field PATHS (never values -- see
+ * `detail` above) are sent. The error itself still reaches the caller unchanged.
+ */
+function reportContractFailure(error: ApiError, path: string): ApiError {
+  const reported = new Error(`${routeTemplate(path)}: ${error.message}`);
+  reported.name = 'ContractMismatch';
+  crashReporter.recordError(reported, {
+    status: error.status,
+    fields: error.contractDetail,
+  });
+  return error;
 }
 
 /** Test seam — clears the single-flight refresh latch between tests. */

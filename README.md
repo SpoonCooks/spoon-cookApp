@@ -98,6 +98,33 @@ losing it means going through Play's upload-key reset.
 `versionCode` defaults to the build date times ten (`202609170`), so it rises on its own. For a
 second upload on the same day set `SPOON_VERSION_CODE=202609171`.
 
+## Crash reporting (Firebase Crashlytics)
+
+Crashes and handled errors go to Crashlytics, in the same Firebase project and with the same
+`google-services.json` push uses, so `.dev`, `.staging` and production each report to their own app.
+Nothing is sent from Metro dev builds (`__DEV__`) or Jest.
+
+- **Who and what a report carries:** the release SHA and environment, and the cook's opaque `cookId`.
+  Never her name or phone, and never a customer's name, address, coordinates or OTP: everything goes
+  through `src/core/crash/redact.ts` first. Do not add context keys holding those, and keep new keys
+  clear of the deny-list in that file (`lat` and `name` match as substrings: `platform` would be
+  removed).
+- **What is reported as non-fatal:** a render failure (`RouteErrorBoundary`), a response that does
+  not match the contract, and failures in the background location tasks that are not API errors.
+  Offline, 5xx, 401 and 429 are expected there and stay silent. `core/crash/reportTaskError.ts` is
+  the helper the tasks use; import it by file, not through the `@core/crash` barrel, which pulls in
+  React and expo-router.
+- **The release build uploads the R8 mapping file** (`uploadCrashlyticsMappingFileRelease`) as part
+  of `android:bundle`, so it needs network. Without it native stack frames show as `a.b.c`.
+- **JS frames are not symbolicated by Crashlytics.** On a Hermes release build they are bytecode
+  offsets into the bundle. Keep the build's source map next to the AAB, named by the release SHA
+  (`release_sha` on every report), and run `metro-symbolicate` against it by hand.
+- **Crashlytics must be enabled once in the Firebase console** for the project. Crashes are uploaded
+  on the next launch after they happen, and a build made before this existed reports nothing.
+- **Checking it works:** on a staging build, force a crash from a throwaway change (never commit it),
+  relaunch, and confirm it appears under the staging app. `adb shell setprop log.tag.FirebaseCrashlytics DEBUG`
+  shows the SDK's own log on the phone.
+
 ## Verifying
 
 ```sh

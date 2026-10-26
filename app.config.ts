@@ -350,6 +350,21 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
         color: BRAND_YELLOW,
       },
     ],
+    /*
+     * Firebase Crashlytics. `app` is the base module every RNFB package needs; `crashlytics` adds
+     * the Crashlytics Gradle plugin, which also uploads the R8 mapping file during a release build
+     * so native (Java/Kotlin) frames are readable. Both are pinned to the same exact version in
+     * package.json: RNFB modules require an exact peer match.
+     *
+     * Push still goes through `expo-notifications` above; `app` adds no second FCM receiver (it is
+     * `messaging` that would). The Firebase project and the `google-services.json` for each
+     * environment's package are the same ones push already uses, so each of `.dev`, `.staging` and
+     * production reports to its own Crashlytics app.
+     *
+     * Android only, as is this app (prebuild always runs `--platform android`).
+     */
+    '@react-native-firebase/app',
+    '@react-native-firebase/crashlytics',
     // Must stay in the list: `android/` is gitignored and regenerated, so this is the only thing
     // that survives `expo prebuild --clean`.
     './plugins/withGradleHeap',

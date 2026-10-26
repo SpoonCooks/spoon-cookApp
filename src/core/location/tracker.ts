@@ -36,6 +36,9 @@ import { AppState, Platform } from 'react-native';
 
 import { reportLocation } from '../api/cook';
 import { ApiError } from '../api/errors';
+// The file, not the `../crash` barrel: this module can be loaded headless, and the barrel drags
+// React and expo-router in with it.
+import { reportTaskError } from '../crash/reportTaskError';
 
 /** Used only for the FIRST fix. Every subsequent delay comes from the server's response. */
 const FIRST_SAMPLE_DELAY_MS = 0;
@@ -654,6 +657,12 @@ export async function processBackgroundLocations(
         nextReportAtMs: now + clampInterval(result.nextReportAfterSeconds),
       });
     } catch (error) {
+      if (!(error instanceof ApiError)) {
+        // An ApiError is an expected failure here (see below). Anything else is a local fault --
+        // storage failing, a bug -- that used to be swallowed with the network errors, in a task
+        // nobody is watching, and showed up only as a cook who "stopped being tracked".
+        reportTaskError('location', error);
+      }
       if (endsTracking(error)) {
         // The assignment/status fence rejected this target. Stop the native service and discard
         // the target so a stale task cannot keep sending samples after reassignment/cancellation.
@@ -668,11 +677,23 @@ export async function processBackgroundLocations(
 }
 
 TaskManager.defineTask(LOCATION_TASK_NAME, async ({ data, error }) => {
-  if (error !== null && error !== undefined) return;
+  if (error !== null && error !== undefined) {
+    // The task manager's own failure; it used to vanish here.
+    reportTaskError('location', error);
+    return;
+  }
   // The foreground timer is the single reporter while the app is visible. The headless callback
   // takes over only once the app is backgrounded or relaunched by the native task manager.
   if (AppState.currentState === 'active') return;
-  await processBackgroundLocations(data);
+  try {
+    await processBackgroundLocations(data);
+  } catch (failure) {
+    // `deps.load()` runs outside the try above, and `clear`/`stop` can throw inside the catch, so
+    // something can still escape. Reported, then rethrown: crash reporting must not change what the
+    // task does.
+    reportTaskError('location', failure);
+    throw failure;
+  }
 });
 
 /** The app-wide tracker. One session at a time, by construction. */
