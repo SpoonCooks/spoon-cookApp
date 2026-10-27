@@ -37,8 +37,9 @@ export const PRESENCE_TASK_NAME = 'spoon-presence-location';
 /**
  * Three minutes.
  *
- * The server keeps an origin usable for forty-five, so this is far tighter than it needs to be
- * and leaves room for several missed fixes before she goes stale. Slower would save little —
+ * The server keeps an idle origin usable for fifteen minutes (R-INST-08), so this leaves room for
+ * four missed fixes before she goes stale. A choice for battery, not a platform limit: Android
+ * honours it through the foreground service; iOS ignores `timeInterval` and wakes on movement. Slower would save little —
  * the radio wakes either way — and faster buys nothing the estimate can use.
  */
 export const PRESENCE_BACKGROUND_INTERVAL_MS = 3 * 60 * 1000;
