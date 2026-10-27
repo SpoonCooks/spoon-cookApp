@@ -526,11 +526,23 @@ function UserDetailsCard({
     .map((part) => part?.trim() ?? '')
     .filter((part) => part !== '')
     .join(', ');
-  const flatLine = job.address.flatOrHouse?.trim() ?? '';
+  /*
+   * R-AREA-17: an independent house has no building, so its first line is the street/lane it was
+   * saved with, and its landmark and area follow. The floor, saved since the redesigned form, sits
+   * on the flat line. Each still drops when the address has nothing for it.
+   */
+  const trimmed = (value: string | null | undefined) => value?.trim() ?? '';
+  const floor = trimmed(job.address.floor);
+  const flatLine = [trimmed(job.address.flatOrHouse), floor === '' ? '' : `Floor ${floor}`]
+    .filter((part) => part !== '')
+    .join(', ');
+  const house = buildingLine === '';
   const rows = (
     [
-      { icon: art.building, text: buildingLine },
+      { icon: art.building, text: house ? trimmed(job.address.lane) : buildingLine },
       { icon: art.flat, text: flatLine },
+      { icon: art.building, text: house ? trimmed(job.address.landmark) : '' },
+      { icon: art.building, text: house ? trimmed(job.address.locality) : '' },
     ] as readonly { icon: ImageSourcePropType; text: string }[]
   ).filter((row) => row.text !== '');
 

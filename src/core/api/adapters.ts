@@ -96,9 +96,11 @@ function toAddress(job: CookJobResponse): CustomerAddressSnapshot {
   return {
     buildingName: job.destination.society,
     towerOrBlock: job.destination.tower,
-    // The backend projection carries no separate floor field; flat covers it.
-    floor: null,
+    floor: job.destination.floor ?? null,
     flatOrHouse: job.destination.flat,
+    lane: job.destination.lane ?? null,
+    landmark: job.destination.landmark ?? null,
+    locality: job.destination.locality ?? null,
     /*
      * The person at the door -- the address's receiver when the customer named one, else the
      * account holder. This was hardcoded `null`, so the card's name row rendered blank on every
@@ -126,11 +128,28 @@ function toGate(job: CookJobResponse): GateTarget {
   };
 }
 
+/**
+ * What the Kaam tile names the job by (R-AREA-17 / R-AREA-21): an apartment's society as the
+ * backend's database entry names it; an independent house (no society) by its AREA — the locality
+ * the map read at the pin, else the street. Never the customer's own label ("Home", "Parents").
+ * The gate label is the last resort for an older booking with none of these.
+ */
+function jobTitle(job: CookJobResponse): string {
+  const pick = (value: string | null | undefined) =>
+    value === null || value === undefined || value.trim() === '' ? null : value.trim();
+  return (
+    pick(job.destination.society) ??
+    pick(job.destination.locality) ??
+    pick(job.destination.street) ??
+    job.destination.label
+  );
+}
+
 export function toJobSummary(job: CookJobResponse): JobSummary {
   return {
     bookingId: job.bookingId,
     assignmentVersion: job.assignmentVersion,
-    societyOrBuilding: job.destination.society ?? job.destination.label,
+    societyOrBuilding: jobTitle(job),
     serviceDurationMinutes: job.durationMinutes,
     scheduledStartIso: job.serviceStart,
     reachByIso: job.timing.customerCommitmentAt,
@@ -174,7 +193,7 @@ export function toJobCard(job: CookJobResponse): JobCardModel {
   return {
     bookingId: job.bookingId,
     assignmentVersion: job.assignmentVersion,
-    societyOrBuilding: job.destination.society ?? job.destination.label,
+    societyOrBuilding: jobTitle(job),
     serviceDurationMinutes: job.durationMinutes,
     scheduledStartIso: job.serviceStart,
     reachByIso: job.timing.customerCommitmentAt,

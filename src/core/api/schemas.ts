@@ -285,6 +285,18 @@ export const cookJobSchema = z.object({
     pincode: z.string(),
     city: z.string().nullable(),
     state: z.string().nullable(),
+    /**
+     * The rest of the address, as captured at booking (R-AREA-17): property type, floor, lane,
+     * landmark, and the area the map read at the pin. `nullish`: older bookings and deployments
+     * that predate them send nothing.
+     */
+    propertyType: z.string().nullish(),
+    floor: z.string().nullish(),
+    lane: z.string().nullish(),
+    landmark: z.string().nullish(),
+    locality: z.string().nullish(),
+    placeName: z.string().nullish(),
+    areaLine: z.string().nullish(),
   }),
   extension: z.object({
     state: z.string().nullable(),
