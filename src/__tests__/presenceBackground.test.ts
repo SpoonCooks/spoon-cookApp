@@ -160,5 +160,7 @@ describe('the interval', () => {
     expect(PRESENCE_BACKGROUND_INTERVAL_MS).toBeGreaterThanOrEqual(60_000);
     // Well inside the server's forty-five minute origin window, with room for missed fixes.
     expect(PRESENCE_BACKGROUND_INTERVAL_MS).toBeLessThanOrEqual(10 * 60_000);
+    // Owner, 27 Oct 2026: one minute, the same as the on-screen ping.
+    expect(PRESENCE_BACKGROUND_INTERVAL_MS).toBe(60_000);
   });
 });
