@@ -38,13 +38,14 @@ import { reportTaskError } from '@core/crash/reportTaskError';
 export const PRESENCE_TASK_NAME = 'spoon-presence-location';
 
 /**
- * Three minutes.
+ * One minute (owner decision 27 Oct 2026), the same as the on-screen ping.
  *
- * The server keeps an origin usable for forty-five, so this is far tighter than it needs to be
- * and leaves room for several missed fixes before she goes stale. Slower would save little —
- * the radio wakes either way — and faster buys nothing the estimate can use.
+ * The server keeps an idle origin usable for 45 minutes (R-INST-08, DEC-109), so an Android cook's
+ * Instant origin stays at most a minute old and many missed fixes are tolerated. It costs more
+ * battery than the earlier three minutes across a long shift, at Balanced accuracy. Android
+ * honours it through the foreground service; iOS ignores `timeInterval` and wakes on movement.
  */
-export const PRESENCE_BACKGROUND_INTERVAL_MS = 3 * 60 * 1000;
+export const PRESENCE_BACKGROUND_INTERVAL_MS = 60 * 1000;
 
 const PRESENCE_TASK_OPTIONS: Location.LocationTaskOptions = {
   accuracy: Location.Accuracy.Balanced,

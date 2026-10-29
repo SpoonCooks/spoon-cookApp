@@ -407,6 +407,26 @@ const day = (
   ...extra,
 });
 
+describe('Kaam tile name (R-AREA-17 / R-AREA-21)', () => {
+  const withDestination = (patch: Record<string, unknown>) => {
+    const base = job();
+    return toJobCard({ ...base, destination: { ...base.destination, ...patch } });
+  };
+
+  it("names an apartment by its society's database entry", () => {
+    expect(withDestination({}).societyOrBuilding).toBe('Prestige Park');
+  });
+
+  it('names an independent house by its area, never its label', () => {
+    expect(
+      withDestination({ society: null, label: 'Home', locality: 'HSR Layout Sector 2' })
+        .societyOrBuilding,
+    ).toBe('HSR Layout Sector 2');
+    // An older booking with no locality falls back to its street.
+    expect(withDestination({ society: null, label: 'Home' }).societyOrBuilding).toBe('MG Road');
+  });
+});
+
 describe('attendance day marks', () => {
   it('keeps scheduled separate from the attendance vocabulary', () => {
     // `scheduled` is a SHIFT fact. It must never become a fourth attendance status.

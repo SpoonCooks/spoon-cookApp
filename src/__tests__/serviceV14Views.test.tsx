@@ -230,10 +230,37 @@ describe('the address card', () => {
   });
 
   it('drops a line the address genuinely has nothing for', () => {
-    const rows = rowsFor({ buildingName: null, towerOrBlock: null, flatOrHouse: '549' });
+    const rows = rowsFor({
+      buildingName: null,
+      towerOrBlock: null,
+      floor: null,
+      flatOrHouse: '549',
+    });
 
     expect(rows).toHaveLength(1);
     expect(screen.getByText('549')).toBeTruthy();
+  });
+
+  it('puts the floor on the flat line', () => {
+    rowsFor({ buildingName: 'Dawars', towerOrBlock: null, floor: '4', flatOrHouse: '549' });
+
+    expect(screen.getByText('549, Floor 4')).toBeTruthy();
+  });
+
+  it("shows an independent house's lane, landmark and area after Chalo (R-AREA-17)", () => {
+    const rows = rowsFor({
+      buildingName: null,
+      towerOrBlock: null,
+      flatOrHouse: '27',
+      lane: '6th Cross',
+      landmark: 'Opposite the park',
+      locality: 'HSR Layout Sector 2',
+    });
+
+    expect(rows).toHaveLength(4);
+    expect(screen.getByText('6th Cross')).toBeTruthy();
+    expect(screen.getByText('Opposite the park')).toBeTruthy();
+    expect(screen.getByText('HSR Layout Sector 2')).toBeTruthy();
   });
 
   it('names the person the cook is going to see', () => {
