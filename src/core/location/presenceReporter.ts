@@ -41,7 +41,7 @@ import { startPresenceBackground, stopPresenceBackground } from './presenceBackg
  * How often an idle position is refreshed while the app is on screen: one minute (owner
  * decision 27 Oct 2026).
  *
- * The server keeps an idle origin usable for fifteen minutes (R-INST-08). A one-minute ping is
+ * The server keeps an idle origin usable for 45 minutes (R-INST-08, DEC-109). A one-minute ping is
  * nearly free while the app is already awake, keeps her Instant origin at most a minute old, and
  * makes a cook who has just marked present bookable immediately.
  */

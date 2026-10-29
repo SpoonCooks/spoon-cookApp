@@ -37,7 +37,7 @@ export const PRESENCE_TASK_NAME = 'spoon-presence-location';
 /**
  * One minute (owner decision 27 Oct 2026), the same as the on-screen ping.
  *
- * The server keeps an idle origin usable for fifteen minutes (R-INST-08), so an Android cook's
+ * The server keeps an idle origin usable for 45 minutes (R-INST-08, DEC-109), so an Android cook's
  * Instant origin stays at most a minute old and many missed fixes are tolerated. It costs more
  * battery than the earlier three minutes across a long shift, at Balanced accuracy. Android
  * honours it through the foreground service; iOS ignores `timeInterval` and wakes on movement.

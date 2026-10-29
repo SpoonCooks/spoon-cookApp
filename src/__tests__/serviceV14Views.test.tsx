@@ -230,7 +230,12 @@ describe('the address card', () => {
   });
 
   it('drops a line the address genuinely has nothing for', () => {
-    const rows = rowsFor({ buildingName: null, towerOrBlock: null, flatOrHouse: '549' });
+    const rows = rowsFor({
+      buildingName: null,
+      towerOrBlock: null,
+      floor: null,
+      flatOrHouse: '549',
+    });
 
     expect(rows).toHaveLength(1);
     expect(screen.getByText('549')).toBeTruthy();
