@@ -7,7 +7,7 @@
  *
  * ## The one arithmetic this file performs, and why it is legitimate
  *
- * `minutesToDeadline` is derived as `customerCommitmentAt − serverTime`. Both operands are SERVER
+ * `minutesToDeadline` is derived as `reachBy − serverTime`. Both operands are SERVER
  * timestamps from the same payload, so this is unit conversion, not a ruling: the device clock is
  * never consulted, and the sign is preserved so `-2 mins` survives to the screen. The actual
  * lateness VERDICT is `timing.riskState`, which the backend owns and this file only translates.
@@ -145,6 +145,11 @@ function jobTitle(job: CookJobResponse): string {
   );
 }
 
+/** Her reach-by time; the booked slot from a backend that predates the field. */
+function reachByOf(job: CookJobResponse): string {
+  return job.timing.reachBy ?? job.timing.customerCommitmentAt;
+}
+
 export function toJobSummary(job: CookJobResponse): JobSummary {
   return {
     bookingId: job.bookingId,
@@ -152,7 +157,7 @@ export function toJobSummary(job: CookJobResponse): JobSummary {
     societyOrBuilding: jobTitle(job),
     serviceDurationMinutes: job.durationMinutes,
     scheduledStartIso: job.serviceStart,
-    reachByIso: job.timing.customerCommitmentAt,
+    reachByIso: reachByOf(job),
     address: toAddress(job),
     gate: toGate(job),
   };
@@ -196,7 +201,7 @@ export function toJobCard(job: CookJobResponse): JobCardModel {
     societyOrBuilding: jobTitle(job),
     serviceDurationMinutes: job.durationMinutes,
     scheduledStartIso: job.serviceStart,
-    reachByIso: job.timing.customerCommitmentAt,
+    reachByIso: reachByOf(job),
     /*
      * A countdown, or nothing once there is nothing left to count.
      *
@@ -216,9 +221,7 @@ export function toJobCard(job: CookJobResponse): JobCardModel {
      * exactly what a cook still needs to see. So this is the app's to render sensibly, not
      * something the server should have filtered out.
      */
-    minutesToDeadline: passedDeadlineToNull(
-      minutesBetween(job.serverTime, job.timing.customerCommitmentAt),
-    ),
+    minutesToDeadline: passedDeadlineToNull(minutesBetween(job.serverTime, reachByOf(job))),
     // The projection exposes no separate travel-duration estimate; `null` renders no `12 min dur`
     // chip rather than an invented number.
     travelMinutes: null,
@@ -235,11 +238,11 @@ export function toJobCard(job: CookJobResponse): JobCardModel {
     // Terminal the other way. Both are history; neither is work she still has to do.
     isFinished: status === 'completed',
     isInProgress: status === 'cook_en_route' || status === 'cook_arrived' || status === 'cooking',
-    isInChaloWindow:
-      minutesBetween(job.serverTime, job.timing.customerCommitmentAt) < CHALO_WINDOW_MINUTES,
+    // `Chalo` opens 30 minutes before the booked slot (R-TRACK-03), the same rule the server applies.
+    isInChaloWindow: minutesBetween(job.serverTime, job.serviceStart) <= CHALO_WINDOW_MINUTES,
     // `4c` / `4d` / `4e`: the countdown (on the server's clock), escalated by the server's ruling.
     urgency: moreUrgent(
-      jobUrgencyFromMinutes(minutesBetween(job.serverTime, job.timing.customerCommitmentAt)),
+      jobUrgencyFromMinutes(minutesBetween(job.serverTime, reachByOf(job))),
       jobUrgencyFrom(job.departure?.urgency),
     ),
     address: toAddress(job),
@@ -306,9 +309,7 @@ export function toServiceSnapshot(
    * Once she has arrived that is the verdict; before it, the travel ruling stands in.
    */
   const arrivedLateByMinutes =
-    job.arrivedAt === null
-      ? null
-      : Math.max(0, minutesBetween(job.timing.customerCommitmentAt, job.arrivedAt));
+    job.arrivedAt === null ? null : Math.max(0, minutesBetween(reachByOf(job), job.arrivedAt));
   const arrivalTiming: ArrivalTiming | null =
     arrivedLateByMinutes !== null
       ? arrivedLateByMinutes > 0
@@ -334,7 +335,7 @@ export function toServiceSnapshot(
     job: toJobSummary(job),
     clock: { serverNowIso: job.serverTime, receivedAtMs },
     travelTiming,
-    minutesToDeadline: minutesBetween(job.serverTime, job.timing.customerCommitmentAt),
+    minutesToDeadline: minutesBetween(job.serverTime, reachByOf(job)),
     // `ETA_running`: the arrival instant the server projected, expressed as the travel time left.
     // Same two-server-timestamp subtraction as above, so the device clock is still never consulted.
     //

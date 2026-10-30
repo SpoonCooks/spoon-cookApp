@@ -259,6 +259,12 @@ export const cookJobSchema = z.object({
   arrivalSelfie: z.object({ capturedAt: isoString }).nullable().optional(),
   timing: z.object({
     customerCommitmentAt: isoString,
+    /**
+     * When SHE must be at the gate (Business Rules Spec §8): the booked slot, or up to 15 minutes
+     * earlier when her day has room. The customer keeps `customerCommitmentAt`. Optional because a
+     * deployment that predates it sends no field; that reads as the slot, which it used to be.
+     */
+    reachBy: isoString.optional(),
     eta: isoString.nullable(),
     etaUpdatedAt: isoString.nullable(),
     verdict: z.unknown(),
@@ -727,6 +733,13 @@ export type CookCycleDetailResponse = z.infer<typeof cookCycleDetailSchema>;
  * cook has already performed.
  */
 export const commandAckSchema = z.looseObject({});
+
+/** `POST /v1/cook/bookings/:bookingId/report-delay` -- the `data` of the answer. */
+export const delayReportSchema = z.object({
+  minutes: z.number(),
+  expectedArrivalAt: isoString,
+  lateForBookedSlot: z.boolean(),
+});
 
 /** `POST /v1/cook/bookings/:bookingId/arrival-selfie` -- the `data` of the answer. */
 export const arrivalSelfieAckSchema = z.object({ selfieId: z.string(), capturedAt: isoString });

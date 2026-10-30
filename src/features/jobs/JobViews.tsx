@@ -2,7 +2,6 @@ import { Image, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
-  CHALO_WINDOW_MINUTES,
   defaultJobUrgency,
   formatDurationHours,
   formatMinutes,
@@ -380,7 +379,8 @@ function JobTile({ job, scale }: { job: JobCardModel; scale: DesignScale }): Rea
  * Below this many minutes to the reach-by time the lead card counts down; at or above it, it
  * shows the clock time. A countdown of several hours is harder to read than the time itself.
  */
-export const LEAD_COUNTDOWN_THRESHOLD_MINUTES = CHALO_WINDOW_MINUTES;
+// The `4c` frame's 45, kept apart from the Chalo window, which now opens at slot - 30.
+export const LEAD_COUNTDOWN_THRESHOLD_MINUTES = 45;
 
 /**
  * `20 mins` close to the reach-by time, `7:55 AM` otherwise.

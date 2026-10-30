@@ -342,12 +342,31 @@ describe('job card', () => {
     expect(card.action).toBe('start_travel');
   });
 
-  it('puts a job in the CHALO window only under 45 minutes to its reach-by time, or past it', () => {
-    // Commitment 05:30 UTC. The window is measured on the SERVER's clock, never the handset's.
+  it('puts a job in the CHALO window from 30 minutes before the booked slot (R-TRACK-03)', () => {
+    // Slot 06:00 UTC. The window is measured on the SERVER's clock, never the handset's, and from
+    // the slot, not her reach-by: the server opens Start travel at slot - 30.
     const at = (serverTime: string): boolean => toJobCard(job({ serverTime })).isInChaloWindow;
-    expect(at('2026-08-21T04:45:00.000Z')).toBe(false); // 45 mins: still an ordinary card
-    expect(at('2026-08-21T04:46:00.000Z')).toBe(true); // 44 mins
-    expect(at('2026-08-21T05:40:00.000Z')).toBe(true); // 10 mins late: she still has to go
+    expect(at('2026-08-21T05:29:00.000Z')).toBe(false); // 31 mins: still an ordinary card
+    expect(at('2026-08-21T05:30:00.000Z')).toBe(true); // 30 mins: Chalo opens
+    expect(at('2026-08-21T06:10:00.000Z')).toBe(true); // 10 mins late: she still has to go
+  });
+
+  it("counts down to HER reach-by, not the customer's slot, when the server sends one", () => {
+    const card = toJobCard(
+      job({
+        serverTime: '2026-08-21T05:30:00.000Z',
+        timing: {
+          customerCommitmentAt: '2026-08-21T06:00:00.000Z',
+          reachBy: '2026-08-21T05:45:00.000Z',
+          eta: null,
+          etaUpdatedAt: null,
+          verdict: null,
+          riskState: 'UNKNOWN',
+        },
+      }),
+    );
+    expect(card.reachByIso).toBe('2026-08-21T05:45:00.000Z');
+    expect(card.minutesToDeadline).toBe(15);
   });
 
   it('is not actionable once travel has begun', () => {
