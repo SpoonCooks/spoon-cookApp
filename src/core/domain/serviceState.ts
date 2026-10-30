@@ -79,6 +79,10 @@ export interface CustomerAddressSnapshot {
   readonly floor: string | null;
   readonly flatOrHouse: string | null;
   readonly customerName: string | null;
+  /** An independent house's street/lane and landmark, and the pin's area (R-AREA-17). */
+  readonly lane?: string | null;
+  readonly landmark?: string | null;
+  readonly locality?: string | null;
 }
 
 /**

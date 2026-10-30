@@ -48,10 +48,21 @@ describe('parseCookPushPayload', () => {
     }
   });
 
-  it('ignores move_alert, which has no push dispatcher', () => {
-    // Acknowledgeable via the API, but never delivered as a push. Accepting it here would imply a
-    // delivery path that does not exist.
-    expect(parseCookPushPayload({ bookingId: BOOKING, alertKind: 'move_alert' })).toBeNull();
+  it('accepts move_alert, which the backend now pushes while she has barely moved', () => {
+    expect(parseCookPushPayload({ bookingId: BOOKING, alertKind: 'move_alert' })).toEqual({
+      kind: 'alert',
+      bookingId: BOOKING,
+      alertKind: 'move_alert',
+    });
+  });
+
+  it('opens Kaam for a changed reach-by, since she has not left yet', () => {
+    const payload = parseCookPushPayload({
+      bookingId: BOOKING,
+      eventType: 'cook.reach_by_changed',
+    });
+    expect(payload).not.toBeNull();
+    expect(deepLinkForPush(payload!)).toBe('/jobs');
   });
 
   it.each([

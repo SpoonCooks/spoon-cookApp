@@ -3,6 +3,9 @@ import * as Location from 'expo-location';
 import * as TaskManager from 'expo-task-manager';
 
 import { reportPresenceLocation } from '@core/api/cook';
+// The file, not the `@core/crash` barrel: this module can be loaded headless, and the barrel
+// drags React and expo-router in with it.
+import { reportTaskError } from '@core/crash/reportTaskError';
 
 /**
  * Keeps an idle cook's position fresh while the app is not on screen.
@@ -35,13 +38,14 @@ import { reportPresenceLocation } from '@core/api/cook';
 export const PRESENCE_TASK_NAME = 'spoon-presence-location';
 
 /**
- * Three minutes.
+ * One minute (owner decision 27 Oct 2026), the same as the on-screen ping.
  *
- * The server keeps an origin usable for forty-five, so this is far tighter than it needs to be
- * and leaves room for several missed fixes before she goes stale. Slower would save little —
- * the radio wakes either way — and faster buys nothing the estimate can use.
+ * The server keeps an idle origin usable for 45 minutes (R-INST-08, DEC-109), so an Android cook's
+ * Instant origin stays at most a minute old and many missed fixes are tolerated. It costs more
+ * battery than the earlier three minutes across a long shift, at Balanced accuracy. Android
+ * honours it through the foreground service; iOS ignores `timeInterval` and wakes on movement.
  */
-export const PRESENCE_BACKGROUND_INTERVAL_MS = 3 * 60 * 1000;
+export const PRESENCE_BACKGROUND_INTERVAL_MS = 60 * 1000;
 
 const PRESENCE_TASK_OPTIONS: Location.LocationTaskOptions = {
   accuracy: Location.Accuracy.Balanced,
@@ -163,12 +167,24 @@ export async function processPresenceLocations(
 }
 
 TaskManager.defineTask(PRESENCE_TASK_NAME, async ({ data, error }) => {
-  if (error !== null && error !== undefined) return;
+  if (error !== null && error !== undefined) {
+    // The task manager's own failure. It used to vanish here; with no screen up, nothing else
+    // would ever say that her presence stopped being reported.
+    reportTaskError('presence', error);
+    return;
+  }
   /*
    * The foreground ping owns the visible case, exactly as the assignment tracker does. Without
    * this the two would both report while the app is open, doubling her data use to say the
    * same thing twice.
    */
   if (AppState.currentState === 'active') return;
-  await processPresenceLocations(data);
+  try {
+    await processPresenceLocations(data);
+  } catch (failure) {
+    // `processPresenceLocations` already absorbs a failed report, so anything reaching here is
+    // unexpected. Reported, then rethrown: crash reporting must not change what the task does.
+    reportTaskError('presence', failure);
+    throw failure;
+  }
 });

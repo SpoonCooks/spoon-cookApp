@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { AppState, Linking, StyleSheet, View } from 'react-native';
+import { AppState, BackHandler, Linking, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { toServiceSnapshot } from '@core/api/adapters';
@@ -9,6 +9,7 @@ import { apiErrorMessage, isApiError } from '@core/api/errors';
 import {
   useJob,
   useMarkArrived,
+  useReportDelay,
   useUploadArrivalSelfie,
   useVerifyEndOtp,
   useVerifyStartOtp,
@@ -77,6 +78,10 @@ export default function ServiceScreen(): React.ReactElement {
 
   const verifyEndOtp = useVerifyEndOtp();
   const markArrived = useMarkArrived();
+  const reportDelay = useReportDelay();
+  const [delayMessage, setDelayMessage] = useState<string | null>(null);
+  // Each report is its own intent; a failed one keeps its key so a retry is not a second report.
+  const delayReports = useRef(0);
   const verifyStartOtp = useVerifyStartOtp();
   const uploadSelfie = useUploadArrivalSelfie();
 
@@ -342,6 +347,56 @@ export default function ServiceScreen(): React.ReactElement {
     );
   };
 
+  /** `Der ho rahi hai` (R-TRACK-16): +5, +10 or +15 minutes. */
+  const sendDelay = (minutes: 5 | 10 | 15): void => {
+    if (state?.kind !== 'travelling' || reportDelay.isPending) return;
+    setDelayMessage(null);
+    reportDelay.mutate(
+      {
+        bookingId: id,
+        assignmentVersion: state.job.assignmentVersion,
+        minutes,
+        idempotencyKey: keyFor(`delay-${String(delayReports.current)}-${String(minutes)}`),
+      },
+      {
+        onSuccess: (answer) => {
+          delayReports.current += 1;
+          setDelayMessage(
+            answer.lateForBookedSlot
+              ? `+${String(minutes)} min bata diya. Customer ko bata diya gaya.`
+              : `+${String(minutes)} min bata diya.`,
+          );
+        },
+        onError: (error: unknown) => setDelayMessage(apiErrorMessage(error)),
+      },
+    );
+  };
+
+  /* ------------------------------------------------- ongoing: stay on it --- */
+
+  /**
+   * While the job is under way this screen is where she stays (founder, 2026-10-24).
+   *
+   * The Kaam list is not reachable until it ends: the `Kaam` tab does nothing here, and Android's
+   * back button sends the app to the background rather than revealing the list under this screen.
+   * The other tabs still work, and Kaam brings her back here.
+   */
+  const ongoing =
+    state !== null &&
+    (state.kind === 'travelling' ||
+      state.kind === 'arrived' ||
+      state.kind === 'awaiting_start_otp' ||
+      state.kind === 'cooking' ||
+      state.kind === 'awaiting_end_otp');
+  useEffect(() => {
+    if (!ongoing) return;
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      BackHandler.exitApp();
+      return true;
+    });
+    return () => sub.remove();
+  }, [ongoing]);
+
   /* ------------------------------------------------- not started: go back --- */
 
   /**
@@ -410,6 +465,9 @@ export default function ServiceScreen(): React.ReactElement {
             onArrived={confirmArrival}
             canMarkArrived={state.canMarkArrived}
             isSubmitting={markArrived.isPending}
+            onReportDelay={sendDelay}
+            isReportingDelay={reportDelay.isPending}
+            delayReportMessage={delayMessage}
           />
         );
 
@@ -544,6 +602,8 @@ export default function ServiceScreen(): React.ReactElement {
       <BottomNav
         active="kaam"
         onSelect={(tab) => {
+          // Kaam IS this job while it is under way; there is no list to go back to.
+          if (tab === 'kaam' && ongoing) return;
           router.replace(tab === 'kaam' ? '/(tabs)/jobs' : `/(tabs)/${TAB_ROUTE[tab]}`);
         }}
         testID="service-bottom-nav"

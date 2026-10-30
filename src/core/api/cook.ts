@@ -36,6 +36,7 @@ import {
   cookProfileSchema,
   currentCookJobSchema,
   customerContactSchema,
+  delayReportSchema,
   earningsDaySchema,
   monthlyAttendanceSchema,
   noContentSchema,
@@ -245,6 +246,38 @@ export async function startCommute(
     idempotencyKey: input.idempotencyKey,
     ...opts,
   });
+}
+
+/** The delays a cook on the way can report (Business Rules Spec §8, R-TRACK-16). */
+export const reportableDelayMinutes = [5, 10, 15] as const;
+export type ReportableDelayMinutes = (typeof reportableDelayMinutes)[number];
+
+/**
+ * `Der ho rahi hai`: she is running late by +5, +10 or +15 minutes.
+ *
+ * Information only; it moves no ETA or deadline. The server records it, and only if it makes her
+ * later than the slot the customer booked does it tell the customer and Ops.
+ */
+export async function reportDelay(
+  input: {
+    readonly bookingId: string;
+    readonly assignmentVersion: number;
+    readonly minutes: ReportableDelayMinutes;
+    readonly idempotencyKey: string;
+  },
+  opts: Opts = {},
+): Promise<{ readonly lateForBookedSlot: boolean }> {
+  const answer = await request(
+    `/cook/bookings/${input.bookingId}/report-delay`,
+    delayReportSchema,
+    {
+      method: 'POST',
+      body: { assignmentVersion: input.assignmentVersion, minutes: input.minutes },
+      idempotencyKey: input.idempotencyKey,
+      ...opts,
+    },
+  );
+  return { lateForBookedSlot: answer.lateForBookedSlot };
 }
 
 /**

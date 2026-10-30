@@ -61,16 +61,16 @@ export const cookPushEventTypes = [
   'booking.extension.confirmed',
   'booking.extension.reversed',
   'booking.completed',
+  // Her reach-by moved by more than 5 minutes (Business Rules Spec §8).
+  'cook.reach_by_changed',
 ] as const;
 export type CookPushEventType = (typeof cookPushEventTypes)[number];
 
 /**
- * Alert kinds the backend actually PUSHES.
- *
- * `move_alert` is acknowledgeable through the API but has no push dispatcher, so it is
- * deliberately absent here — listing it would imply a delivery path that does not exist.
+ * Alert kinds the backend actually PUSHES. `move_alert` is sent at GO + 3 minutes, and every 3
+ * minutes after, while she has barely moved (`dispatchDueMoveAlerts`).
  */
-export const cookPushAlertKinds = ['start_alert', 'start_escalation'] as const;
+export const cookPushAlertKinds = ['start_alert', 'start_escalation', 'move_alert'] as const;
 export type CookPushAlertKind = (typeof cookPushAlertKinds)[number];
 
 /**
@@ -158,6 +158,8 @@ export function deepLinkForPush(payload: CookPushPayload): string {
     // A new job has not started travel, and there is no screen for it outside Kaam: CHALO there is
     // the only way into the service flow.
     case 'assignment.committed':
+    // A reach-by moves only before she leaves, so the job is still waiting in Kaam.
+    case 'cook.reach_by_changed':
       return '/jobs';
     case 'booking.cook_arrived':
     case 'service.started':

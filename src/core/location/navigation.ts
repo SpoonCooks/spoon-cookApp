@@ -13,16 +13,20 @@
  * Sending a cook to a pin 200 m from the gate would also mean their GPS never satisfies the
  * arrival rule, so this is a fulfilment correctness issue and not only a UX one.
  *
- * ## Why a `geo:` URI on Android
+ * ## Why it opens on WALK
  *
- * `geo:` opens the system chooser, so a cook who uses a different maps app is not forced into
- * Google Maps. The `q=` parameter repeats the coordinate — without it, Android drops a pin at the
- * lat/lng but many apps then search the label as free text and recentre on a *different* place
- * with a similar name. Repeating the coordinate keeps the pin authoritative and reduces the label
- * to a caption.
+ * The cook is on foot for the last stretch: she reaches the society gate on the way to the flat,
+ * and a maps app that opens on Drive shows a car route, a car ETA and a "restricted usage or
+ * private roads" warning for a gate she will walk to. Every URL here therefore asks for walking
+ * directions (`travelmode=walking`, `dirflg=w`).
  *
- * The label is placed in parentheses after the coordinate, which is the documented `geo:` caption
- * form. It is URI-encoded because a society name legitimately contains spaces, commas and `&`.
+ * ## Why Android no longer uses a `geo:` URI
+ *
+ * `geo:` was used so the system chooser let a cook pick any maps app, but a `geo:` URI cannot carry
+ * a travel mode: Google Maps opens it on Drive. The Google Maps URL API can, so Android now opens
+ * that https link, which the Google Maps app handles when it is installed and a browser handles
+ * otherwise. The coordinate is still the only destination — no label or address is used to find the
+ * place — so the pin cannot be recentred onto a similarly named one.
  */
 
 import { Linking, Platform } from 'react-native';
@@ -60,20 +64,17 @@ export function gateNavigationUrl(
   const lng = gate.longitude.toFixed(6);
   const label = gate.label === null || gate.label.length === 0 ? null : gate.label;
 
-  if (platform === 'android') {
-    const caption = label === null ? '' : `(${encodeURIComponent(label)})`;
-    return `geo:${lat},${lng}?q=${lat},${lng}${caption}`;
-  }
-
   if (platform === 'ios') {
-    // Apple Maps. `daddr` is the DESTINATION and `dirflg=d` requests driving directions; omitting
+    // Apple Maps. `daddr` is the DESTINATION and `dirflg=w` requests walking directions; omitting
     // `saddr` lets Maps use the device's current position rather than a guessed origin.
     const name = label === null ? '' : `&q=${encodeURIComponent(label)}`;
-    return `maps://?daddr=${lat},${lng}&dirflg=d${name}`;
+    return `maps://?daddr=${lat},${lng}&dirflg=w${name}`;
   }
 
-  // Universal fallback. Works in any browser and on any platform whose scheme handler is missing.
-  return `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=driving`;
+  // Android's primary form and the universal fallback: the Google Maps URL API, opened on Walk.
+  // Works in the Google Maps app, in any browser, and on any platform whose scheme handler is
+  // missing.
+  return `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=walking`;
 }
 
 /** Always resolvable — used when the platform scheme has no handler. */
@@ -106,6 +107,18 @@ export async function openGateNavigation(
 ): Promise<boolean> {
   const primary = gateNavigationUrl(gate, deps.platform);
   if (primary === null) return false;
+
+  // Android's primary form IS the https fallback. `canOpenURL` can throw on Android (package
+  // visibility) or answer false for https even though the link would open, so there is nothing to
+  // probe: just open it.
+  if (primary === gateWebFallbackUrl(gate)) {
+    try {
+      await deps.openUrl(primary);
+      return true;
+    } catch {
+      return false;
+    }
+  }
 
   try {
     if (await deps.canOpenUrl(primary)) {

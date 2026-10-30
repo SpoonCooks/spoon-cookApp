@@ -83,5 +83,7 @@ describe('idle presence reporting', () => {
     // The server treats a position older than five minutes as unusable. A slower interval than
     // that would guarantee windows where a reporting cook is still invisible to instant.
     expect(PRESENCE_PING_INTERVAL_MS).toBeLessThan(5 * 60 * 1000);
+    // Owner, 27 Oct 2026: one minute while the app is on screen.
+    expect(PRESENCE_PING_INTERVAL_MS).toBe(60 * 1000);
   });
 });

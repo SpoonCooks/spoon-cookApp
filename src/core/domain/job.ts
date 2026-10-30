@@ -86,7 +86,7 @@ export interface JobCardModel {
    */
   readonly isInProgress: boolean;
   /**
-   * The reach-by time is under {@link CHALO_WINDOW_MINUTES} away on the SERVER's clock, or has
+   * The booked slot is at most {@link CHALO_WINDOW_MINUTES} away on the SERVER's clock, or has
    * already passed.
    *
    * Only then does the job get the `CHALO` card (`4c`-`4e`); before that it is an ordinary tile
@@ -227,8 +227,11 @@ export function jobUrgencyFrom(urgency: string | null | undefined): JobUrgency {
  * response), so two handsets looking at one job agree. A deadline already passed is below five and
  * reads `critical`.
  */
-/** `4c` — the `CHALO` card appears once the reach-by time is under this many minutes away. */
-export const CHALO_WINDOW_MINUTES = 45;
+/**
+ * `4c` — the `CHALO` card appears once the booked slot is this many minutes away: the server opens
+ * Start travel at slot − 30 (Business Rules Spec §8, R-TRACK-03).
+ */
+export const CHALO_WINDOW_MINUTES = 30;
 export const IMMINENT_UNDER_MINUTES = 10;
 export const CRITICAL_UNDER_MINUTES = 5;
 

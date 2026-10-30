@@ -27,6 +27,8 @@ import {
 
 import { tearDownSession } from '../session/auth';
 import { useSession } from '../session/store';
+import * as Network from 'expo-network';
+
 import * as api from './cook';
 import { isApiError, isSessionExpired } from './errors';
 import type {
@@ -122,7 +124,7 @@ function handleSessionLoss(error: unknown): void {
 }
 
 export function createQueryClient(): QueryClient {
-  return new QueryClient({
+  const client = new QueryClient({
     queryCache: new QueryCache({ onError: handleSessionLoss }),
     mutationCache: new MutationCache({ onError: handleSessionLoss }),
     defaultOptions: {
@@ -134,6 +136,34 @@ export function createQueryClient(): QueryClient {
       mutations: { retry: false },
     },
   });
+  // A read that FAILED is not retried by `refetchOnWindowFocus` — the library does not treat it as
+  // due — so a cook who opened the app offline stayed on "Firse koshish kare" after the network
+  // came back, until she tapped the button. Coming back to the app is the moment she expects it
+  // to work, so re-read every mounted read that is currently showing an error.
+  const reReadErrored = (): void => {
+    void client.refetchQueries({
+      type: 'active',
+      predicate: (query) => query.state.status === 'error',
+    });
+  };
+  focusManager.subscribe((focused) => {
+    if (focused) reReadErrored();
+  });
+  // The other half: the network returns while the card is already on screen and she never left
+  // the app. Only the offline -> online edge matters. This deliberately does NOT feed
+  // `onlineManager`: that would pause reads while offline instead of failing them, and the
+  // screens would spin where they now show the error card.
+  let reachable = true;
+  try {
+    Network.addNetworkStateListener((state) => {
+      const now = state.isConnected === true && state.isInternetReachable !== false;
+      if (now && !reachable) reReadErrored();
+      reachable = now;
+    });
+  } catch {
+    // No native module (older build / test): focus re-read above still applies.
+  }
+  return client;
 }
 
 export const queryKeys = {
@@ -176,11 +206,42 @@ export function useEarningsPolicy(enabled = true): UseQueryResult<CookEarningsPo
   });
 }
 
+/**
+ * When the profile should next re-read itself because Mark Present is about to open, or `false`.
+ *
+ * The profile was only re-read when the screen mounted or the app came back to the foreground. A
+ * cook who opened Hazri before the check-in window and left it there kept reading "Abhi jaldi
+ * hai. 6:00 AM se button dabaye" with the button off long after 6:00: the server had opened it and
+ * nothing asked (Sanchita, 2026-10-24, reproduced on a Galaxy S21 on 2026-10-24).
+ *
+ * The wait is measured on the SERVER's clock -- `checkInOpensAt` minus the `serverTime` that came
+ * back with it -- never against the handset's, so a wrong phone clock cannot open the button early
+ * or hold it shut. A second and a half is added so the read lands after the boundary, not on it.
+ *
+ * If the server says the window should already be open and still reports it closed, this falls
+ * back to a slow poll rather than a tight loop.
+ */
+export const CHECK_IN_RECHECK_MARGIN_MS = 1_500;
+export const CHECK_IN_RECHECK_FALLBACK_MS = 15_000;
+
+export function checkInRecheckDelayMs(profile: CookProfileResponse | undefined): number | false {
+  const today = profile?.today;
+  if (today === undefined || today.canCheckIn) return false;
+  if (today.reason !== 'BEFORE_CHECK_IN_WINDOW' || today.checkInOpensAt === null) return false;
+  const opensAt = Date.parse(today.checkInOpensAt);
+  const serverNow = Date.parse(profile?.serverTime ?? '');
+  if (!Number.isFinite(opensAt) || !Number.isFinite(serverNow)) return false;
+  const wait = opensAt - serverNow + CHECK_IN_RECHECK_MARGIN_MS;
+  return wait > 0 ? wait : CHECK_IN_RECHECK_FALLBACK_MS;
+}
+
 export function useCookProfile(enabled = true): UseQueryResult<CookProfileResponse> {
   return useQuery({
     queryKey: queryKeys.profile,
     queryFn: ({ signal }) => api.getCookProfile({ signal }),
     enabled,
+    // Re-read when the check-in window opens; `false` (no polling) in every other state.
+    refetchInterval: (query) => checkInRecheckDelayMs(query.state.data),
   });
 }
 
@@ -407,6 +468,26 @@ export function useMarkArrived(): UseMutationResult<
   { bookingId: string; assignmentVersion: number; idempotencyKey: string }
 > {
   return useJobCommand((args) => api.markArrived(args));
+}
+
+/** `Der ho rahi hai` -- reports a delay. Re-reads the job: nothing on it changes, but it is cheap. */
+export function useReportDelay(): UseMutationResult<
+  { readonly lateForBookedSlot: boolean },
+  unknown,
+  {
+    bookingId: string;
+    assignmentVersion: number;
+    minutes: api.ReportableDelayMinutes;
+    idempotencyKey: string;
+  }
+> {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (args) => api.reportDelay(args),
+    onSuccess: async () => {
+      await client.invalidateQueries({ queryKey: ['cook', 'jobs'] });
+    },
+  });
 }
 
 /**
