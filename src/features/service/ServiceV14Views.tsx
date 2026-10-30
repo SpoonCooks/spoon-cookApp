@@ -732,6 +732,68 @@ export interface TravelViewProps {
   readonly canMarkArrived?: boolean;
   readonly isSubmitting?: boolean;
   readonly onHelp?: (() => void) | undefined;
+  /** `Der ho rahi hai` (R-TRACK-16). Absent: no delay row. */
+  readonly onReportDelay?: ((minutes: 5 | 10 | 15) => void) | undefined;
+  readonly isReportingDelay?: boolean;
+  /** What the last report came back with, or its error. */
+  readonly delayReportMessage?: string | null;
+}
+
+/**
+ * `Der ho rahi hai` — she tells Spoon she will be 5, 10 or 15 minutes late.
+ *
+ * Not in the V14 frames: the Business Rules Spec §8 (R-TRACK-16) asks for it and no design exists
+ * yet, so it reuses the duration chip's look rather than inventing a new one.
+ */
+function DelayReportRow({
+  onReport,
+  disabled,
+  message,
+  scale,
+}: {
+  readonly onReport: (minutes: 5 | 10 | 15) => void;
+  readonly disabled: boolean;
+  readonly message: string | null;
+  readonly scale: DesignScale;
+}): React.ReactElement {
+  const { s } = scale;
+  return (
+    <Block>
+      <View style={{ gap: s(8) }} testID="service-delay">
+        <Text variant="caption" color={color.black}>
+          Der ho rahi hai?
+        </Text>
+        <View style={[styles.customerRow, { gap: s(8) }]}>
+          {([5, 10, 15] as const).map((minutes) => (
+            <Pressable
+              key={minutes}
+              accessibilityRole="button"
+              accessibilityState={{ disabled }}
+              disabled={disabled}
+              onPress={() => onReport(minutes)}
+              style={[
+                styles.durationChip,
+                disabled ? styles.arrivedCtaDisabled : null,
+                {
+                  borderRadius: s(DETAILS.durationRadius),
+                  paddingHorizontal: s(DETAILS.durationPaddingH),
+                  paddingVertical: s(DETAILS.durationPaddingV),
+                },
+              ]}
+              testID={`service-delay-${minutes}`}
+            >
+              <Text variant="durationChip">{`+${minutes} min`}</Text>
+            </Pressable>
+          ))}
+        </View>
+        {message !== null && (
+          <Text variant="caption" color={color.black} testID="service-delay-message">
+            {message}
+          </Text>
+        )}
+      </View>
+    </Block>
+  );
 }
 
 /**
@@ -811,6 +873,9 @@ export function TravelView({
   canMarkArrived = false,
   isSubmitting = false,
   onHelp,
+  onReportDelay,
+  isReportingDelay = false,
+  delayReportMessage = null,
 }: TravelViewProps): React.ReactElement {
   const scale = useDesignScale();
   const { s } = scale;
@@ -919,6 +984,14 @@ export function TravelView({
         </View>
       </Block>
       <UserDetailsCard job={job} onMap={onMap} onCall={onCall} callError={callError} />
+      {onReportDelay !== undefined && (
+        <DelayReportRow
+          onReport={onReportDelay}
+          disabled={isReportingDelay}
+          message={delayReportMessage}
+          scale={scale}
+        />
+      )}
     </ServiceShell>
   );
 }
