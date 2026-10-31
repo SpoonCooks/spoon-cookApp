@@ -527,20 +527,35 @@ function UserDetailsCard({
     .filter((part) => part !== '')
     .join(', ');
   /*
-   * R-AREA-17: an independent house has no building, so its first line is the street/lane it was
-   * saved with, and its landmark and area follow. The floor, saved since the redesigned form, sits
-   * on the flat line. Each still drops when the address has nothing for it.
+   * The flat line leads (owner, 31 Oct 2026): "Flat 549, Floor 4" — or "House 27, Floor 2" for an
+   * independent house — is what the cook looks for at the door, then the building or street and the
+   * rest as before. The number keeps the customer's own text behind its word; the floor is the
+   * customer's input behind "Floor" unless they already wrote the word themselves. A booking from
+   * before property types shows its number as typed.
+   *
+   * R-AREA-17: an independent house has no building, so its street/lane follows, then its landmark
+   * and area. Each line still drops when the address has nothing for it.
    */
   const trimmed = (value: string | null | undefined) => value?.trim() ?? '';
+  const number = trimmed(job.address.flatOrHouse);
+  const numberWord =
+    job.address.propertyType === 'apartment'
+      ? 'Flat '
+      : job.address.propertyType === 'house'
+        ? 'House '
+        : '';
   const floor = trimmed(job.address.floor);
-  const flatLine = [trimmed(job.address.flatOrHouse), floor === '' ? '' : `Floor ${floor}`]
+  const flatLine = [
+    number === '' ? '' : `${numberWord}${number}`,
+    floor === '' ? '' : /floor/iu.test(floor) ? floor : `Floor ${floor}`,
+  ]
     .filter((part) => part !== '')
     .join(', ');
   const house = buildingLine === '';
   const rows = (
     [
-      { icon: art.building, text: house ? trimmed(job.address.lane) : buildingLine },
       { icon: art.flat, text: flatLine },
+      { icon: art.building, text: house ? trimmed(job.address.lane) : buildingLine },
       { icon: art.building, text: house ? trimmed(job.address.landmark) : '' },
       { icon: art.building, text: house ? trimmed(job.address.locality) : '' },
     ] as readonly { icon: ImageSourcePropType; text: string }[]
