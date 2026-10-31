@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react-native';
+import { fireEvent, render, screen, within } from '@testing-library/react-native';
 
 import { serviceV14Fixtures } from '@core/fixtures';
 import type { JobSummary } from '@core/domain/serviceState';
@@ -245,6 +245,36 @@ describe('the address card', () => {
     rowsFor({ buildingName: 'Dawars', towerOrBlock: null, floor: '4', flatOrHouse: '549' });
 
     expect(screen.getByText('549, Floor 4')).toBeTruthy();
+  });
+
+  it('leads with "Flat <number>, Floor <input>", then the building (owner, 31 Oct 2026)', () => {
+    rowsFor({
+      buildingName: 'Dawars',
+      towerOrBlock: 'B Block',
+      floor: '4',
+      flatOrHouse: '549',
+      propertyType: 'apartment',
+    });
+
+    // In the card's own order: the flat line first, then the building.
+    const lines = within(screen.getByTestId('service-details-rows'))
+      .getAllByText(/./u)
+      .map((node) => String(node.props.children));
+    expect(lines.slice(0, 2)).toEqual(['Flat 549, Floor 4', 'Dawars, B Block']);
+  });
+
+  it('says House for an independent house, and keeps a floor the customer already worded', () => {
+    rowsFor({
+      buildingName: null,
+      towerOrBlock: null,
+      floor: 'Ground floor',
+      flatOrHouse: '27',
+      propertyType: 'house',
+      lane: '6th Cross',
+    });
+
+    expect(screen.getByText('House 27, Ground floor')).toBeTruthy();
+    expect(screen.getByText('6th Cross')).toBeTruthy();
   });
 
   it("shows an independent house's lane, landmark and area after Chalo (R-AREA-17)", () => {

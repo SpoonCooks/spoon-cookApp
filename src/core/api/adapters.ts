@@ -98,6 +98,7 @@ function toAddress(job: CookJobResponse): CustomerAddressSnapshot {
     towerOrBlock: job.destination.tower,
     floor: job.destination.floor ?? null,
     flatOrHouse: job.destination.flat,
+    propertyType: job.destination.propertyType ?? null,
     lane: job.destination.lane ?? null,
     landmark: job.destination.landmark ?? null,
     locality: job.destination.locality ?? null,
