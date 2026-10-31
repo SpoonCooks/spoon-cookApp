@@ -470,26 +470,6 @@ export function useMarkArrived(): UseMutationResult<
   return useJobCommand((args) => api.markArrived(args));
 }
 
-/** `Der ho rahi hai` -- reports a delay. Re-reads the job: nothing on it changes, but it is cheap. */
-export function useReportDelay(): UseMutationResult<
-  { readonly lateForBookedSlot: boolean },
-  unknown,
-  {
-    bookingId: string;
-    assignmentVersion: number;
-    minutes: api.ReportableDelayMinutes;
-    idempotencyKey: string;
-  }
-> {
-  const client = useQueryClient();
-  return useMutation({
-    mutationFn: (args) => api.reportDelay(args),
-    onSuccess: async () => {
-      await client.invalidateQueries({ queryKey: ['cook', 'jobs'] });
-    },
-  });
-}
-
 /**
  * Send the arrival selfie. Re-reads the job afterwards: whether a selfie is on record is the
  * server's to say, and it is what moves the flow on to the Start OTP.

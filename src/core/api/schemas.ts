@@ -734,13 +734,6 @@ export type CookCycleDetailResponse = z.infer<typeof cookCycleDetailSchema>;
  */
 export const commandAckSchema = z.looseObject({});
 
-/** `POST /v1/cook/bookings/:bookingId/report-delay` -- the `data` of the answer. */
-export const delayReportSchema = z.object({
-  minutes: z.number(),
-  expectedArrivalAt: isoString,
-  lateForBookedSlot: z.boolean(),
-});
-
 /** `POST /v1/cook/bookings/:bookingId/arrival-selfie` -- the `data` of the answer. */
 export const arrivalSelfieAckSchema = z.object({ selfieId: z.string(), capturedAt: isoString });
 

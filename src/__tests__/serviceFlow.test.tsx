@@ -18,7 +18,6 @@ import ServiceScreen from '@/app/service/[bookingId]';
 const mockStartOtp = jest.fn();
 const mockEndOtp = jest.fn();
 const mockArrive = jest.fn();
-const mockReportDelay = jest.fn();
 const mockStartTravel = jest.fn();
 const mockUploadSelfie = jest.fn();
 const mockTrackerPrepare = jest.fn(async (_target: unknown) => ({ status: 'ready' }));
@@ -33,7 +32,6 @@ jest.mock('@core/api/queries', () => ({
   useVerifyStartOtp: () => ({ mutate: mockStartOtp, isPending: false }),
   useVerifyEndOtp: () => ({ mutate: mockEndOtp, isPending: false }),
   useMarkArrived: () => ({ mutate: mockArrive, isPending: false }),
-  useReportDelay: () => ({ mutate: mockReportDelay, isPending: false }),
   useStartCommute: () => ({ mutate: mockStartTravel, isPending: false }),
   useUploadArrivalSelfie: () => ({ mutate: mockUploadSelfie, isPending: false }),
 }));
@@ -145,18 +143,9 @@ describe('the projection decides the screen', () => {
     expect(screen.getByTestId('service-travel-on_time')).toBeTruthy();
   });
 
-  it('reports a +10 delay from the travel screen with the version and a key (R-TRACK-16)', () => {
+  it('offers no +5 / +10 / +15 delay chips on the travel screen', () => {
     render(<ServiceScreen />);
-    fireEvent.press(screen.getByTestId('service-delay-10'));
-    expect(mockReportDelay).toHaveBeenCalledWith(
-      expect.objectContaining({
-        bookingId: 'b1',
-        minutes: 10,
-        assignmentVersion: expect.any(Number),
-        idempotencyKey: expect.any(String),
-      }),
-      expect.anything(),
-    );
+    expect(screen.queryByTestId('service-delay')).toBeNull();
   });
 
   it('separates at-risk from late rather than collapsing them', () => {
