@@ -358,7 +358,7 @@ function JobTile({ job, scale }: { job: JobCardModel; scale: DesignScale }): Rea
               />
             )}
             <Text variant="cardTime" numberOfLines={1}>
-              {formatClock(job.scheduledStartIso)}
+              {tileTimeLabel(job)}
             </Text>
           </View>
           <DurationChip
@@ -396,6 +396,19 @@ export function leadCardTimeLabel(job: JobCardModel): string {
   if (job.minutesToDeadline !== null && job.minutesToDeadline < LEAD_COUNTDOWN_THRESHOLD_MINUTES) {
     return formatMinutes(job.minutesToDeadline);
   }
+  return formatClock(job.reachByIso ?? job.scheduledStartIso);
+}
+
+/**
+ * The time on a list tile: her reach-by, like the lead card.
+ *
+ * The tile used to print the booking time, so a 5:00 job she must reach by 4:45 read `5:00` on the
+ * list and only turned into `4:45` when it became the lead card at slot - 30. The slot is the
+ * customer's time; the cook is held to the reach-by (spec §8).
+ *
+ * Falls back to the booking time only when the server sent no reach-by time at all.
+ */
+export function tileTimeLabel(job: JobCardModel): string {
   return formatClock(job.reachByIso ?? job.scheduledStartIso);
 }
 
