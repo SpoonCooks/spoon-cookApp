@@ -130,6 +130,7 @@ const upcomingJob: JobCardModel = {
   isActionable: false,
   blockedReason: null,
   scheduledStartIso: '2026-08-21T15:30:00+05:30',
+  reachByIso: '2026-08-21T15:30:00+05:30',
 };
 
 /**
@@ -146,6 +147,8 @@ const v14Tile = (
   ...currentJob,
   bookingId,
   scheduledStartIso: startIso,
+  // The tile draws the reach-by, so it carries the frame's time too.
+  reachByIso: startIso,
   serviceDurationMinutes,
   minutesToDeadline: null,
   travelMinutes: null,
@@ -278,6 +281,7 @@ export const jobFixtures = {
               ...upcomingJob,
               bookingId: 'fixture-booking-3',
               scheduledStartIso: '2026-08-22T10:00:00+05:30',
+              reachByIso: '2026-08-22T10:00:00+05:30',
             },
           ],
         },

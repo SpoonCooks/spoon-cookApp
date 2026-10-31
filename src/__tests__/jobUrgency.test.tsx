@@ -7,6 +7,7 @@ import {
   JobsView,
   LEAD_COUNTDOWN_THRESHOLD_MINUTES,
   leadCardTimeLabel,
+  tileTimeLabel,
 } from '@features/jobs/JobViews';
 
 /**
@@ -134,5 +135,24 @@ describe('lead card switches from clock time to minutes at 45 minutes', () => {
 
   it('falls back to the booking time only when there is no reach-by time', () => {
     expect(leadCardTimeLabel({ ...job, reachByIso: null, minutesToDeadline: 90 })).toBe('4:45 PM');
+  });
+});
+
+describe('list tiles show the reach-by time, not the booking time', () => {
+  const lead = jobsV14Fixtures.countdown(20, 'soon').leadJob;
+  if (lead === null) throw new Error('countdown fixture has no lead job');
+  // A 5:00 booking she must reach by 4:45: the pull to slot - 15.
+  const job = {
+    ...lead,
+    scheduledStartIso: '2026-11-07T17:00:00+05:30',
+    reachByIso: '2026-11-07T16:45:00+05:30',
+  };
+
+  it('shows the reach-by clock time', () => {
+    expect(tileTimeLabel(job)).toBe('4:45 PM');
+  });
+
+  it('falls back to the booking time only when there is no reach-by time', () => {
+    expect(tileTimeLabel({ ...job, reachByIso: null })).toBe('5:00 PM');
   });
 });
