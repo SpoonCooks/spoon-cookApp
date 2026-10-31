@@ -9,7 +9,6 @@ import { apiErrorMessage, isApiError } from '@core/api/errors';
 import {
   useJob,
   useMarkArrived,
-  useReportDelay,
   useUploadArrivalSelfie,
   useVerifyEndOtp,
   useVerifyStartOtp,
@@ -78,10 +77,6 @@ export default function ServiceScreen(): React.ReactElement {
 
   const verifyEndOtp = useVerifyEndOtp();
   const markArrived = useMarkArrived();
-  const reportDelay = useReportDelay();
-  const [delayMessage, setDelayMessage] = useState<string | null>(null);
-  // Each report is its own intent; a failed one keeps its key so a retry is not a second report.
-  const delayReports = useRef(0);
   const verifyStartOtp = useVerifyStartOtp();
   const uploadSelfie = useUploadArrivalSelfie();
 
@@ -347,31 +342,6 @@ export default function ServiceScreen(): React.ReactElement {
     );
   };
 
-  /** `Der ho rahi hai` (R-TRACK-16): +5, +10 or +15 minutes. */
-  const sendDelay = (minutes: 5 | 10 | 15): void => {
-    if (state?.kind !== 'travelling' || reportDelay.isPending) return;
-    setDelayMessage(null);
-    reportDelay.mutate(
-      {
-        bookingId: id,
-        assignmentVersion: state.job.assignmentVersion,
-        minutes,
-        idempotencyKey: keyFor(`delay-${String(delayReports.current)}-${String(minutes)}`),
-      },
-      {
-        onSuccess: (answer) => {
-          delayReports.current += 1;
-          setDelayMessage(
-            answer.lateForBookedSlot
-              ? `+${String(minutes)} min bata diya. Customer ko bata diya gaya.`
-              : `+${String(minutes)} min bata diya.`,
-          );
-        },
-        onError: (error: unknown) => setDelayMessage(apiErrorMessage(error)),
-      },
-    );
-  };
-
   /* ------------------------------------------------- ongoing: stay on it --- */
 
   /**
@@ -465,9 +435,6 @@ export default function ServiceScreen(): React.ReactElement {
             onArrived={confirmArrival}
             canMarkArrived={state.canMarkArrived}
             isSubmitting={markArrived.isPending}
-            onReportDelay={sendDelay}
-            isReportingDelay={reportDelay.isPending}
-            delayReportMessage={delayMessage}
           />
         );
 
